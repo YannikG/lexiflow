@@ -90,7 +90,6 @@ class JobStore:
         return _row_to_record(row)
 
     def list_jobs(self, limit: int = 50) -> list[JobRecord]:
-        self.prune_completed()
         rows = self._connection.execute(
             """
             SELECT * FROM jobs

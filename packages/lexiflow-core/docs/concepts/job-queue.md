@@ -26,7 +26,7 @@ Job failure is isolated: the worker marks the job **Failed**, logs the error, an
 
 ## History retention
 
-`list_jobs` keeps the twenty most recent **Completed** jobs and prunes older completed rows. Other states are not pruned automatically.
+At most twenty **Completed** rows are kept. Pruning runs when a job transitions to **Completed**, not during `list_jobs`.
 
 ## Retry vs recovery
 

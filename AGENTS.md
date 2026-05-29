@@ -74,6 +74,31 @@ Each module, class, and public function should have **one reason to change**. En
 
 In the **Plan**, state when a new public type or module was introduced and what single responsibility it owns. If a change touches multiple concerns, split the PR or justify the exception.
 
+## Command-query separation (mandatory)
+
+Follow **CQS**: **commands** change state; **queries** return data and have **no side effects**.
+
+### Rules
+
+1. **Queries are read-only** — Methods named `get`, `list`, `find`, `load`, or `read` must not write to disk, databases, or mutable in-memory state.
+2. **Commands own mutation** — Creates, updates, deletes, and state transitions live in clearly named command methods or services (`enqueue`, `cancel`, `complete`, `migrate`, `prune`).
+3. **No hidden housekeeping in queries** — Do not prune, migrate, touch `updated_at`, or commit inside a query because it is convenient. Call maintenance from the command that caused the change, or from an explicit coordinator the caller controls.
+4. **Return values match role** — Queries return data (or `None` / empty collections). Commands return IDs, counts, or nothing; they do not double as data fetches unless the spec requires a single transactional read-after-write and the method is named as a command.
+5. **Callers compose** — If an operation needs read-then-write, the coordinator orchestrates a query and a command; a low-level store method does not silently do both.
+
+### Examples (this repo)
+
+| Prefer | Avoid |
+|--------|-------|
+| `mark_completed(...)` calls `prune_completed()` after the transition | `list_jobs()` deletes old rows while listing |
+| `MigrationRunner.migrate(...)` applies scripts; callers read schema separately | `connect_sqlite` runs pending migrations on every open |
+| `ensure_job_queue(data_root)` runs migrations when explicitly bootstrapping | `JobService.list_jobs()` migrates or prunes as a side effect |
+| `SettingsStore.load()` reads TOML only | `load()` also repairs corrupt keys or rewrites defaults silently |
+
+### PR check
+
+In review, flag any public query that commits, deletes, or mutates. If a read path must trigger maintenance, split into an explicit command or document the exception in the Plan.
+
 ## Package boundaries
 
 | Package | Allowed |
@@ -95,7 +120,7 @@ In the **Plan**, state when a new public type or module was introduced and what 
 uv sync
 uv run ruff check .
 uv run ruff format --check .
-uv run mypy packages/lexiflow-core
+uv run mypy packages/lexiflow-core packages/lexiflow-worker
 uv run pytest
 ```
 

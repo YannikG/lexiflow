@@ -28,11 +28,17 @@ def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO)
 
     data_root = args.data_root
+    temp_dir: tempfile.TemporaryDirectory[str] | None = None
     if data_root is None:
-        data_root = Path(tempfile.mkdtemp(prefix="lexiflow-worker-"))
+        temp_dir = tempfile.TemporaryDirectory(prefix="lexiflow-worker-")
+        data_root = Path(temp_dir.name)
 
-    job_service = JobService(data_root)
-    logger.info("worker consuming queue at %s", job_service.db_path)
-    run_worker_loop(job_service, FakeLLM())
-    logger.info("worker idle")
+    try:
+        job_service = JobService(data_root)
+        logger.info("worker consuming queue at %s", job_service.db_path)
+        run_worker_loop(job_service, FakeLLM())
+        logger.info("worker idle")
+    finally:
+        if temp_dir is not None:
+            temp_dir.cleanup()
     return 0
