@@ -25,8 +25,7 @@ The **Application shell** is LexiFlow's main window frame: toolbar, **sidebar**,
 - **Active target language** toolbar display shows flag, name, and **user language level**
 - Main window receives `Settings` and `data_root` after onboarding
 
-## Deferred (phase 07+)
+## Deferred (phase 08+)
 
-- Ollama probe and **model bootstrap** in onboarding wizard (phase 07)
 - Sidebar group/text tree, reader, add-text (phase 08+)
 - Jobs panel, quit-with-jobs dialog, worker idle lifecycle (phase 14)

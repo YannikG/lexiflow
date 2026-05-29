@@ -9,6 +9,7 @@
 - **Shutdown with active jobs**: Wait or Quit anyway
 - **Worker idle lifecycle** and **LLM toggle**; crash → **restart worker**
 - **Settings**: Ollama, **Hugging Face token**, **data root**, **theme**, appearance
+- **Model updates** UI: wire `ModelStore.check_for_updates()` and edit `huggingface_token` (backend from phase 07)
 - **About dialog**: **system requirements**, version, logs
 - **In-app updates** notification with download link
 - **Reset app** factory wipe + **onboarding flow**
@@ -48,6 +49,14 @@
 ### Cycle 14.5 — Update check notifies when newer tag
 
 **Test:** mock GitHub API → banner with link.
+
+---
+
+### Cycle 14.5b — Model pin update check in settings
+
+**Test:** installed revision older than `models.lock` → settings shows `UpdateAvailable` list; user-initiated only.
+
+**Depends on:** phase 07 `ModelStore.check_for_updates()` and `Settings.huggingface_token`.
 
 ---
 

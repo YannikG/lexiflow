@@ -18,6 +18,7 @@ def test_ensure_app_layout_creates_dot_app(tmp_path: Path) -> None:
 
     assert (data_root / ".app").is_dir()
     assert (data_root / ".app" / "logs").is_dir()
+    assert (data_root / ".app" / "models").is_dir()
 
 
 def test_bootstrap_runtime_ensures_app_layout(tmp_path: Path) -> None:
@@ -30,3 +31,4 @@ def test_bootstrap_runtime_ensures_app_layout(tmp_path: Path) -> None:
 
     assert resolved == data_root.resolve()
     assert (data_root / ".app" / "logs").is_dir()
+    assert (data_root / ".app" / "models").is_dir()

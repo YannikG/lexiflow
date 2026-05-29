@@ -37,6 +37,9 @@ def _discard_new_target(data_root: Path, iso: str) -> None:
 def add_target_with_spacy_download(data_root: Path, iso: str, level: CEFRLevel) -> None:
     """Add a target language and enqueue its spaCy pack download."""
     store = LanguageStore(data_root)
+    if iso in store.list_targets():
+        store.set_user_level(iso, level)
+        return
     store.add_target(iso, level)
     try:
         JobService(data_root).enqueue(
@@ -65,8 +68,9 @@ def complete_language_onboarding(
         data_root=settings.data_root,
         native_language=native_language,
         active_target_language=target_language,
-        onboarding_complete=True,
+        onboarding_complete=settings.onboarding_complete,
         ollama_url=settings.ollama_url,
+        huggingface_token=settings.huggingface_token,
         llm_enabled=settings.llm_enabled,
         theme=settings.theme,
     )
@@ -76,3 +80,26 @@ def complete_language_onboarding(
         _discard_new_target(data_root, target_language)
         raise LanguageSetupError("failed to save onboarding settings") from exc
     return updated
+
+
+def finalize_onboarding(
+    *,
+    settings_store: SettingsStore,
+    settings: Settings,
+) -> Settings:
+    """Mark first-run onboarding complete after all wizard steps succeed."""
+    final = Settings(
+        data_root=settings.data_root,
+        native_language=settings.native_language,
+        active_target_language=settings.active_target_language,
+        onboarding_complete=True,
+        ollama_url=settings.ollama_url,
+        huggingface_token=settings.huggingface_token,
+        llm_enabled=settings.llm_enabled,
+        theme=settings.theme,
+    )
+    try:
+        settings_store.save(final)
+    except Exception as exc:
+        raise LanguageSetupError("failed to save onboarding completion") from exc
+    return final

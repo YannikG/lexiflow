@@ -305,7 +305,7 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Onboarding LLM setup** — Detect local Ollama; offer one-click setup or embedded path with size and RAM expectations. Wizard blocks main UI until bootstrap completes (embedding model always; LLM unless Ollama configured).
 
-**Onboarding flow** — Welcome and RAM check, native language, Ollama or embedded choice, model download, add first target language with level (required), then main UI. First launch only; later via **settings**. `onboarding_complete` in **global settings** is set after the language wizard (phase 06); Ollama choice and **model bootstrap** are added in phase 07 before AI features are available.
+**Onboarding flow** — Welcome and RAM check, native language, LLM mode (Hugging Face download, Ollama, or manual import), model bootstrap when required, add first target language with level (required), then main UI. First launch only; later via **settings**. `onboarding_complete` in **global settings** is set only after the full wizard finishes (including LLM setup and **model bootstrap** where applicable).
 
 **Reset app** — Wipes all local data including cached models and re-runs **onboarding flow**. **Strong confirmation** required.
 
@@ -317,7 +317,7 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Hugging Face token** — Optional token in **settings** for rate limits and gated repos. Anonymous download works without token.
 
-**Ollama and embeddings** — Ollama replaces embedded LLM only. Embedding model always runs in-app from Hugging Face.
+**Ollama and embeddings** — Until [phase 10b](docs/roadmap/phases/phase-10b-ollama-embeddings/README.md) ([ADR 0005](docs/adr/0005-ollama-embedding-provider-deferred.md)): Ollama replaces embedded LLM only; embedding model always runs in-app from Hugging Face. After 10b: when **Ollama endpoint** is set, embeddings may use Ollama HTTP instead of MiniLM (pinned embed model; same vector contract as phase 10).
 
 **Embedded model lifecycle** — Manual on/off; auto-unload after idle when on. Ollama path: HTTP client only, no in-app model load.
 

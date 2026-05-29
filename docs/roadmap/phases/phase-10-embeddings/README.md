@@ -58,6 +58,10 @@ class VectorStore:
 
 ---
 
+## Deferred
+
+**Ollama embeddings** are out of scope for this phase. See [ADR 0005](../../../adr/0005-ollama-embedding-provider-deferred.md) and [phase 10b](../phase-10b-ollama-embeddings/README.md).
+
 ## Manual verification
 
 - Optional: real MiniLM locally outside CI.

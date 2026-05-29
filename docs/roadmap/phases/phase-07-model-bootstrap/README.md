@@ -59,6 +59,8 @@ class ModelStore:
 
 **Test:** Ollama path still downloads MiniLM.
 
+Until [phase 10b](../phase-10b-ollama-embeddings/README.md) ([ADR 0005](../../../adr/0005-ollama-embedding-provider-deferred.md)).
+
 ---
 
 ### Cycle 7.5 — HF token passed to downloader

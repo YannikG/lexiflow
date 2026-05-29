@@ -31,6 +31,22 @@ def test_add_target_rejects_unknown_language(tmp_path: Path) -> None:
         store.add_target("ru", CEFRLevel.A1)
 
 
+def test_set_user_level_updates_existing_target(tmp_path: Path) -> None:
+    store = LanguageStore(tmp_path)
+    store.add_target("es", CEFRLevel.A2)
+
+    store.set_user_level("es", CEFRLevel.B1)
+
+    assert store.get_user_level("es") == CEFRLevel.B1
+
+
+def test_set_user_level_requires_existing_target(tmp_path: Path) -> None:
+    store = LanguageStore(tmp_path)
+
+    with pytest.raises(LanguageStoreError, match="not found"):
+        store.set_user_level("es", CEFRLevel.A1)
+
+
 def test_add_target_rejects_duplicate(tmp_path: Path) -> None:
     store = LanguageStore(tmp_path)
     store.add_target("es", CEFRLevel.A2)
