@@ -1,5 +1,4 @@
-# CI skeleton for Phase 00
-# Phase 01 replaces placeholder test job with real pytest.
+# Phase 01: real quality gates (replaces Phase 00 placeholders)
 
 name: ci
 
@@ -14,12 +13,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Placeholder lint
-        run: echo "Phase 00 — wire ruff in Phase 01"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: uv sync
+      - name: Ruff check
+        run: uv run ruff check .
+      - name: Ruff format
+        run: uv run ruff format --check .
+      - name: Mypy (lexiflow-core)
+        run: uv run mypy packages/lexiflow-core
 
   test:
     runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
     steps:
       - uses: actions/checkout@v6
-      - name: Placeholder test
-        run: echo "Phase 00 — wire pytest in Phase 01"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: uv sync
+      - name: Pytest with coverage
+        run: uv run pytest
