@@ -13,13 +13,13 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Placeholder lint
         run: echo "Phase 00 — wire ruff in Phase 01"
 
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Placeholder test
         run: echo "Phase 00 — wire pytest in Phase 01"
