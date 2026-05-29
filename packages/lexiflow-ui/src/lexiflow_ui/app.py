@@ -32,7 +32,7 @@ def run(
     data_root = bootstrap_runtime(settings_store)
     supervisor = WorkerSupervisor(data_root=data_root)
     window = MainWindow(supervisor=supervisor)
-    guard.listen_for_activation(window.showNormal)
+    guard.listen_for_activation(window.request_activation)
     window.show()
     try:
         return app.exec()

@@ -67,3 +67,17 @@ def test_status_bar_shows_idle_after_worker_spawn(qtbot, tmp_path) -> None:
     supervisor.ensure_running()
 
     assert "idle" in window.statusBar().currentMessage().lower()
+
+
+def test_request_activation_restores_minimized_window(qtbot, tmp_path) -> None:
+    supervisor = WorkerSupervisor(data_root=tmp_path)
+    window = MainWindow(supervisor=supervisor)
+    qtbot.addWidget(window)
+    window.show()
+    window.showMinimized()
+    qtbot.waitUntil(window.isMinimized, timeout=2000)
+
+    window.request_activation()
+
+    qtbot.waitUntil(lambda: not window.isMinimized(), timeout=2000)
+    assert window.isVisible()

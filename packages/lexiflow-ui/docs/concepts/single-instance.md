@@ -9,7 +9,7 @@ LexiFlow allows only one UI instance per user session (**Single instance**). A s
 - Qt `QLocalServer` / `QLocalSocket` (not filesystem locks) per ADR-0002
 - Server name: `lexiflow-{username}`
 - Primary instance listens; secondary probes connect, shows dialog, optionally sends an activate message
-- Primary raises its window on activate
+- Primary calls `MainWindow.request_activation()` on activate (`raise_`, `activateWindow`, `QApplication.alert` for dock bounce on macOS)
 
 ## Stale recovery
 

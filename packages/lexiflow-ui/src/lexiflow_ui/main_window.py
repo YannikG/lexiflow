@@ -6,6 +6,7 @@ from typing import Literal
 
 from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import (
+    QApplication,
     QHBoxLayout,
     QMainWindow,
     QStackedWidget,
@@ -56,6 +57,18 @@ class MainWindow(QMainWindow):
     @property
     def current_content_widget(self) -> QWidget:
         return self._content_stack.currentWidget()
+
+    def request_activation(self) -> None:
+        """Raise and focus this window (e.g. second-instance Open existing)."""
+        if self.isMinimized():
+            self.showNormal()
+        elif not self.isVisible():
+            self.show()
+        self.raise_()
+        self.activateWindow()
+        app = QApplication.instance()
+        if app is not None:
+            app.alert(self)
 
     def _build_toolbar(self) -> None:
         toolbar = QToolBar("Main", self)
