@@ -1,0 +1,25 @@
+# CI skeleton for Phase 00
+# Phase 01 replaces placeholder test job with real pytest.
+
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Placeholder lint
+        run: echo "Phase 00 — wire ruff in Phase 01"
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Placeholder test
+        run: echo "Phase 00 — wire pytest in Phase 01"

@@ -1,0 +1,28 @@
+name: Phase (v1)
+description: v1 roadmap phase — spec lives in linked phase README
+title: "Phase XX: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **v1 rule:** Do not paste the full spec here. Link the phase README below.
+        Phases 01–15 only (phase 00 is committed directly to main). Add labels `phase` and `v1` after creation.
+        PR must include a Plan and `Closes #<this issue>`.
+  - type: input
+    id: phase-readme
+    attributes:
+      label: Phase spec (path)
+      description: Path to the phase README in the repo
+      placeholder: docs/roadmap/phases/phase-08-add-text-translate/README.md
+    validations:
+      required: true
+  - type: textarea
+    id: blocked-by
+    attributes:
+      label: Blocked by (issue numbers)
+      description: Previous phase issue(s). Set GitHub "blocked by" on the issue after creation.
+      placeholder: "#12"
+  - type: markdown
+    attributes:
+      value: |
+        After creating the issue, use GitHub **Relationships → Blocked by** for dependencies.
