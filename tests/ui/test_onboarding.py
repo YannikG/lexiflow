@@ -189,6 +189,10 @@ def test_re_run_onboarding_after_resetting_complete_flag(qtbot, tmp_path: Path) 
     _advance_wizard_to_finish(wizard, qtbot)
     assert store.load().onboarding_complete is True
 
+    wizard.bootstrap_page._stop_worker()
+    wizard.close()
+    qtbot.wait(50)
+
     store.save(replace(store.load(), onboarding_complete=False))
 
     wizard_again = OnboardingWizard(

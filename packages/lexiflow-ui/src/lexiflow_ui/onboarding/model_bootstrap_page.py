@@ -149,6 +149,17 @@ class ModelBootstrapPage(QWizardPage):
             return
 
         artifact_ids = tuple(required_artifact_ids(wizard.settings))
+        all_installed = all(
+            self._model_store.is_installed(artifact_id) for artifact_id in artifact_ids
+        )
+        if all_installed:
+            self._bootstrap_complete = True
+            self._progress.setRange(0, 100)
+            self._progress.setValue(100)
+            self._status.setText("All required models are ready.")
+            self.completeChanged.emit()
+            return
+
         self._status.setText("Downloading required models…")
         self._progress.setRange(0, 0)
         self.completeChanged.emit()

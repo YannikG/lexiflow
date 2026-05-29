@@ -13,6 +13,7 @@ from lexiflow_core.languages.setup import (
     finalize_onboarding,
 )
 from lexiflow_core.models.store import ModelStore
+from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
     QComboBox,
     QLabel,
@@ -171,6 +172,10 @@ class OnboardingWizard(QWizard):
         self.setPage(4, self._bootstrap)
         self.setPage(5, self._target)
         self.finished.connect(self._on_finished)
+
+    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+        self._bootstrap._stop_worker()
+        super().closeEvent(event)
 
     @property
     def settings(self) -> Settings:

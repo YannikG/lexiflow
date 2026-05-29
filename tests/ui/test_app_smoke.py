@@ -27,16 +27,18 @@ def test_app_smoke(qtbot, monkeypatch, tmp_path) -> None:
     store.save(Settings(data_root=data_root, onboarding_complete=True))
     original_show = MainWindow.show
 
-    def show_then_quit(self: MainWindow) -> None:
+    def show_then_close(self: MainWindow) -> None:
         original_show(self)
         qtbot.addWidget(self)
         assert self.windowTitle() == "LexiFlow"
         QTimer.singleShot(0, self.close)
-        app = QApplication.instance()
-        assert app is not None
-        QTimer.singleShot(0, app.quit)
 
-    monkeypatch.setattr(MainWindow, "show", show_then_quit)
+    def exec_process_events(_self: QApplication) -> int:
+        _self.processEvents()
+        return 0
+
+    monkeypatch.setattr(MainWindow, "show", show_then_close)
+    monkeypatch.setattr(QApplication, "exec", exec_process_events)
     assert (
         run(
             argv=["lexiflow-test"],
