@@ -7,7 +7,7 @@ from PySide6.QtCore import QProcess
 
 class FakeProcess:
     instances: list[FakeProcess] = []
-    shutdown_calls: list[bool] = []
+    shutdown_calls: list[str] = []
 
     def __init__(self, parent: object | None = None) -> None:
         self.parent = parent
@@ -25,12 +25,16 @@ class FakeProcess:
     def start(self) -> None:
         self.started = True
 
+    def terminate(self) -> None:
+        self.started = False
+        FakeProcess.shutdown_calls.append("terminate")
+
     def waitForFinished(self, msecs: int = 30000) -> bool:
-        FakeProcess.shutdown_calls.append(True)
+        FakeProcess.shutdown_calls.append("wait")
         return True
 
     def kill(self) -> None:
-        FakeProcess.shutdown_calls.append(False)
+        FakeProcess.shutdown_calls.append("kill")
 
     def state(self) -> QProcess.ProcessState:
         if self.started:

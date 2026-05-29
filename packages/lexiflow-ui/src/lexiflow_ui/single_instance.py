@@ -99,7 +99,7 @@ class SingleInstanceGuard(QObject):
             if socket is None:
                 continue
             if socket.bytesAvailable() == 0:
-                socket.waitForReadyRead(500)
+                socket.waitForReadyRead(100)
             if bytes(socket.readAll()) == ACTIVATE_MESSAGE:
                 callback()
             socket.disconnectFromServer()

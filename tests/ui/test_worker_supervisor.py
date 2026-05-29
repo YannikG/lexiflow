@@ -45,7 +45,7 @@ def test_shutdown_waits_for_worker(tmp_path: Path) -> None:
     supervisor.ensure_running()
     supervisor.shutdown(wait=True)
 
-    assert FakeProcess.shutdown_calls == [True]
+    assert FakeProcess.shutdown_calls == ["terminate", "wait"]
     assert supervisor.state is WorkerState.OFFLINE
 
 
@@ -62,7 +62,7 @@ def test_main_window_close_shuts_down_supervisor(qtbot, tmp_path: Path) -> None:
     qtbot.addWidget(window)
 
     window.close()
-    qtbot.waitUntil(lambda: len(FakeProcess.shutdown_calls) == 1, timeout=2000)
+    qtbot.waitUntil(lambda: "wait" in FakeProcess.shutdown_calls, timeout=2000)
 
 
 def test_main_window_close_without_worker_is_clean(qtbot, tmp_path: Path) -> None:

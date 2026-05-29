@@ -24,11 +24,16 @@ class WorkerProcess(Protocol):
 
     def start(self) -> None: ...
 
+    def terminate(self) -> None: ...
+
     def waitForFinished(self, msecs: int = 30000) -> bool: ...
 
     def kill(self) -> None: ...
 
     def state(self) -> QProcess.ProcessState: ...
+
+
+SHUTDOWN_WAIT_MS = 5000
 
 
 class WorkerSupervisor(QObject):
@@ -71,7 +76,9 @@ class WorkerSupervisor(QObject):
             self._set_state(WorkerState.OFFLINE)
             return
         if wait:
-            self._process.waitForFinished()
+            self._process.terminate()
+            if not self._process.waitForFinished(SHUTDOWN_WAIT_MS):
+                self._process.kill()
         else:
             self._process.kill()
         self._process = None

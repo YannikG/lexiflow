@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from PySide6.QtGui import QAction, QActionGroup
+from PySide6.QtGui import QAction, QActionGroup, QCloseEvent
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
@@ -117,6 +117,6 @@ class MainWindow(QMainWindow):
             self._texts_view if mode == "texts" else self._vocabulary_view
         )
 
-    def closeEvent(self, event) -> None:  # noqa: ANN001, N802
+    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         self._supervisor.shutdown(wait=True)
         super().closeEvent(event)
