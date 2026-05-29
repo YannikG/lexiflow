@@ -22,6 +22,11 @@ def language_data_dir(data_root: Path, language_code: str) -> Path:
     return language_data_root(data_root, language_code) / ".data"
 
 
+def language_json_path(data_root: Path, language_code: str) -> Path:
+    """Return the path to per-target-language metadata."""
+    return language_data_dir(data_root, language_code) / "language.json"
+
+
 def groups_json_path(data_root: Path, language_code: str) -> Path:
     """Return the path to the group registry for a target language."""
     return language_data_dir(data_root, language_code) / "groups.json"

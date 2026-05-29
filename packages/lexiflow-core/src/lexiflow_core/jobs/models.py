@@ -14,6 +14,7 @@ class JobType(StrEnum):
     TRANSLATE = "translate"
     SIMPLIFY = "simplify"
     EMBED = "embed"
+    DOWNLOAD_SPACY = "download_spacy"
 
 
 class JobStatus(StrEnum):

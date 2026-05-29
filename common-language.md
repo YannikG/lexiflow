@@ -305,7 +305,7 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Onboarding LLM setup** — Detect local Ollama; offer one-click setup or embedded path with size and RAM expectations. Wizard blocks main UI until bootstrap completes (embedding model always; LLM unless Ollama configured).
 
-**Onboarding flow** — Welcome and RAM check, native language, Ollama or embedded choice, model download, add first target language with level (required), then main UI. First launch only; later via **settings**.
+**Onboarding flow** — Welcome and RAM check, native language, Ollama or embedded choice, model download, add first target language with level (required), then main UI. First launch only; later via **settings**. `onboarding_complete` in **global settings** is set after the language wizard (phase 06); Ollama choice and **model bootstrap** are added in phase 07 before AI features are available.
 
 **Reset app** — Wipes all local data including cached models and re-runs **onboarding flow**. **Strong confirmation** required.
 
