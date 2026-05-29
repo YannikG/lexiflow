@@ -4,18 +4,38 @@ from __future__ import annotations
 
 import sys
 
+from lexiflow_core.config.bootstrap import bootstrap_runtime
+from lexiflow_core.config.settings_store import SettingsStore
 from PySide6.QtWidgets import QApplication
 
 from lexiflow_ui.main_window import MainWindow
+from lexiflow_ui.single_instance import SingleInstanceGuard
+from lexiflow_ui.worker_supervisor import WorkerSupervisor
 
 
-def run(argv: list[str] | None = None) -> int:
+def run(
+    argv: list[str] | None = None,
+    *,
+    settings_store: SettingsStore | None = None,
+    instance_guard: SingleInstanceGuard | None = None,
+) -> int:
     app = QApplication.instance()
     if app is None:
         if argv is None:
             argv = sys.argv
         app = QApplication(argv)
 
-    window = MainWindow()
+    guard = instance_guard if instance_guard is not None else SingleInstanceGuard()
+    if not guard.try_acquire():
+        return guard.handle_secondary_launch()
+
+    data_root = bootstrap_runtime(settings_store)
+    supervisor = WorkerSupervisor(data_root=data_root)
+    window = MainWindow(supervisor=supervisor)
+    guard.listen_for_activation(window.showNormal)
     window.show()
-    return app.exec()
+    try:
+        return app.exec()
+    finally:
+        supervisor.shutdown(wait=True)
+        guard.release()
