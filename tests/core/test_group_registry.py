@@ -54,6 +54,17 @@ def test_group_registry_remove(tmp_path: Path) -> None:
         registry.folder_slug_for_display("News")
 
 
+def test_group_registry_rename_rejects_collision_with_existing_display(
+    tmp_path: Path,
+) -> None:
+    registry = GroupRegistry(tmp_path, "es")
+    registry.register("News")
+    registry.register("Podcasts")
+
+    with pytest.raises(GroupSlugCollisionError):
+        registry.rename("News", "Podcasts")
+
+
 def test_group_registry_folder_slug_not_found(tmp_path: Path) -> None:
     registry = GroupRegistry(tmp_path, "es")
 

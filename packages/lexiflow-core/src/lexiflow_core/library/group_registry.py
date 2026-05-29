@@ -93,7 +93,7 @@ class GroupRegistry:
         new_slug = slugify_group_name(new_display)
         mapping = self.load()
         existing = mapping.get(new_slug)
-        if existing is not None and existing not in {old_display, new_display}:
+        if existing is not None and existing != old_display:
             raise GroupSlugCollisionError(
                 f"group folder slug {new_slug!r} is already used by {existing!r}"
             )

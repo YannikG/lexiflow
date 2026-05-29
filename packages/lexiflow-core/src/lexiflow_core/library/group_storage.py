@@ -9,6 +9,10 @@ from lexiflow_core.config.paths import group_dir
 from lexiflow_core.library.group_registry import GroupRegistry
 
 
+class GroupFolderExistsError(Exception):
+    """Raised when a group folder path already exists on disk."""
+
+
 class GroupStorage:
     def __init__(self, data_root: Path) -> None:
         self._data_root = data_root
@@ -35,6 +39,10 @@ class GroupStorage:
         old_path = group_dir(self._data_root, lang, old_slug)
         new_path = group_dir(self._data_root, lang, new_slug)
         if old_path.exists() and old_path != new_path:
+            if new_path.exists():
+                raise GroupFolderExistsError(
+                    f"target group folder already exists: {new_path}"
+                )
             new_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.move(str(old_path), str(new_path))
         if not new_path.exists():

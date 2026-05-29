@@ -160,6 +160,7 @@ class LibraryIndex:
         try:
             return registry.display_name_for_folder(folder_slug)
         except GroupNotFoundError:
+            registry.ensure_for_folder(folder_slug, metadata_group)
             return metadata_group
 
     def _upsert_on_connection(

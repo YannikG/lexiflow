@@ -209,6 +209,28 @@ def test_rebuild_uses_registry_display_name_without_writing_meta(
     assert load_text_metadata(meta_file).group == "Stale label"
 
 
+def test_rebuild_repairs_missing_groups_registry_entry(
+    library: tuple[Path, TextRepository, GroupRepository, LibraryIndex],
+) -> None:
+    data_root, text_repo, _, index = library
+    record = text_repo.create_text(
+        CreateTextRequest(
+            title="Repair",
+            group="News",
+            target_language="es",
+            native_language="de",
+        )
+    )
+    groups_path = groups_json_path(data_root, "es")
+    groups_path.unlink()
+
+    index.rebuild_from_disk(data_root)
+
+    groups = json.loads(groups_path.read_text(encoding="utf-8"))
+    assert groups["news"] == "News"
+    assert index.list_by_lang("es")[0].id == record.id
+
+
 def test_move_to_group_relocates_folder_and_updates_index(
     library: tuple[Path, TextRepository, GroupRepository, LibraryIndex],
 ) -> None:

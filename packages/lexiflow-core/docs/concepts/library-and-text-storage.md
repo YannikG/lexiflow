@@ -56,7 +56,7 @@ Path helpers live in `lexiflow_core.config.paths`. Filesystem mutations belong i
 - The `texts` table caches title, group, languages, variants, and timestamps for fast `list_by_lang` without disk reads.
 - `get_by_id` resolves text locations for `TextRepository.get_text`.
 - `list_by_lang` returns texts for **sidebar** listing (group display name, title, slug).
-- `rebuild_from_disk` rescans all language folders after external edits; infers missing `groups.json` entries from folder slugs.
+- `rebuild_from_disk` rescans all language folders after external edits; infers missing `groups.json` entries from folder slugs and repairs the registry (does not write `meta.json`).
 
 ## Repositories
 

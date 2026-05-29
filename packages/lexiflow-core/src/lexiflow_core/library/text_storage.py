@@ -84,6 +84,8 @@ class TextStorage:
         group_dir(self._data_root, target_language, group_folder_slug).mkdir(
             parents=True, exist_ok=True
         )
+        if new_folder.exists():
+            raise FileExistsError(f"target text folder already exists: {new_folder}")
         shutil.move(str(folder), str(new_folder))
         metadata = load_text_metadata(meta_path(new_folder))
         updated = TextMetadata(

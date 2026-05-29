@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import weakref
 from pathlib import Path
 from uuid import UUID
 
@@ -100,7 +101,9 @@ class LibraryCoordinator:
         self._groups.remove_registry_entry(lang, folder_slug)
 
 
-_coordinators: dict[int, LibraryCoordinator] = {}
+_coordinators: weakref.WeakValueDictionary[int, LibraryCoordinator] = (
+    weakref.WeakValueDictionary()
+)
 
 
 def coordinator_for(data_root: Path, index: LibraryIndex) -> LibraryCoordinator:
