@@ -152,3 +152,26 @@ def test_bundled_migrations_dir_contains_initial_script() -> None:
 
     assert migrations_dir.is_dir()
     assert (migrations_dir / "001_initial.sql").is_file()
+
+
+def test_migration_splits_semicolon_inside_string_literal(tmp_path: Path) -> None:
+    db_path = tmp_path / "nested" / "app.sqlite"
+    scripts_dir = tmp_path / "scripts"
+    scripts_dir.mkdir()
+    (scripts_dir / "001_quotes.sql").write_text(
+        "CREATE TABLE quotes (id INTEGER PRIMARY KEY, note TEXT);\n"
+        "INSERT INTO quotes (id, note) VALUES (1, 'a;b');\n"
+        "-- trailing comment with ; should not split\n",
+        encoding="utf-8",
+    )
+    runner = MigrationRunner()
+
+    runner.migrate(db_path, scripts_dir)
+
+    connection = connect_sqlite(db_path)
+    try:
+        note = connection.execute("SELECT note FROM quotes WHERE id = 1").fetchone()
+    finally:
+        connection.close()
+
+    assert note == ("a;b",)

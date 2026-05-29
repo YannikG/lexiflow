@@ -8,7 +8,9 @@ from lexiflow_core.db.connection import connect_sqlite
 
 
 def test_connect_sqlite_enables_wal(tmp_path: Path) -> None:
-    db_path = tmp_path / "test.sqlite"
+    db_dir = tmp_path / "data"
+    db_dir.mkdir()
+    db_path = db_dir / "test.sqlite"
     connection = connect_sqlite(db_path)
     try:
         journal_mode = connection.execute("PRAGMA journal_mode").fetchone()

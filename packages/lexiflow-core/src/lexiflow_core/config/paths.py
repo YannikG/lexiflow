@@ -5,6 +5,10 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from lexiflow_core.config.settings import Settings, SettingsStore
 
 APP_DATA_NAME = "LexiFlow"
 
@@ -27,16 +31,11 @@ def app_config_dir() -> Path:
 
 def default_data_root() -> Path:
     """Return the default user library path when settings do not override it."""
-    return (Path.home() / APP_DATA_NAME).expanduser().resolve()
+    return (Path.home() / APP_DATA_NAME).resolve()
 
 
-def resolve_data_root(settings: object) -> Path:
+def resolve_data_root(settings: Settings) -> Path:
     """Return the effective data root from settings or the default."""
-    from lexiflow_core.config.settings import Settings
-
-    if not isinstance(settings, Settings):
-        msg = "settings must be a Settings instance"
-        raise TypeError(msg)
     if settings.data_root is not None:
         return settings.data_root.expanduser().resolve()
     return default_data_root()
@@ -54,15 +53,12 @@ def language_data_root(data_root: Path, language_code: str) -> Path:
 
 
 def bootstrap_runtime(
-    settings_store: object | None = None,
+    settings_store: SettingsStore | None = None,
 ) -> Path:
     """Load settings, resolve the data root, and ensure runtime layout exists."""
-    from lexiflow_core.config.settings import SettingsStore
+    from lexiflow_core.config.settings import SettingsStore as RuntimeSettingsStore
 
-    store = settings_store if settings_store is not None else SettingsStore()
-    if not isinstance(store, SettingsStore):
-        msg = "settings_store must be a SettingsStore instance"
-        raise TypeError(msg)
+    store = settings_store if settings_store is not None else RuntimeSettingsStore()
     settings = store.load()
     data_root = resolve_data_root(settings)
     ensure_app_layout(data_root)
