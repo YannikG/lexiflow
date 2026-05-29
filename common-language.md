@@ -83,7 +83,9 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **User language level** — Per target language, the user's self-assessed CEFR level. Stored as **language metadata**, not on groups or texts. Set when adding a target language; changeable in language **settings** or at simplify time. Default for **simplify level picker**.
 
-**Group** — Named collection within a target language (e.g. news, podcasts). User-chosen label. Holds **texts**. **Groups have no CEFR level.** User can create, rename, and delete empty groups from the **sidebar**. **Adding a text requires selecting or creating a group**; no default inbox.
+**Group** — Named collection within a target language (e.g. news, podcasts). User-chosen label. Holds **texts**. **Groups have no CEFR level.** User can create, rename, and delete empty groups from the **sidebar**. **Adding a text requires selecting or creating a group**; no default inbox. On disk, each group uses a **group folder slug** derived from the display label; **text metadata** and the **library index** store the display name.
+
+**Group folder slug** — Filesystem-safe folder name for a **group** under a **language data root**. Derived from the user-facing group label (unsafe characters sanitized). Mapped to the display name in `{lang}/.data/groups.json`. **Sidebar** and **text metadata** use the display name, not the slug.
 
 **Group rename** — User renames a group from the **sidebar**; app updates storage, **text metadata**, and **library index**. Non-empty groups cannot be deleted until empty.
 
@@ -93,9 +95,9 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Text slug** — Short folder name derived from title plus random suffix. Combined with **group** forms **text storage layout**. Collisions resolved by regenerating suffix.
 
-**Text metadata** — Structured record per text: identifier, **target-language title**, **group**, source and native language, optional source URL, timestamps, and list of available **variants**. No level field on text. **Title** mirrors **document title** (see below). Source URL can be entered in **add text dialog**.
+**Text metadata** — Structured record per text: identifier, title, **group** (display name), source and native language, optional source URL, timestamps, and list of available **variants**. No level field on text. At create time the title is provisional until **plain translation** sets the **target-language title** (see **document title**). Source URL can be entered in **add text dialog**.
 
-**Document title** — Each **variant** has a title in that variant's language. The title is the document's top heading, not a duplicate heading inside the body. LLM proposes title on cleanup and translate; user can edit in preview or **properties panel**. **Text metadata** stores the **target-language title** for **sidebar** display.
+**Document title** — Each **variant** has a title in that variant's language. The title is the document's top heading, not a duplicate heading inside the body. LLM proposes title on cleanup and translate; user can edit in preview or **properties panel**. After **plain translation**, **text metadata** stores the **target-language title** for **sidebar** display.
 
 **Text metadata editing** — User edits title, group, and source URL via **properties panel**. Drag-and-drop in **sidebar** moves text between **groups** only. Source URL opens in the system browser when clicked.
 
@@ -382,6 +384,7 @@ Canonical terms (alphabetical):
 - Global search UI
 - Global settings
 - Group
+- Group folder slug
 - Group rename
 - Hugging Face token
 - In-app updates
