@@ -146,7 +146,7 @@ def test_failed_mid_script_migration_rolls_back_entire_script(tmp_path: Path) ->
 
 
 def test_bundled_migrations_dir_contains_initial_script() -> None:
-    from lexiflow_core.db.migrations import bundled_migrations_dir
+    from lexiflow_core.db.migration_loader import bundled_migrations_dir
 
     migrations_dir = bundled_migrations_dir()
 

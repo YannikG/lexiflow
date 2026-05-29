@@ -64,9 +64,11 @@ Each module, class, and public function should have **one reason to change**. En
 |--------|-------|
 | `connect_sqlite(path)` opens DB with pragmas only | `connect_sqlite` also `mkdir` parent dirs |
 | `ensure_app_layout(data_root)` creates library dirs | `SettingsStore.save` also migrates databases |
-| `MigrationRunner` orchestrates; `_split_sql_script` parses | One function that splits SQL and runs migrations |
-| `resolve_data_root(settings)` in `settings.py` typed as `Settings` | `resolve_data_root(settings: object)` in `paths.py` + runtime `isinstance` |
-| `bootstrap_runtime` in `bootstrap.py`; `paths.py` stays pure | High-level orchestration mixed into path helpers |
+| `ensure_database_parent(db_path)` prepares DB folder | `MigrationRunner` silently mkdirs without naming it |
+| `MigrationLoader` discovers; `split_sql_script` parses; `SchemaMigrationJournal` tracks versions | One class that discovers, parses, tracks, and applies |
+| `paths.py` pure calculations; `platform_dirs.py` OS config; `app_layout.py` mkdir | Path math mixed with OS detection and filesystem mutation |
+| `settings.py` model; `settings_store.py` I/O; `settings_resolution.py` policy | One settings module that models, serializes, resolves, and persists |
+| `bootstrap_runtime` in `bootstrap.py` | High-level orchestration mixed into path helpers |
 
 ### PR check
 

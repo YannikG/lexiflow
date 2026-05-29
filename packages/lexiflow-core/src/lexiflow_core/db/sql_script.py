@@ -83,7 +83,7 @@ def split_sql_script(sql: str) -> list[str]:
 
         if char == ";":
             statement = "".join(current).strip()
-            if statement:
+            if _is_meaningful_statement(statement):
                 statements.append(statement)
             current = []
             index += 1
@@ -93,6 +93,16 @@ def split_sql_script(sql: str) -> list[str]:
         index += 1
 
     statement = "".join(current).strip()
-    if statement:
+    if _is_meaningful_statement(statement):
         statements.append(statement)
     return statements
+
+
+def _is_meaningful_statement(statement: str) -> bool:
+    if not statement:
+        return False
+    for line in statement.splitlines():
+        stripped = line.strip()
+        if stripped and not stripped.startswith("--"):
+            return True
+    return False

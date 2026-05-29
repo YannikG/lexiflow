@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from lexiflow_core.config.paths import ensure_app_layout
-from lexiflow_core.config.settings import SettingsStore, resolve_data_root
+from lexiflow_core.config.app_layout import ensure_app_layout
+from lexiflow_core.config.settings_resolution import resolve_data_root
+from lexiflow_core.config.settings_store import SettingsStore
 
 
 def bootstrap_runtime(settings_store: SettingsStore | None = None) -> Path:

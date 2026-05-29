@@ -1,16 +1,13 @@
-"""Tests for lexiflow_core.config.settings."""
+"""Tests for lexiflow_core.config.settings and related modules."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
 import pytest
-from lexiflow_core.config.settings import (
-    Settings,
-    SettingsError,
-    SettingsStore,
-    resolve_data_root,
-)
+from lexiflow_core.config.settings import Settings, SettingsError
+from lexiflow_core.config.settings_resolution import resolve_data_root
+from lexiflow_core.config.settings_store import SettingsStore
 
 
 def test_settings_round_trip_native_language(tmp_path: Path) -> None:

@@ -31,3 +31,8 @@ class MigrationLoader:
                 )
             )
         return scripts
+
+
+def bundled_migrations_dir() -> Path:
+    """Return the packaged SQL migrations directory shipped with lexiflow-core."""
+    return Path(__file__).resolve().parent.parent / "migrations"

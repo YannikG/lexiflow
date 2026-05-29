@@ -15,14 +15,18 @@ Settings are read before opening the library so a **data root** override never c
 
 ## Path helpers
 
-| Helper | Purpose |
-|--------|---------|
-| `app_config_dir()` | Machine-local config directory |
-| `default_data_root()` | Default user library when settings omit `data_root` |
-| `resolve_data_root(settings)` | Effective library path from settings (`settings` module) |
-| `ensure_app_layout(data_root)` | Create `.app/` and `.app/logs/` under the library |
-| `bootstrap_runtime(settings_store)` | Load settings, resolve data root, ensure layout (`bootstrap` module) |
-| `language_data_root(data_root, code)` | Per-target-language folder (stub until later phases) |
+| Module | Helper | Purpose |
+|--------|--------|---------|
+| `platform_dirs` | `app_config_dir()` | Machine-local config directory |
+| `paths` | `default_data_root()` | Default user library when settings omit `data_root` |
+| `paths` | `language_data_root(data_root, code)` | Per-target-language folder (stub) |
+| `settings_resolution` | `resolve_data_root(settings)` | Effective library path from settings |
+| `app_layout` | `ensure_app_layout(data_root)` | Create `.app/` and `.app/logs/` under the library |
+| `bootstrap` | `bootstrap_runtime(settings_store)` | Load settings, resolve data root, ensure layout |
+| `settings_store` | `SettingsStore` | Read/write `settings.toml` |
+| `settings` | `Settings` | Global settings data model |
+
+Pure path formulas stay separate from filesystem mutation and from settings I/O.
 
 ## Global settings
 
@@ -38,4 +42,4 @@ Corrupt `settings.toml` surfaces as `SettingsError`; missing file returns defaul
 
 `connect_sqlite` opens databases with WAL journaling, foreign keys, and a busy timeout for safe concurrent access by UI and worker in later phases.
 
-`MigrationRunner` applies ordered `NNN_*.sql` scripts once per database inside a transaction. `MigrationLoader` discovers scripts; `split_sql_script` parses statements. Packaged scripts ship under `lexiflow_core/migrations/` (`bundled_migrations_dir()`).
+`MigrationRunner` applies pending scripts. `MigrationLoader` discovers files; `split_sql_script` parses statements; `SchemaMigrationJournal` tracks applied versions; `ensure_database_parent` prepares the database directory. Packaged scripts ship under `lexiflow_core/migrations/` (`bundled_migrations_dir()`).
