@@ -18,4 +18,4 @@ build-backend = "hatchling.build"
 packages = ["src/lexiflow_worker"]
 
 [project.scripts]
-lexiflow-worker = "lexiflow_worker.__main__:main"
+lexiflow-worker = "lexiflow_worker.main:main"

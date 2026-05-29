@@ -1,15 +1,20 @@
 from lexiflow_ui.app import run
+from lexiflow_ui.main_window import MainWindow
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication
 
 
-def test_run_returns_zero_when_app_quits(qtbot, monkeypatch) -> None:
-    monkeypatch.setattr(QApplication, "exec", lambda self: 0)
+def test_app_smoke(qtbot, monkeypatch) -> None:
+    original_show = MainWindow.show
+
+    def show_then_quit(self: MainWindow) -> None:
+        original_show(self)
+        qtbot.addWidget(self)
+        assert self.windowTitle() == "LexiFlow"
+        QTimer.singleShot(0, self.close)
+        app = QApplication.instance()
+        assert app is not None
+        QTimer.singleShot(0, app.quit)
+
+    monkeypatch.setattr(MainWindow, "show", show_then_quit)
     assert run() == 0
-
-
-def test_main_window_has_lexiflow_title(qtbot) -> None:
-    from lexiflow_ui.main_window import MainWindow
-
-    window = MainWindow()
-    qtbot.addWidget(window)
-    assert window.windowTitle() == "LexiFlow"

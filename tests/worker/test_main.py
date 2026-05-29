@@ -1,4 +1,4 @@
-from lexiflow_worker.__main__ import main
+from lexiflow_worker.main import main
 
 
 def test_main_exits_zero() -> None:

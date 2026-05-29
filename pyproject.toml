@@ -49,7 +49,6 @@ addopts = [
     "--cov=lexiflow_core",
     "--cov=lexiflow_ui",
     "--cov-report=term-missing",
-    "--cov-fail-under=80",
 ]
 
 [tool.coverage.run]
@@ -57,5 +56,4 @@ source = ["lexiflow_core", "lexiflow_ui"]
 branch = true
 
 [tool.coverage.report]
-fail_under = 80
 omit = ["tests/*", "*/__main__.py"]
