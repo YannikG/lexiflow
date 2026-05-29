@@ -1,0 +1,12 @@
+[project]
+name = "lexiflow-core"
+version = "0.0.0"
+description = "Domain logic, storage, jobs, and LLM/embed abstractions for LexiFlow"
+requires-python = ">=3.12,<3.14"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/lexiflow_core"]

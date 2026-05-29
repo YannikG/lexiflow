@@ -6,4 +6,8 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
 
-  # pip/uv: enable in phase 01 when pyproject.toml exists
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

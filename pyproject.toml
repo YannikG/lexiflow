@@ -1,0 +1,59 @@
+[project]
+name = "lexiflow"
+version = "0.0.0"
+description = "Desktop app for learning languages by reading real texts"
+requires-python = ">=3.12,<3.14"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "lexiflow-core",
+    "lexiflow-ui",
+    "lexiflow-worker",
+    "mypy>=1.15",
+    "pre-commit>=4.0",
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "pytest-qt>=4.4",
+    "ruff>=0.9",
+]
+
+[tool.uv.sources]
+lexiflow-core = { workspace = true }
+lexiflow-ui = { workspace = true }
+lexiflow-worker = { workspace = true }
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+src = ["packages", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+mypy_path = ["packages/lexiflow-core/src"]
+packages = ["lexiflow_core"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+qt_api = "pyside6"
+addopts = [
+    "--cov=lexiflow_core",
+    "--cov=lexiflow_ui",
+    "--cov-report=term-missing",
+]
+
+[tool.coverage.run]
+source = ["lexiflow_core", "lexiflow_ui"]
+branch = true
+
+[tool.coverage.report]
+omit = ["tests/*", "*/__main__.py"]
