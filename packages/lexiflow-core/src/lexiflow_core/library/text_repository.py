@@ -30,3 +30,14 @@ class TextRepository:
 
     def delete_to_trash(self, text_id: UUID) -> None:
         self._coordinator.delete_to_trash(text_id)
+
+    def write_native_variant(self, text_id: UUID, markdown: str) -> None:
+        self._coordinator.write_native_variant(text_id, markdown)
+
+    def apply_translated_variant(
+        self, text_id: UUID, translated_markdown: str
+    ) -> TextRecord:
+        return self._coordinator.apply_translated_variant(text_id, translated_markdown)
+
+    def read_native_variant(self, text_id: UUID) -> str:
+        return self._coordinator.read_native_variant(text_id)

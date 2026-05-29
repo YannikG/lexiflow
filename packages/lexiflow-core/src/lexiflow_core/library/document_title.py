@@ -22,3 +22,14 @@ def format_document_title(title: str) -> str:
 def format_native_variant(title: str, body: str) -> str:
     """Format native variant content with document title heading."""
     return format_document_title(title) + body
+
+
+def parse_document_title(markdown: str) -> str:
+    """Extract the document title from the first top-level markdown heading."""
+    for line in markdown.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("# "):
+            title = stripped[2:].strip()
+            if title:
+                return title
+    raise DocumentTitleError("no document title heading found")

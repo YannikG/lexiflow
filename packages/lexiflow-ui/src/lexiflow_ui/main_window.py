@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Literal
 
 from lexiflow_core.config.settings import Settings
-from PySide6.QtGui import QAction, QActionGroup, QCloseEvent
+from PySide6.QtGui import QAction, QActionGroup, QCloseEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
@@ -16,6 +16,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from lexiflow_ui.add_text_flow import list_texts_for_sidebar, submit_add_text
+from lexiflow_ui.dialogs.add_text_dialog import open_add_text_dialog
 from lexiflow_ui.widgets.active_target_language import ActiveTargetLanguageWidget
 from lexiflow_ui.widgets.empty_state import EmptyStateWidget
 from lexiflow_ui.widgets.sidebar import SidebarWidget
@@ -51,8 +53,10 @@ class MainWindow(QMainWindow):
         self._active_target_language: ActiveTargetLanguageWidget | None = None
         self._build_toolbar()
         self._build_central_layout()
+        self._build_shortcuts()
         self._status_bar = WorkerStatusBar(supervisor, self)
         self.setStatusBar(self._status_bar)
+        self._refresh_sidebar()
         self._show_navigation_mode("texts")
 
     @property
@@ -128,6 +132,36 @@ class MainWindow(QMainWindow):
         layout.addWidget(self._sidebar)
         layout.addWidget(self._content_stack, stretch=1)
         self.setCentralWidget(container)
+
+    def _build_shortcuts(self) -> None:
+        new_text = QShortcut(QKeySequence.StandardKey.New, self)
+        new_text.activated.connect(self._open_add_text_dialog)
+
+    def _refresh_sidebar(self) -> None:
+        titles = list_texts_for_sidebar(
+            self._data_root, self._settings.active_target_language
+        )
+        self._sidebar.set_titles(titles)
+
+    def _open_add_text_dialog(self) -> None:
+        target = self._settings.active_target_language
+        if target is None:
+            return
+        form = open_add_text_dialog(
+            data_root=self._data_root,
+            target_language=target,
+            parent=self,
+        )
+        if form is None:
+            return
+        submit_add_text(
+            data_root=self._data_root,
+            settings=self._settings,
+            supervisor=self._supervisor,
+            form=form,
+            parent=self,
+        )
+        self._refresh_sidebar()
 
     def _show_navigation_mode(self, mode: NavigationMode) -> None:
         action = self._navigation_actions[mode]

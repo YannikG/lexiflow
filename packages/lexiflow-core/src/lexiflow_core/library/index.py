@@ -97,6 +97,25 @@ class LibraryIndex:
 
         return [self._record_from_index_row(row) for row in rows]
 
+    def find_by_source_url(self, lang: str, source_url: str) -> UUID | None:
+        """Return a text id with the same source URL in a target language, if any."""
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                """
+                SELECT id
+                FROM texts
+                WHERE lang = ? AND source_url = ?
+                LIMIT 1
+                """,
+                (lang, source_url),
+            ).fetchone()
+        finally:
+            connection.close()
+        if row is None:
+            return None
+        return UUID(str(row[0]))
+
     def rebuild_from_disk(self, data_root: Path | None = None) -> int:
         """Rescan disk and rebuild the index. Read-only on text metadata."""
         root = data_root if data_root is not None else self._data_root

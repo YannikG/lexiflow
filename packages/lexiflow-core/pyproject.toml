@@ -5,6 +5,7 @@ description = "Domain logic, storage, jobs, and LLM/embed abstractions for LexiF
 requires-python = ">=3.12,<3.14"
 dependencies = [
     "huggingface_hub>=0.28",
+    "langdetect>=1.0.9",
     "tomli-w>=1.0",
 ]
 
@@ -19,3 +20,4 @@ packages = ["src/lexiflow_core"]
 "src/lexiflow_core/migrations" = "lexiflow_core/migrations"
 "src/lexiflow_core/migrations/queue" = "lexiflow_core/migrations/queue"
 "src/lexiflow_core/models/models.lock" = "lexiflow_core/models/models.lock"
+"src/lexiflow_core/llm/prompts" = "lexiflow_core/llm/prompts"

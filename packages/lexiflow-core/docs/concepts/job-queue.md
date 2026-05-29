@@ -32,7 +32,18 @@ Only one LLM job runs globally at a time. Additional requests stay **Pending** u
 
 ## Worker process
 
-The **worker process** consumes the queue headlessly. The UI process enqueues work later (phase 14+); phase 04 establishes core persistence and `run_worker_loop` in `lexiflow-core`.
+The **worker process** consumes the queue headlessly. Phase 08 enqueues **cleanup** and **translate** jobs from the add-text flow; the UI spawns the worker via `WorkerSupervisor.ensure_running()`.
+
+`run_worker_loop` dispatches `cleanup` and `translate` jobs to `lexiflow_core.jobs.handlers` (library + LLM). Jobs with a legacy `prompt` payload still use the phase 04 prompt-only path for tests. Other types without handlers are marked **Failed**.
+
+### Staged generation chain
+
+On add-text save, only **cleanup** is enqueued initially. When cleanup completes:
+
+- **Native-route** paste: writes `native.md`, enqueues `translate` (`phase: plain`).
+- **Target-route** paste: enqueues `translate` (`phase: ensure_native` with cleaned body), then `plain` after native exists.
+
+Handlers call `JobService.enqueue` for follow-up work; FIFO ordering preserves **one LLM job at a time**.
 
 Job failure is isolated: the worker marks the job **Failed**, logs the error, and continues with the next **Pending** job.
 
