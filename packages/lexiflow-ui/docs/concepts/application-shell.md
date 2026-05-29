@@ -11,14 +11,17 @@ The **Application shell** is LexiFlow's main window frame: toolbar, **sidebar**,
 | **lexiflow-ui** | Owns the Application shell (Qt widgets, layout, navigation) |
 | **lexiflow-core** | Domain logic only; no UI framework |
 
-Phase 01 does **not** implement the full Application shell. It proves process bootstrap in **lexiflow-ui**: `QApplication` starts, a `MainWindow` titled "LexiFlow" opens with an empty central widget, and the process exits cleanly.
+## Phase 05 (shell)
 
-## Phase 01 (foundation)
+- **Public API:** `lexiflow_ui.run()` — single-instance guard, bootstrap data root, worker supervisor, main window
+- **Main window:** toolbar with **Texts** / **Vocabulary** modes, sidebar chrome (Texts mode), stacked **empty state** views, **status bar** with **Worker status**
+- **Navigation modes:** Texts shows sidebar + empty state; Vocabulary shows empty state only
+- **Worker:** supervisor created at startup; **offline** until `ensure_running()` (lazy spawn on first AI job wired in later phases)
+- **Tests:** pytest-qt for shell layout, single instance, worker supervisor stub
 
-- **Public API:** `lexiflow_ui.run()` — starts Qt, shows hello window, returns exit code
-- **Entry:** `uv run python -m lexiflow_ui`
-- **Tests:** pytest-qt smoke (window title, clean quit)
+## Deferred (phase 06+)
 
-## Deferred (phase 05+)
-
-Full **Application shell** per [common-language.md](../../../../common-language.md): toolbar, **sidebar**, **status bar**, **navigation modes** (Texts / Vocabulary), **single instance**, worker supervision.
+- **Onboarding flow** gate before main shell (phase 06)
+- **Active target language** toolbar switcher (phase 06)
+- Sidebar group/text tree, reader, add-text (phase 08+)
+- Jobs panel, quit-with-jobs dialog, worker idle lifecycle (phase 14)
