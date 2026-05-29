@@ -53,6 +53,32 @@ def test_settings_load_raises_on_corrupt_file(tmp_path: Path) -> None:
         store.load()
 
 
+def test_settings_load_raises_on_read_error(tmp_path: Path) -> None:
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    store = SettingsStore(config_dir=config_dir)
+    settings_file = config_dir / "settings.toml"
+    settings_file.write_text('native_language = "de"\n', encoding="utf-8")
+    settings_file.chmod(0o000)
+    try:
+        with pytest.raises(SettingsError, match="failed to read settings.toml"):
+            store.load()
+    finally:
+        settings_file.chmod(0o644)
+
+
+def test_settings_save_raises_on_write_error(tmp_path: Path) -> None:
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    config_dir.chmod(0o500)
+    store = SettingsStore(config_dir=config_dir)
+    try:
+        with pytest.raises(SettingsError, match="failed to save settings"):
+            store.save(Settings(native_language="de"))
+    finally:
+        config_dir.chmod(0o700)
+
+
 def test_resolve_data_root_uses_settings_override(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

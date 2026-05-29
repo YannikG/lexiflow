@@ -17,6 +17,7 @@ class MigrationError(Exception):
 
 class MigrationRunner:
     def migrate(self, db_path: Path, scripts_dir: Path) -> None:
+        """Apply pending SQL scripts atomically, one transaction per script."""
         scripts = _discover_scripts(scripts_dir)
         connection = connect_sqlite(db_path)
         try:

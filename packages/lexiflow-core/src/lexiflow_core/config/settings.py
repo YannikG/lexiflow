@@ -44,13 +44,18 @@ class SettingsStore:
                 raw = tomllib.load(handle)
         except tomllib.TOMLDecodeError as exc:
             raise SettingsError("invalid settings.toml") from exc
+        except OSError as exc:
+            raise SettingsError("failed to read settings.toml") from exc
         return _settings_from_mapping(raw)
 
     def save(self, settings: Settings) -> None:
-        self._config_dir.mkdir(parents=True, exist_ok=True)
-        payload = _settings_to_mapping(settings)
-        with self.settings_path.open("wb") as handle:
-            tomli_w.dump(payload, handle)
+        try:
+            self._config_dir.mkdir(parents=True, exist_ok=True)
+            payload = _settings_to_mapping(settings)
+            with self.settings_path.open("wb") as handle:
+                tomli_w.dump(payload, handle)
+        except OSError as exc:
+            raise SettingsError("failed to save settings") from exc
 
 
 def _settings_to_mapping(settings: Settings) -> dict[str, Any]:
