@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
 )
 
 from lexiflow_ui.onboarding.completion import complete_onboarding
-from lexiflow_ui.onboarding.system_info import RECOMMENDED_RAM_BYTES, SystemInfo
+from lexiflow_ui.onboarding.system_info import SystemInfo, ram_warning_message
 from lexiflow_ui.widgets.catalog_picker import CatalogPickerWidget
 
 
@@ -38,14 +38,9 @@ class WelcomePage(QWizardPage):
         self._ram_warning.hide()
         layout.addWidget(self._ram_warning)
         layout.addStretch()
-        total_ram = system_info.total_ram_bytes()
-        if total_ram < RECOMMENDED_RAM_BYTES:
-            gib = total_ram / (1024**3)
-            self._ram_warning.setText(
-                f"Your system reports about {gib:.1f} GiB of RAM. "
-                "LexiFlow recommends at least 8 GiB for local models. "
-                "You can continue anyway."
-            )
+        warning = ram_warning_message(system_info.total_ram_bytes())
+        if warning is not None:
+            self._ram_warning.setText(warning)
             self._ram_warning.show()
 
     def ram_warning_label(self) -> QLabel:

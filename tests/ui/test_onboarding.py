@@ -118,7 +118,22 @@ def test_ram_warn_below_threshold_is_visible(qtbot) -> None:
     wizard.show()
     warning = wizard.welcome_page.ram_warning_label()
     assert warning.text()
+    assert "4.0 GiB" in warning.text()
     assert "continue anyway" in warning.text().lower()
+
+
+def test_ram_unknown_shows_detection_message(qtbot) -> None:
+    wizard = OnboardingWizard(
+        data_root=Path("/tmp/unused"),
+        settings_store=SettingsStore(config_dir=Path("/tmp/unused-config")),
+        settings=Settings(),
+        system_info=FakeSystemInfo(0),
+    )
+    qtbot.addWidget(wizard)
+    wizard.show()
+    warning = wizard.welcome_page.ram_warning_label()
+    assert "could not detect" in warning.text().lower()
+    assert "0.0 GiB" not in warning.text()
 
 
 def test_low_ram_warning_allows_wizard_finish(qtbot, tmp_path: Path) -> None:
@@ -190,6 +205,20 @@ def test_toolbar_shows_active_language_and_level(qtbot, tmp_path: Path) -> None:
     label = widget.label().text()
     assert "A2" in label
     assert "Spanish" in label
+
+
+def test_active_target_language_shows_fallback_for_invalid_iso(
+    qtbot, tmp_path: Path
+) -> None:
+    from lexiflow_ui.widgets.active_target_language import ActiveTargetLanguageWidget
+
+    widget = ActiveTargetLanguageWidget(
+        settings=Settings(active_target_language="ru"),
+        data_root=tmp_path / "library",
+    )
+    qtbot.addWidget(widget)
+
+    assert widget.label().text() == "Language: ru"
 
 
 def test_run_onboarding_if_needed_skips_when_complete(tmp_path: Path) -> None:

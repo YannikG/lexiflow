@@ -6,7 +6,7 @@ from pathlib import Path
 
 from lexiflow_core.config.settings import Settings
 from lexiflow_core.languages.catalog import get_language
-from lexiflow_core.languages.store import LanguageStore
+from lexiflow_core.languages.store import LanguageStore, LanguageStoreError
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QWidget
 
 
@@ -32,9 +32,12 @@ class ActiveTargetLanguageWidget(QWidget):
         if iso is None:
             self._label.setText("No language")
             return
-        language = get_language(iso)
-        level = LanguageStore(data_root).get_user_level(iso)
-        self._label.setText(f"{language.flag} {language.name} ({level.value})")
+        try:
+            language = get_language(iso)
+            level = LanguageStore(data_root).get_user_level(iso)
+            self._label.setText(f"{language.flag} {language.name} ({level.value})")
+        except (KeyError, LanguageStoreError):
+            self._label.setText(f"Language: {iso}")
 
     def label(self) -> QLabel:
         return self._label
