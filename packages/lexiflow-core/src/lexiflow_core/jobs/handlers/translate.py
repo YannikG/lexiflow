@@ -55,7 +55,7 @@ def handle_translate(
                 raise ValueError(f"job {job.id} is missing cleaned markdown")
             prompt = render_prompt(
                 "translate",
-                native_language=record.native_language,
+                native_language=record.target_language,
                 target_language=record.native_language,
                 source_markdown=cleaned,
             )

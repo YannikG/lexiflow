@@ -176,6 +176,7 @@ def metadata_to_record(
         native_language=metadata.native_language,
         variants=metadata.variants,
         source_url=metadata.source_url,
+        content_fingerprint=metadata.content_fingerprint,
         created_at=metadata.created_at,
         updated_at=metadata.updated_at,
         folder=folder,

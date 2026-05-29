@@ -48,14 +48,13 @@ def run_worker_loop(
         job = job_service.claim_next()
         if job is None:
             return
-        is_staged_llm = job.job_type in (JobType.CLEANUP, JobType.TRANSLATE)
-        if is_staged_llm and "prompt" not in job.payload:
-            process_job(job, data_root=data_root, job_service=job_service, llm=llm)
-            continue
-        if "prompt" in job.payload:
-            _process_legacy_prompt_job(job_service, llm, job)
-            continue
-        if job.job_type in (JobType.CLEANUP, JobType.TRANSLATE):
-            process_job(job, data_root=data_root, job_service=job_service, llm=llm)
-            continue
-        job_service.fail(job.id, f"unsupported job type: {job.job_type}")
+        try:
+            if "prompt" in job.payload:
+                _process_legacy_prompt_job(job_service, llm, job)
+            elif job.job_type in (JobType.CLEANUP, JobType.TRANSLATE):
+                process_job(job, data_root=data_root, job_service=job_service, llm=llm)
+            else:
+                job_service.fail(job.id, f"unsupported job type: {job.job_type}")
+        except Exception as exc:
+            logger.exception("job %s failed", job.id)
+            job_service.fail(job.id, str(exc))
