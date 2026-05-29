@@ -17,4 +17,4 @@ def test_app_smoke(qtbot, monkeypatch) -> None:
         QTimer.singleShot(0, app.quit)
 
     monkeypatch.setattr(MainWindow, "show", show_then_quit)
-    assert run() == 0
+    assert run(argv=["lexiflow-test"]) == 0
