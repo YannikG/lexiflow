@@ -32,6 +32,11 @@ def index_db_path(data_root: Path) -> Path:
     return data_root / ".app" / "index.sqlite"
 
 
+def queue_db_path(data_root: Path) -> Path:
+    """Return the path to the persistent job queue database."""
+    return data_root / ".app" / "queue.sqlite"
+
+
 def trash_dir(data_root: Path) -> Path:
     """Return the trash directory for deleted texts."""
     return data_root / ".trash"
