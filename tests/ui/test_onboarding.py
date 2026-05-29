@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 from lexiflow_core.config.settings import Settings
@@ -166,6 +167,45 @@ def test_onboarding_flag_blocks_main_window(qtbot, monkeypatch, tmp_path: Path) 
     assert exit_code == 0
     assert wizard_instances
     assert not main_windows
+
+
+def test_re_run_onboarding_after_resetting_complete_flag(qtbot, tmp_path: Path) -> None:
+    """Finishing the wizard twice must set onboarding_complete when target exists."""
+    config_dir = tmp_path / "config"
+    data_root = tmp_path / "library"
+    store = SettingsStore(config_dir=config_dir)
+    settings = Settings(data_root=data_root, onboarding_complete=False)
+    model_store = _make_model_store(data_root, downloader=FakeModelDownloader())
+
+    wizard = OnboardingWizard(
+        data_root=data_root,
+        settings_store=store,
+        settings=settings,
+        system_info=FakeSystemInfo(16 * 1024**3),
+        model_store=model_store,
+    )
+    qtbot.addWidget(wizard)
+    wizard.show()
+    _advance_wizard_to_finish(wizard, qtbot)
+    assert store.load().onboarding_complete is True
+
+    store.save(replace(store.load(), onboarding_complete=False))
+
+    wizard_again = OnboardingWizard(
+        data_root=data_root,
+        settings_store=store,
+        settings=store.load(),
+        system_info=FakeSystemInfo(16 * 1024**3),
+        model_store=model_store,
+    )
+    qtbot.addWidget(wizard_again)
+    wizard_again.show()
+    _advance_wizard_to_finish(wizard_again, qtbot)
+
+    loaded = store.load()
+    assert loaded.onboarding_complete is True
+    assert loaded.native_language == "en"
+    assert loaded.active_target_language == "es"
 
 
 def test_completing_onboarding_sets_flag(qtbot, tmp_path: Path) -> None:

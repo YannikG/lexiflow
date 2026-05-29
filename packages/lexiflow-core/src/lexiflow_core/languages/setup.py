@@ -37,6 +37,9 @@ def _discard_new_target(data_root: Path, iso: str) -> None:
 def add_target_with_spacy_download(data_root: Path, iso: str, level: CEFRLevel) -> None:
     """Add a target language and enqueue its spaCy pack download."""
     store = LanguageStore(data_root)
+    if iso in store.list_targets():
+        store.set_user_level(iso, level)
+        return
     store.add_target(iso, level)
     try:
         JobService(data_root).enqueue(

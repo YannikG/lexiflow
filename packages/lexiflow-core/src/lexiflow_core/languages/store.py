@@ -35,6 +35,13 @@ class LanguageStore:
         language_data_dir(self._data_root, iso).mkdir(parents=True, exist_ok=True)
         save_language_metadata(metadata_path, LanguageMetadata(user_level=level))
 
+    def set_user_level(self, iso: str, level: CEFRLevel) -> None:
+        """Update the user language level for an existing target."""
+        metadata_path = language_json_path(self._data_root, iso)
+        if not metadata_path.is_file():
+            raise LanguageStoreError(f"target language not found: {iso}")
+        save_language_metadata(metadata_path, LanguageMetadata(user_level=level))
+
     def get_user_level(self, iso: str) -> CEFRLevel:
         try:
             return load_language_metadata(
