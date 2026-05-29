@@ -1,0 +1,1 @@
+-- Placeholder for settings-adjacent databases in later phases.

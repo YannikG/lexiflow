@@ -39,10 +39,17 @@ flowchart LR
 
 ## Data on disk
 
+**App config directory** (machine-local; OS-specific path):
+
+```
+settings.toml          # global settings, including data_root pointer
+```
+
+**Data root** (default `~/LexiFlow/`; user library, portable via backup zip):
+
 ```
 ~/LexiFlow/
   .app/
-    settings.toml
     index.sqlite
     queue.sqlite
     models/
