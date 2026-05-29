@@ -3,6 +3,9 @@ name = "lexiflow-core"
 version = "0.0.0"
 description = "Domain logic, storage, jobs, and LLM/embed abstractions for LexiFlow"
 requires-python = ">=3.12,<3.14"
+dependencies = [
+    "tomli-w>=1.0",
+]
 
 [build-system]
 requires = ["hatchling"]

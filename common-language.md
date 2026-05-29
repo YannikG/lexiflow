@@ -257,13 +257,15 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 ## Storage
 
-**Data root** — User content root (default under home directory). Contains per-language folders, app configuration, and trash. Overridable in **settings**; portable via backup zip.
+**Data root** — User content root (default under home directory). Contains per-language folders, runtime app data (`.app/`), and trash. Overridable in **global settings**; portable via **library backup** zip.
 
 **App data name** — LexiFlow. Default folder name for user content.
 
-**Global settings** — Portable settings stored inside **data root** with user content: native language, Ollama endpoint, data root override, LLM toggle, onboarding flags. Not in OS-specific app-support only locations.
+**App config directory** — Machine-local directory resolved at startup before **data root**. Holds `settings.toml` (**global settings**). Uses OS conventions (Application Support on macOS, AppData on Windows, XDG config on Linux).
 
-**Library backup** — Export entire **data root** as zip. Restore to new folder or replace current library with **strong confirmation**.
+**Global settings** — Machine-local preferences in `settings.toml` under **app config directory**: native language, Ollama endpoint, **data root** pointer, LLM toggle, onboarding flags, theme. Read before opening the user library so **data root** override has no bootstrap chicken-and-egg.
+
+**Library backup** — Export entire **data root** as zip. Does not include **global settings** (machine-local). Restore to new folder or replace current library with **strong confirmation**.
 
 **Language metadata** — Per target language: **user language level** and language-specific settings.
 
@@ -349,6 +351,7 @@ Canonical terms (alphabetical):
 - Add text dialog
 - Add text flow
 - App UI language
+- App config directory
 - App data name
 - App icon (v1)
 - Application shell
