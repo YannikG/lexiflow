@@ -89,6 +89,17 @@ def test_resolve_data_root_uses_settings_override(
     assert resolve_data_root(settings) == override.resolve()
 
 
+def test_settings_round_trip_huggingface_token(tmp_path: Path) -> None:
+    config_dir = tmp_path / "config"
+    store = SettingsStore(config_dir=config_dir)
+    settings = Settings(huggingface_token="hf_secret")
+
+    store.save(settings)
+    loaded = store.load()
+
+    assert loaded.huggingface_token == "hf_secret"
+
+
 def test_resolve_data_root_uses_default_when_unset(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

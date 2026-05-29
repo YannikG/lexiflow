@@ -17,6 +17,7 @@
 
 - [common-language.md](../../../../common-language.md): **Simplify word mix**, **Level bucket quotas**, **New word suggestions**, **New words panel**, **LLM structured output**, **Simplified variants**, **Re-simplify**
 - Phase 10 VectorStore
+- Phase 10b optional Ollama embedder ([ADR 0005](../../../adr/0005-ollama-embedding-provider-deferred.md)) — blocked by 10b when that issue exists
 
 ## TDD cycles
 

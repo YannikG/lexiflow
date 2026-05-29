@@ -5,6 +5,7 @@ from __future__ import annotations
 
 def test_lexiflow_core_imports_without_cycles() -> None:
     import lexiflow_core
+    from lexiflow_core import models as models_pkg
     from lexiflow_core.config import (
         app_layout,
         bootstrap,
@@ -47,3 +48,6 @@ def test_lexiflow_core_imports_without_cycles() -> None:
     assert run_worker_loop is not None
     assert FakeLLM is not None
     assert LLMProvider is not None
+    assert models_pkg.load_models_lock is not None
+    assert models_pkg.ModelStore is not None
+    assert models_pkg.FakeModelDownloader is not None

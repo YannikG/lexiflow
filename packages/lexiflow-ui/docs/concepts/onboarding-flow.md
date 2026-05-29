@@ -4,22 +4,26 @@ First-run setup before the **application shell** is shown.
 
 ## Gate
 
-`lexiflow_ui.app.run()` loads **global settings**. When `onboarding_complete` is false, `OnboardingWizard` runs modally. Cancel exits without opening the main window. Finish persists languages and sets `onboarding_complete` true.
-
-Ollama detection and **model bootstrap** are deferred to phase 07; phase 06 covers language setup only.
+`lexiflow_ui.app.run()` loads **global settings**. When `onboarding_complete` is false, `OnboardingWizard` runs modally. Cancel exits without opening the main window. Finish runs language setup, then sets `onboarding_complete` true.
 
 ## Wizard pages
 
 1. **Welcome** — Intro copy; RAM warning when system memory is below 8 GiB (user may continue).
 2. **Native language** — Searchable **language catalog** picker.
-3. **Target language** — Catalog picker plus CEFR level combo for **user language level**.
+3. **LLM mode** — Choose one of: Hugging Face download, Ollama, or manual import (radios only).
+4. **LLM configuration** — Form for the chosen mode (opened on Next; wizard height fits that form only):
+   - **Hugging Face download**: numbered Gemma license steps, **Open Gemma on Hugging Face** (system browser), optional HF token; continues to bootstrap.
+   - **Ollama**: URL + detect; embedding downloads on Next (token optional); skips bootstrap.
+   - **Manual import**: two folder pickers with pinned-repo helper text; imports on Next; skips bootstrap.
+5. **Model bootstrap** — Hugging Face download path only: downloads pinned LLM and embedding artifacts with progress; on gated-repo failure, same Gemma link plus **Open Gemma** and **Retry download**.
+6. **Target language** — Catalog picker plus CEFR level combo for **user language level**.
 
 ## Completion
 
-`complete_language_onboarding()` in `lexiflow_core.languages.setup` adds the first target language, enqueues `DOWNLOAD_SPACY`, saves **global settings**, and rolls back on-disk language data if enqueue or settings save fails.
+`complete_language_onboarding()` adds the first target language and enqueues `DOWNLOAD_SPACY`. `finalize_onboarding()` sets `onboarding_complete` after all wizard steps succeed.
 
 ## Testability
 
-`SystemInfo` protocol supplies RAM for the welcome page (injectable in tests). `run_onboarding_if_needed()` accepts a custom wizard factory for pytest-qt.
+`SystemInfo` supplies RAM for the welcome page. `OllamaProbe`, `ModelStore`, and `FakeModelDownloader` are injectable. `run_onboarding_if_needed()` accepts a custom wizard factory for pytest-qt.
 
-See [common-language.md](../../../../common-language.md): **Onboarding flow**, **System requirements**, **Native language**, **Target language**.
+See [common-language.md](../../../../common-language.md): **Onboarding flow**, **Onboarding LLM setup**, **Model bootstrap**, **System requirements**.

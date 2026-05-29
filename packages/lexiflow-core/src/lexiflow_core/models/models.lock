@@ -1,0 +1,9 @@
+[[artifacts]]
+id = "embedding-minilm"
+repo = "sentence-transformers/all-MiniLM-L6-v2"
+revision = "c9745ed1d9f207416be6d2e6f8de32d1f16199bf"
+
+[[artifacts]]
+id = "embedded-gemma"
+repo = "google/gemma-2-2b-it"
+revision = "299a8560bedf22ed1c72a8a11e7dce4a7f9f51f8"

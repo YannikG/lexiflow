@@ -15,6 +15,7 @@ from lexiflow_core.languages.setup import (
     LanguageSetupError,
     add_target_with_spacy_download,
     complete_language_onboarding,
+    finalize_onboarding,
 )
 from lexiflow_core.languages.store import LanguageStore
 
@@ -65,10 +66,25 @@ def test_complete_language_onboarding_persists_settings(tmp_path: Path) -> None:
 
     loaded = store.load()
     assert loaded == updated
-    assert loaded.onboarding_complete is True
+    assert loaded.onboarding_complete is False
     assert loaded.native_language == "en"
     assert loaded.active_target_language == "es"
     assert JobService(data_root).list_jobs()[0].job_type == JobType.DOWNLOAD_SPACY
+
+
+def test_finalize_onboarding_sets_complete_flag(tmp_path: Path) -> None:
+    config_dir = tmp_path / "config"
+    store = SettingsStore(config_dir=config_dir)
+    settings = Settings(
+        native_language="en",
+        active_target_language="es",
+        onboarding_complete=False,
+    )
+
+    final = finalize_onboarding(settings_store=store, settings=settings)
+
+    assert final.onboarding_complete is True
+    assert store.load().onboarding_complete is True
 
 
 def test_complete_language_onboarding_rolls_back_on_settings_save_failure(

@@ -40,7 +40,7 @@ lexiflow/
     lexiflow-ui/
     lexiflow-worker/
   docs/              ← planning, ADRs, roadmap
-  models.lock        ← phase 07+
+  packages/lexiflow-core/.../models.lock  ← phase 07+ (bundled pin manifest)
   pyproject.toml     ← phase 01+
   uv.lock            ← phase 01+
   AGENTS.md

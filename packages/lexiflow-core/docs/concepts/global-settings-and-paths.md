@@ -26,12 +26,14 @@ Settings are read before opening the library so a **data root** override never c
 | `bootstrap` | `bootstrap_runtime(settings_store)` | Load settings, resolve data root, ensure layout |
 | `settings_store` | `SettingsStore` | Read/write `settings.toml` |
 | `settings` | `Settings` | Global settings data model |
+| `models.store` | `ModelStore` | Installed revision markers under `.app/models/` |
+| `models.lockfile` | `load_models_lock()` | Shipped pin manifest for HF artifacts |
 
 Pure path formulas stay separate from filesystem mutation and from settings I/O.
 
 ## Global settings
 
-Stored as TOML in the app config directory. Includes native language, `active_target_language`, onboarding flags, Ollama endpoint, LLM toggle, theme, and the **data root** pointer.
+Stored as TOML in the app config directory. Includes native language, `active_target_language`, onboarding flags, Ollama endpoint, optional **Hugging Face token**, LLM toggle, theme, and the **data root** pointer.
 
 Corrupt `settings.toml` surfaces as `SettingsError`; missing file returns defaults.
 
