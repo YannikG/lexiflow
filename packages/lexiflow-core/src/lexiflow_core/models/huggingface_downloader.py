@@ -56,8 +56,6 @@ class HuggingFaceModelDownloader:
             raise NetworkError(str(exc)) from exc
         except LocalEntryNotFoundError as exc:
             raise NetworkError(str(exc)) from exc
-        except OSError as exc:
-            raise NetworkError(str(exc)) from exc
         except Exception as exc:
             message = str(exc).lower()
             if "connection" in message or "network" in message or "timeout" in message:

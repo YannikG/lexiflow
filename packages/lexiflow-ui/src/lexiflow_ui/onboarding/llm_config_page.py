@@ -288,7 +288,25 @@ class LlmConfigPage(QWizardPage):
         return self._selected_mode() == LlmMode.HF_DOWNLOAD
 
     def skips_bootstrap_page(self) -> bool:
-        return self._selected_mode() != LlmMode.HF_DOWNLOAD
+        mode = self._selected_mode()
+        if mode == LlmMode.MANUAL_IMPORT:
+            return True
+        if mode == LlmMode.HF_DOWNLOAD:
+            return False
+        return self._all_required_models_installed()
+
+    def _all_required_models_installed(self) -> bool:
+        from lexiflow_ui.onboarding.wizard import OnboardingWizard
+
+        wizard = self.wizard()
+        if not isinstance(wizard, OnboardingWizard):
+            return False
+        settings = self.apply_to_settings(wizard.settings)
+        store = wizard.bootstrap_page.model_store
+        return all(
+            store.is_installed(artifact_id)
+            for artifact_id in required_artifact_ids(settings)
+        )
 
     def download_status_text(self) -> str:
         return self._download_status.text()
@@ -392,9 +410,9 @@ class LlmConfigPage(QWizardPage):
             wizard.resize(hint.width(), hint.height())
 
     def nextId(self) -> int:  # noqa: N802
-        if self.uses_embedded_hf_download():
-            return BOOTSTRAP_PAGE_ID
-        return TARGET_PAGE_ID
+        if self.skips_bootstrap_page():
+            return TARGET_PAGE_ID
+        return BOOTSTRAP_PAGE_ID
 
     def previousId(self) -> int:  # noqa: N802
         return LlmModePage.PAGE_ID
@@ -413,8 +431,6 @@ class LlmConfigPage(QWizardPage):
         mode = self._selected_mode()
         if mode == LlmMode.MANUAL_IMPORT:
             return self._validate_manual_import(store)
-        if mode == LlmMode.OLLAMA:
-            return self._download_embedding_for_ollama(store, wizard.settings)
         return True
 
     def _validate_manual_import(self, store: object) -> bool:
@@ -473,7 +489,7 @@ class LlmConfigPage(QWizardPage):
 
     def _on_detect(self) -> None:
         url = self._url.text().strip() or DEFAULT_OLLAMA_URL
-        if self._probe.is_reachable(url):
+        if self._probe.is_available(url):
             self._detect_status.setText("Ollama detected at this URL.")
         else:
             self._detect_status.setText(

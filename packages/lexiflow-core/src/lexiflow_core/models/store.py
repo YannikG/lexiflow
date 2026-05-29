@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -63,7 +64,11 @@ class ModelStore:
         marker = artifact_revision_path(self._data_root, artifact_id)
         if not marker.is_file():
             return False
-        return marker.read_text(encoding="utf-8").strip() == artifact.revision
+        try:
+            installed = marker.read_text(encoding="utf-8").strip()
+        except OSError:
+            return False
+        return installed == artifact.revision
 
     def ensure_installed(
         self,
@@ -106,6 +111,8 @@ class ModelStore:
             return import_artifact_directory(self._data_root, artifact, source_dir)
         except ModelImportError as exc:
             raise ModelStoreError(str(exc)) from exc
+        except (OSError, shutil.Error) as exc:
+            raise ModelStoreError(f"failed to import {artifact_id}") from exc
 
     def check_for_updates(self) -> list[UpdateAvailable]:
         """Return artifacts whose installed revision differs from the lock pin."""

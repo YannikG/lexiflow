@@ -9,7 +9,7 @@ from lexiflow_core.models.download import (
 )
 from lexiflow_core.models.model_hints import gemma_hub_page_url
 from lexiflow_core.models.requirements import required_artifact_ids
-from lexiflow_core.models.store import ModelStore
+from lexiflow_core.models.store import ModelStore, ModelStoreError
 from PySide6.QtCore import QThread, Slot
 from PySide6.QtWidgets import (
     QApplication,
@@ -219,6 +219,9 @@ class ModelBootstrapPage(QWizardPage):
                 "Download failed. Check your network connection and try again."
             )
             self._retry.show()
+        elif isinstance(exc, ModelStoreError):
+            self._error.setText(str(exc))
+            self._retry.show()
         else:
             self._error.setText("Model download failed.")
             self._retry.show()
@@ -233,11 +236,16 @@ class ModelBootstrapPage(QWizardPage):
 
     def _stop_worker(self) -> None:
         thread = self._thread
+        worker = self._worker
+        if thread is not None and isValid(thread) and thread.isRunning():
+            thread.requestInterruption()
+            thread.quit()
+            if not thread.wait(5000):
+                self._thread = thread
+                self._worker = worker
+                return
         self._thread = None
         self._worker = None
-        if thread is not None and isValid(thread) and thread.isRunning():
-            thread.quit()
-            thread.wait(5000)
 
     def validatePage(self) -> bool:  # noqa: N802
         return self._bootstrap_complete

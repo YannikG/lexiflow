@@ -7,8 +7,8 @@ from lexiflow_core.models.download import (
     ModelPinError,
     NetworkError,
 )
-from lexiflow_core.models.store import ModelStore
-from PySide6.QtCore import QObject, Signal, Slot
+from lexiflow_core.models.store import ModelStore, ModelStoreError
+from PySide6.QtCore import QObject, QThread, Signal, Slot
 
 
 class ModelBootstrapWorker(QObject):
@@ -37,6 +37,8 @@ class ModelBootstrapWorker(QObject):
 
         try:
             for index, artifact_id in enumerate(self._artifact_ids, start=1):
+                if QThread.currentThread().isInterruptionRequested():
+                    return
                 status = f"Downloading {artifact_id}…"
 
                 def on_progress(
@@ -58,5 +60,7 @@ class ModelBootstrapWorker(QObject):
                 )
             self.progress_changed.emit(100, "All required models are ready.")
             self.succeeded.emit()
-        except (ModelPinError, ModelAccessError, NetworkError) as exc:
+        except (ModelPinError, ModelAccessError, NetworkError, ModelStoreError) as exc:
+            self.failed.emit(exc)
+        except Exception as exc:
             self.failed.emit(exc)
