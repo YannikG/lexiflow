@@ -16,7 +16,7 @@ Ollama detection and **model bootstrap** are deferred to phase 07; phase 06 cove
 
 ## Completion
 
-`complete_onboarding()` in `lexiflow_ui.onboarding.completion` calls core `add_target_with_spacy_download()` then saves settings.
+`complete_language_onboarding()` in `lexiflow_core.languages.setup` adds the first target language, enqueues `DOWNLOAD_SPACY`, saves **global settings**, and rolls back on-disk language data if enqueue or settings save fails.
 
 ## Testability
 

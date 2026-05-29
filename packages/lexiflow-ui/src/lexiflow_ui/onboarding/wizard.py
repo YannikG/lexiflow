@@ -8,6 +8,7 @@ from pathlib import Path
 from lexiflow_core.config.settings import Settings
 from lexiflow_core.config.settings_store import SettingsStore
 from lexiflow_core.languages.models import CEFRLevel
+from lexiflow_core.languages.setup import complete_language_onboarding
 from PySide6.QtWidgets import (
     QComboBox,
     QLabel,
@@ -16,7 +17,6 @@ from PySide6.QtWidgets import (
     QWizardPage,
 )
 
-from lexiflow_ui.onboarding.completion import complete_onboarding
 from lexiflow_ui.onboarding.system_info import SystemInfo, ram_warning_message
 from lexiflow_ui.widgets.catalog_picker import CatalogPickerWidget
 
@@ -160,7 +160,7 @@ class OnboardingWizard(QWizard):
         target_iso = self._target.selected_language()
         if native_iso is None or target_iso is None:
             return
-        self._settings = complete_onboarding(
+        self._settings = complete_language_onboarding(
             data_root=self._data_root,
             settings_store=self._settings_store,
             settings=self._settings,

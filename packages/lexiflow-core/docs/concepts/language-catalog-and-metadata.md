@@ -37,7 +37,7 @@ CEFR level is not encoded in folder paths. **Level** on groups or texts is forbi
 | `get_user_level(iso)` | Read stored CEFR level |
 | `list_targets()` | List ISO codes with metadata on disk |
 
-`add_target` validates against the catalog and rejects duplicates. It does not enqueue jobs; use `add_target_with_spacy_download()` in `setup.py` to add a target and enqueue spaCy download.
+`add_target` validates against the catalog and rejects duplicates. It does not enqueue jobs; use `add_target_with_spacy_download()` or `complete_language_onboarding()` in `setup.py` for first-run setup with rollback on failure.
 
 ## spaCy download job
 

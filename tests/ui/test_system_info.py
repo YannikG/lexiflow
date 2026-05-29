@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+import platform
+
+import pytest
+from lexiflow_ui.onboarding import system_info
 from lexiflow_ui.onboarding.system_info import (
     RECOMMENDED_RAM_BYTES,
+    PlatformSystemInfo,
     ram_warning_message,
 )
 
@@ -27,3 +32,12 @@ def test_ram_warning_message_reports_unknown_ram() -> None:
     assert message is not None
     assert "could not detect" in message.lower()
     assert "0.0 GiB" not in message
+
+
+def test_platform_system_info_uses_windows_probe(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(platform, "system", lambda: "Windows")
+    monkeypatch.setattr(system_info, "_windows_total_ram_bytes", lambda: 16 * 1024**3)
+
+    assert PlatformSystemInfo().total_ram_bytes() == 16 * 1024**3

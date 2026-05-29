@@ -11,7 +11,7 @@
 - **Language metadata** stores level per target language
 - **Active target language** shown in toolbar (flag, name, level)
 - Adding target language enqueues **spaCy language packs** download
-- **Remove target language** offers export first (full export in phase 12)
+- **Remove target language** with export-first flow deferred to phase 12 (see phase README there)
 
 ## References
 
@@ -82,4 +82,4 @@ class LanguageStore:
 ## PR checklist
 
 - [ ] English-only UI strings
-- [ ] Ollama detect UI present (probe localhost:11434)
+- [ ] Ollama detect UI deferred to phase 07 (language onboarding only in this phase)

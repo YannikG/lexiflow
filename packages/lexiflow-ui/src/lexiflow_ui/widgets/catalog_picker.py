@@ -43,6 +43,20 @@ class CatalogPickerWidget(QWidget):
                 self._list.setCurrentItem(item)
                 return
 
+    def set_filter_text(self, text: str) -> None:
+        self._search.setText(text)
+
+    def visible_isos(self) -> list[str]:
+        isos: list[str] = []
+        for row in range(self._list.count()):
+            item = self._list.item(row)
+            if item is None:
+                continue
+            iso = item.data(Qt.ItemDataRole.UserRole)
+            if isinstance(iso, str):
+                isos.append(iso)
+        return isos
+
     def _populate(self, languages: list[LanguageInfo]) -> None:
         self._list.clear()
         for language in languages:
