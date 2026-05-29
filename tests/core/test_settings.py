@@ -5,8 +5,12 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from lexiflow_core.config.paths import resolve_data_root
-from lexiflow_core.config.settings import Settings, SettingsError, SettingsStore
+from lexiflow_core.config.settings import (
+    Settings,
+    SettingsError,
+    SettingsStore,
+    resolve_data_root,
+)
 
 
 def test_settings_round_trip_native_language(tmp_path: Path) -> None:

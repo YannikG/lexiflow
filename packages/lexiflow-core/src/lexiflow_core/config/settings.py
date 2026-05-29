@@ -9,7 +9,7 @@ from typing import Any, Literal
 
 import tomli_w
 
-from lexiflow_core.config.paths import app_config_dir
+from lexiflow_core.config.paths import app_config_dir, default_data_root
 
 Theme = Literal["system", "light", "dark"]
 
@@ -26,6 +26,13 @@ class Settings:
     ollama_url: str | None = None
     llm_enabled: bool = True
     theme: Theme = "system"
+
+
+def resolve_data_root(settings: Settings) -> Path:
+    """Return the effective data root from settings or the default."""
+    if settings.data_root is not None:
+        return settings.data_root.expanduser().resolve()
+    return default_data_root()
 
 
 class SettingsStore:

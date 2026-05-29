@@ -9,7 +9,7 @@ LexiFlow separates machine-local configuration from the portable user library so
 3. Resolve **data root** from settings (`data_root` field) or default `~/LexiFlow/`.
 4. Ensure runtime layout under `{data_root}/.app/` (databases, models cache, logs).
 
-`bootstrap_runtime()` performs steps 2–4 for callers that need a ready library path on first run.
+`bootstrap_runtime()` in `lexiflow_core.config.bootstrap` performs steps 2–4 for callers that need a ready library path on first run.
 
 Settings are read before opening the library so a **data root** override never creates a chicken-and-egg problem.
 
@@ -19,9 +19,9 @@ Settings are read before opening the library so a **data root** override never c
 |--------|---------|
 | `app_config_dir()` | Machine-local config directory |
 | `default_data_root()` | Default user library when settings omit `data_root` |
-| `resolve_data_root(settings)` | Effective library path from settings |
+| `resolve_data_root(settings)` | Effective library path from settings (`settings` module) |
 | `ensure_app_layout(data_root)` | Create `.app/` and `.app/logs/` under the library |
-| `bootstrap_runtime(settings_store)` | Load settings, resolve data root, ensure layout |
+| `bootstrap_runtime(settings_store)` | Load settings, resolve data root, ensure layout (`bootstrap` module) |
 | `language_data_root(data_root, code)` | Per-target-language folder (stub until later phases) |
 
 ## Global settings
@@ -38,4 +38,4 @@ Corrupt `settings.toml` surfaces as `SettingsError`; missing file returns defaul
 
 `connect_sqlite` opens databases with WAL journaling, foreign keys, and a busy timeout for safe concurrent access by UI and worker in later phases.
 
-`MigrationRunner` applies ordered `NNN_*.sql` scripts once per database inside a transaction, tracking applied versions in `schema_migrations`. Packaged scripts ship under `lexiflow_core/migrations/` (`bundled_migrations_dir()`).
+`MigrationRunner` applies ordered `NNN_*.sql` scripts once per database inside a transaction. `MigrationLoader` discovers scripts; `split_sql_script` parses statements. Packaged scripts ship under `lexiflow_core/migrations/` (`bundled_migrations_dir()`).

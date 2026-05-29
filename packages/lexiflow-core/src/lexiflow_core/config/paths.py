@@ -1,14 +1,10 @@
-"""Data root and app layout path helpers."""
+"""Pure path calculations for LexiFlow on disk."""
 
 from __future__ import annotations
 
 import os
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from lexiflow_core.config.settings import Settings, SettingsStore
 
 APP_DATA_NAME = "LexiFlow"
 
@@ -34,13 +30,6 @@ def default_data_root() -> Path:
     return (Path.home() / APP_DATA_NAME).resolve()
 
 
-def resolve_data_root(settings: Settings) -> Path:
-    """Return the effective data root from settings or the default."""
-    if settings.data_root is not None:
-        return settings.data_root.expanduser().resolve()
-    return default_data_root()
-
-
 def ensure_app_layout(data_root: Path) -> None:
     """Create runtime directories under the user library data root."""
     (data_root / ".app").mkdir(parents=True, exist_ok=True)
@@ -50,16 +39,3 @@ def ensure_app_layout(data_root: Path) -> None:
 def language_data_root(data_root: Path, language_code: str) -> Path:
     """Return the per-target-language folder (stub for later phases)."""
     return data_root / language_code
-
-
-def bootstrap_runtime(
-    settings_store: SettingsStore | None = None,
-) -> Path:
-    """Load settings, resolve the data root, and ensure runtime layout exists."""
-    from lexiflow_core.config.settings import SettingsStore as RuntimeSettingsStore
-
-    store = settings_store if settings_store is not None else RuntimeSettingsStore()
-    settings = store.load()
-    data_root = resolve_data_root(settings)
-    ensure_app_layout(data_root)
-    return data_root

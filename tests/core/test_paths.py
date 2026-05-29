@@ -5,9 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from lexiflow_core.config.bootstrap import bootstrap_runtime
 from lexiflow_core.config.paths import (
     app_config_dir,
-    bootstrap_runtime,
     default_data_root,
     ensure_app_layout,
     language_data_root,
