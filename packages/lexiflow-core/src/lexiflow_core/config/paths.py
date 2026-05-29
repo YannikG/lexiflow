@@ -21,8 +21,8 @@ def app_config_dir() -> Path:
         return (Path.home() / "AppData" / "Roaming" / APP_DATA_NAME).resolve()
     xdg_config = os.environ.get("XDG_CONFIG_HOME")
     if xdg_config:
-        return (Path(xdg_config) / "lexiflow").resolve()
-    return (Path.home() / ".config" / "lexiflow").resolve()
+        return (Path(xdg_config) / APP_DATA_NAME).resolve()
+    return (Path.home() / ".config" / APP_DATA_NAME).resolve()
 
 
 def default_data_root() -> Path:
@@ -51,3 +51,19 @@ def ensure_app_layout(data_root: Path) -> None:
 def language_data_root(data_root: Path, language_code: str) -> Path:
     """Return the per-target-language folder (stub for later phases)."""
     return data_root / language_code
+
+
+def bootstrap_runtime(
+    settings_store: object | None = None,
+) -> Path:
+    """Load settings, resolve the data root, and ensure runtime layout exists."""
+    from lexiflow_core.config.settings import SettingsStore
+
+    store = settings_store if settings_store is not None else SettingsStore()
+    if not isinstance(store, SettingsStore):
+        msg = "settings_store must be a SettingsStore instance"
+        raise TypeError(msg)
+    settings = store.load()
+    data_root = resolve_data_root(settings)
+    ensure_app_layout(data_root)
+    return data_root

@@ -25,6 +25,7 @@ class MigrationRunner:
                 "version TEXT PRIMARY KEY"
                 ")"
             )
+            connection.commit()
             applied = {
                 row[0]
                 for row in connection.execute("SELECT version FROM schema_migrations")
@@ -34,7 +35,9 @@ class MigrationRunner:
                     continue
                 sql = script_path.read_text(encoding="utf-8")
                 try:
-                    connection.executescript(sql)
+                    connection.execute("BEGIN IMMEDIATE")
+                    for statement in _split_sql_script(sql):
+                        connection.execute(statement)
                     connection.execute(
                         "INSERT INTO schema_migrations(version) VALUES (?)",
                         (version,),
@@ -49,6 +52,11 @@ class MigrationRunner:
             connection.close()
 
 
+def bundled_migrations_dir() -> Path:
+    """Return the packaged SQL migrations directory shipped with lexiflow-core."""
+    return Path(__file__).resolve().parent.parent / "migrations"
+
+
 def _discover_scripts(scripts_dir: Path) -> list[tuple[str, Path]]:
     scripts: list[tuple[str, Path]] = []
     for path in sorted(scripts_dir.glob("*.sql")):
@@ -58,3 +66,12 @@ def _discover_scripts(scripts_dir: Path) -> list[tuple[str, Path]]:
         version = path.stem
         scripts.append((version, path))
     return scripts
+
+
+def _split_sql_script(sql: str) -> list[str]:
+    statements: list[str] = []
+    for part in sql.split(";"):
+        statement = part.strip()
+        if statement:
+            statements.append(statement)
+    return statements

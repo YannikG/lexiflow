@@ -10,17 +10,33 @@ from lexiflow_core.config.settings import Settings, SettingsError, SettingsStore
 
 
 def test_settings_round_trip_native_language(tmp_path: Path) -> None:
-    store = SettingsStore(config_dir=tmp_path)
-    settings = Settings(native_language="de")
+    config_dir = tmp_path / "config"
+    data_root = tmp_path / "library"
+    store = SettingsStore(config_dir=config_dir)
+    settings = Settings(native_language="de", data_root=data_root)
 
     store.save(settings)
     loaded = store.load()
 
     assert loaded.native_language == "de"
+    assert store.settings_path == config_dir / "settings.toml"
+    assert store.settings_path.is_file()
+    assert not (data_root / "settings.toml").exists()
+
+
+def test_resolve_data_root_expands_tilde(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("USERPROFILE", raising=False)
+
+    settings = Settings(data_root=Path("~/custom-library"))
+
+    assert resolve_data_root(settings) == (tmp_path / "custom-library").resolve()
 
 
 def test_settings_load_returns_defaults_when_missing(tmp_path: Path) -> None:
-    store = SettingsStore(config_dir=tmp_path)
+    store = SettingsStore(config_dir=tmp_path / "config")
 
     loaded = store.load()
 
@@ -28,8 +44,10 @@ def test_settings_load_returns_defaults_when_missing(tmp_path: Path) -> None:
 
 
 def test_settings_load_raises_on_corrupt_file(tmp_path: Path) -> None:
-    store = SettingsStore(config_dir=tmp_path)
-    (tmp_path / "settings.toml").write_text("not valid toml {{{", encoding="utf-8")
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    store = SettingsStore(config_dir=config_dir)
+    (config_dir / "settings.toml").write_text("not valid toml {{{", encoding="utf-8")
 
     with pytest.raises(SettingsError, match="invalid settings.toml"):
         store.load()

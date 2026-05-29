@@ -13,9 +13,12 @@ def test_connect_sqlite_enables_wal(tmp_path: Path) -> None:
     try:
         journal_mode = connection.execute("PRAGMA journal_mode").fetchone()
         foreign_keys = connection.execute("PRAGMA foreign_keys").fetchone()
+        busy_timeout = connection.execute("PRAGMA busy_timeout").fetchone()
     finally:
         connection.close()
 
     assert journal_mode is not None
     assert journal_mode[0].lower() == "wal"
     assert foreign_keys == (1,)
+    assert busy_timeout is not None
+    assert busy_timeout[0] == 5000
