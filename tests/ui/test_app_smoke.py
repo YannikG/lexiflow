@@ -1,3 +1,5 @@
+from lexiflow_core.config.settings import Settings
+from lexiflow_core.config.settings_store import SettingsStore
 from lexiflow_ui.app import run
 from lexiflow_ui.main_window import MainWindow
 from PySide6.QtCore import QTimer
@@ -18,7 +20,11 @@ class _SmokeInstanceGuard:
         return None
 
 
-def test_app_smoke(qtbot, monkeypatch) -> None:
+def test_app_smoke(qtbot, monkeypatch, tmp_path) -> None:
+    config_dir = tmp_path / "config"
+    data_root = tmp_path / "library"
+    store = SettingsStore(config_dir=config_dir)
+    store.save(Settings(data_root=data_root, onboarding_complete=True))
     original_show = MainWindow.show
 
     def show_then_quit(self: MainWindow) -> None:
@@ -31,4 +37,11 @@ def test_app_smoke(qtbot, monkeypatch) -> None:
         QTimer.singleShot(0, app.quit)
 
     monkeypatch.setattr(MainWindow, "show", show_then_quit)
-    assert run(argv=["lexiflow-test"], instance_guard=_SmokeInstanceGuard()) == 0
+    assert (
+        run(
+            argv=["lexiflow-test"],
+            instance_guard=_SmokeInstanceGuard(),
+            settings_store=store,
+        )
+        == 0
+    )

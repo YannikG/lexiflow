@@ -14,6 +14,18 @@ LexiFlow persists background work in `queue.sqlite` under the user library `.app
 
 On startup, **Running** jobs return to **Pending** and are picked up automatically. `run_worker_loop` calls recovery before claiming work so direct callers get the same behaviour as the worker CLI. **Failed** and **Cancelled** jobs are not auto-retried. **Pending** jobs remain pending.
 
+## Job types
+
+| Type | Purpose |
+|------|---------|
+| `cleanup` | Markdown cleanup (LLM) |
+| `translate` | Plain translation (LLM) |
+| `simplify` | Simplified variant (LLM) |
+| `embed` | Embedding generation |
+| `download_spacy` | spaCy language pack download (enqueued when a target language is added) |
+
+LLM job types share the one-at-a-time rule. `download_spacy` is persisted in phase 06; worker handling arrives in a later phase.
+
 ## One job at a time
 
 Only one LLM job runs globally at a time. Additional requests stay **Pending** until the head job finishes. Claiming refuses a second **Running** job even if multiple worker processes are active.

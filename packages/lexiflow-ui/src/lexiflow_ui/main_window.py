@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Literal
 
+from lexiflow_core.config.settings import Settings
 from PySide6.QtGui import QAction, QActionGroup, QCloseEvent
 from PySide6.QtWidgets import (
     QApplication,
@@ -14,6 +16,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from lexiflow_ui.widgets.active_target_language import ActiveTargetLanguageWidget
 from lexiflow_ui.widgets.empty_state import EmptyStateWidget
 from lexiflow_ui.widgets.sidebar import SidebarWidget
 from lexiflow_ui.widgets.worker_status import WorkerStatusBar
@@ -33,19 +36,28 @@ class MainWindow(QMainWindow):
         self,
         *,
         supervisor: WorkerSupervisor,
+        settings: Settings | None = None,
+        data_root: Path | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self._supervisor = supervisor
+        self._settings = settings if settings is not None else Settings()
+        self._data_root = data_root if data_root is not None else supervisor.data_root
         self.setWindowTitle("LexiFlow")
         self.setMinimumSize(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT)
         self.resize(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT)
         self._navigation_actions: dict[NavigationMode, QAction] = {}
+        self._active_target_language: ActiveTargetLanguageWidget | None = None
         self._build_toolbar()
         self._build_central_layout()
         self._status_bar = WorkerStatusBar(supervisor, self)
         self.setStatusBar(self._status_bar)
         self._show_navigation_mode("texts")
+
+    @property
+    def active_target_language(self) -> ActiveTargetLanguageWidget | None:
+        return self._active_target_language
 
     @property
     def sidebar(self) -> SidebarWidget:
@@ -74,6 +86,14 @@ class MainWindow(QMainWindow):
         toolbar = QToolBar("Main", self)
         toolbar.setObjectName("main_toolbar")
         self.addToolBar(toolbar)
+        if self._settings.active_target_language is not None:
+            self._active_target_language = ActiveTargetLanguageWidget(
+                settings=self._settings,
+                data_root=self._data_root,
+                parent=self,
+            )
+            toolbar.addWidget(self._active_target_language)
+            toolbar.addSeparator()
         group = QActionGroup(self)
         group.setExclusive(True)
         for mode, label in (("texts", "Texts"), ("vocabulary", "Vocabulary")):

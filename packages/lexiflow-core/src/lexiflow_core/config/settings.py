@@ -17,6 +17,7 @@ class SettingsError(Exception):
 class Settings:
     data_root: Path | None = None
     native_language: str | None = None
+    active_target_language: str | None = None
     onboarding_complete: bool = False
     ollama_url: str | None = None
     llm_enabled: bool = True

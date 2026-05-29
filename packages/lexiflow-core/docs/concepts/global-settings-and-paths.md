@@ -19,7 +19,8 @@ Settings are read before opening the library so a **data root** override never c
 |--------|--------|---------|
 | `platform_dirs` | `app_config_dir()` | Machine-local config directory |
 | `paths` | `default_data_root()` | Default user library when settings omit `data_root` |
-| `paths` | `language_data_root(data_root, code)` | Per-target-language folder (stub) |
+| `paths` | `language_json_path(data_root, code)` | Per-target-language metadata file |
+| `paths` | `language_data_root(data_root, code)` | Per-target-language folder |
 | `settings_resolution` | `resolve_data_root(settings)` | Effective library path from settings |
 | `app_layout` | `ensure_app_layout(data_root)` | Create `.app/` and `.app/logs/` under the library |
 | `bootstrap` | `bootstrap_runtime(settings_store)` | Load settings, resolve data root, ensure layout |
@@ -30,7 +31,7 @@ Pure path formulas stay separate from filesystem mutation and from settings I/O.
 
 ## Global settings
 
-Stored as TOML in the app config directory. Includes native language, onboarding flags, Ollama endpoint, LLM toggle, theme, and the **data root** pointer.
+Stored as TOML in the app config directory. Includes native language, `active_target_language`, onboarding flags, Ollama endpoint, LLM toggle, theme, and the **data root** pointer.
 
 Corrupt `settings.toml` surfaces as `SettingsError`; missing file returns defaults.
 

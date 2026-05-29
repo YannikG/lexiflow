@@ -19,9 +19,14 @@ The **Application shell** is LexiFlow's main window frame: toolbar, **sidebar**,
 - **Worker:** supervisor created at startup; **offline** until `ensure_running()` (lazy spawn on first AI job wired in later phases)
 - **Tests:** pytest-qt for shell layout, single instance, worker supervisor stub
 
-## Deferred (phase 06+)
+## Phase 06 (onboarding and languages)
 
-- **Onboarding flow** gate before main shell (phase 06)
-- **Active target language** toolbar switcher (phase 06)
+- **Onboarding flow** gates `run()` until language setup completes (see `onboarding-flow.md`)
+- **Active target language** toolbar display shows flag, name, and **user language level**
+- Main window receives `Settings` and `data_root` after onboarding
+
+## Deferred (phase 07+)
+
+- Ollama probe and **model bootstrap** in onboarding wizard (phase 07)
 - Sidebar group/text tree, reader, add-text (phase 08+)
 - Jobs panel, quit-with-jobs dialog, worker idle lifecycle (phase 14)

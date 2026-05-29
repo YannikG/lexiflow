@@ -60,6 +60,10 @@ class WorkerSupervisor(QObject):
     def state(self) -> WorkerState:
         return self._state
 
+    @property
+    def data_root(self) -> Path:
+        return self._data_root
+
     def ensure_running(self) -> None:
         if self._process is not None:
             return
