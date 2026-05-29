@@ -39,8 +39,11 @@ python_version = "3.12"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
-mypy_path = ["packages/lexiflow-core/src"]
-packages = ["lexiflow_core"]
+mypy_path = [
+    "packages/lexiflow-core/src",
+    "packages/lexiflow-worker/src",
+]
+packages = ["lexiflow_core", "lexiflow_worker"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

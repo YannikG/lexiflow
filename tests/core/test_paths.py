@@ -36,3 +36,9 @@ def test_app_config_dir_uses_app_data_name_on_linux(
 
 def test_language_data_root_returns_language_folder(tmp_path: Path) -> None:
     assert language_data_root(tmp_path, "de") == tmp_path / "de"
+
+
+def test_queue_db_path_under_app_folder(tmp_path: Path) -> None:
+    from lexiflow_core.config.paths import queue_db_path
+
+    assert queue_db_path(tmp_path) == tmp_path / ".app" / "queue.sqlite"

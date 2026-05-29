@@ -23,6 +23,8 @@ def test_lexiflow_core_imports_without_cycles() -> None:
         schema_migrations,
         sql_script,
     )
+    from lexiflow_core.jobs import JobService, ensure_job_queue, run_worker_loop
+    from lexiflow_core.llm import FakeLLM, LLMProvider
 
     assert lexiflow_core.__version__
     assert paths.APP_DATA_NAME == "LexiFlow"
@@ -40,3 +42,8 @@ def test_lexiflow_core_imports_without_cycles() -> None:
     assert migrations.MigrationRunner is not None
     assert database_path.ensure_database_parent is not None
     assert connection.connect_sqlite is not None
+    assert ensure_job_queue is not None
+    assert JobService is not None
+    assert run_worker_loop is not None
+    assert FakeLLM is not None
+    assert LLMProvider is not None
