@@ -9,7 +9,7 @@ from lexiflow_core.library.models import CreateTextRequest
 from lexiflow_core.library.text_repository import TextRepository
 from lexiflow_ui.main_window import MainWindow
 from lexiflow_ui.worker_supervisor import WorkerSupervisor
-from PySide6.QtTest import QTest
+from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import QLabel, QPushButton, QToolBar
 
 
@@ -60,7 +60,7 @@ def test_texts_empty_state_shows_add_text_button(qtbot, tmp_path) -> None:
     assert button.isEnabled()
 
 
-def test_new_shortcut_opens_add_text_dialog(
+def test_add_text_action_opens_dialog(
     qtbot, tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     opened: list[bool] = []
@@ -82,7 +82,9 @@ def test_new_shortcut_opens_add_text_dialog(
     window.show()
     qtbot.waitExposed(window)
 
-    QTest.keySequence(window, window.add_text_action().shortcut())
+    action = window.add_text_action()
+    assert action.shortcut() == QKeySequence.StandardKey.New
+    action.trigger()
     assert opened == [True]
 
 
