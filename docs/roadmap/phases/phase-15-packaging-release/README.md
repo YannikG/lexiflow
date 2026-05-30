@@ -15,7 +15,9 @@
 ## References
 
 - [ADR-0001](../../adr/0001-split-packages-and-ci-quality-gates.md)
+- [ADR-0006](../../adr/0006-desktop-ui-theme-strategy.md) — bundle **UI theme** assets (`qt-material` QSS) in PyInstaller spec
 - [common-language.md](../../../../common-language.md): **Packaging**, **Installers**, **Release process**, **Code signing roadmap**, **Release hygiene**
+- [ui-theme.md](../../../../packages/lexiflow-ui/docs/concepts/ui-theme.md)
 
 ## TDD cycles
 

@@ -15,6 +15,7 @@
 ## References
 
 - [common-language.md](../../../../common-language.md): **Reader tabs**, **Read mode**, **Edit mode**, **Last viewed tab**, **Markdown reader**, **Markdown editing**, **Document title**
+- Next: [phase 9-2 — UI theme migration](../phase-09-2-ui-theme-migration/README.md) (shell **UI theme** after reader lands)
 
 ## TDD cycles
 

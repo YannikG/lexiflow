@@ -207,7 +207,7 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Application shell** — Main window: toolbar, **sidebar**, content area, **status bar**, **navigation modes**.
 
-**Settings** — Post-onboarding configuration: languages, Ollama, Hugging Face token, data root, theme, appearance, models, backup, trash, logs, **about dialog**, **reset app**. Distinct from **onboarding flow**.
+**Settings** — Post-onboarding configuration: languages, Ollama, Hugging Face token, data root, **Theme**, **Appearance**, models, backup, trash, logs, **about dialog**, **reset app**. Distinct from **onboarding flow**.
 
 **About dialog** — App version, **system requirements**, open logs, project and license info.
 
@@ -217,9 +217,15 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Empty state** — Placeholder when a view has no content, with guidance and primary action.
 
-**Markdown reader** — Native markdown rendering. Reading-first: headings, bold, italic, tables. User-adjustable font size in appearance **settings**.
+**Appearance** — Reader font size and future density or accent options in **settings** (phase 14). Distinct from **Theme** preference; light/dark chrome comes from **UI theme**, reader font size from **appearance** settings.
 
-**Theme** — System (default), Light, or Dark.
+**Theme** — User preference in **global settings**: System (default), Light, or Dark. Drives **UI theme** bootstrap at app startup. Runtime toggle in **settings** (phase 14).
+
+**UI theme** — Applied visual layer (Qt stylesheet) on the widget tree. Owned by **lexiflow-ui**; maps **Theme** preference to light or dark chrome. See [ADR-0006](docs/adr/0006-desktop-ui-theme-strategy.md).
+
+**UI theme migration** — Phase 9-2 work to move the existing **application shell** off default Qt Fusion chrome onto **UI theme**, and to document conventions for later UI phases.
+
+**Markdown reader** — Native markdown rendering. Reading-first: headings, bold, italic, tables. User-adjustable font size in **appearance** settings.
 
 **Active target language** — Toolbar switcher shows flag, name, and **user language level**. **Sidebar**, library, and **Vocabulary** scope to this language only.
 
@@ -358,6 +364,7 @@ Canonical terms (alphabetical):
 - App config directory
 - App data name
 - App icon (v1)
+- Appearance
 - Application shell
 - Background job
 - Bootstrap network retry
@@ -480,6 +487,8 @@ Canonical terms (alphabetical):
 - Text variant
 - Text vector database
 - Theme
+- UI theme
+- UI theme migration
 - Translated variant
 - Trash
 - Unsaved edit guard

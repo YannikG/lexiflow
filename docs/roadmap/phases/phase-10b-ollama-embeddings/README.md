@@ -22,6 +22,7 @@ Insert phase between 10 and 11. Phase 10 establishes MiniLM + `Embedder` + vecto
 
 - [ADR 0005](../../../adr/0005-ollama-embedding-provider-deferred.md)
 - [common-language.md](../../../../common-language.md): **Ollama endpoint**, **Ollama and embeddings**, **Embedding model**, **Embedding queue**
+- [ui-theme.md](../../../../packages/lexiflow-ui/docs/concepts/ui-theme.md) — onboarding wizard (phase 06) inherits **UI theme** after phase 9-2 baseline
 - Phase 10: `Embedder`, `VectorStore`, 384-dim baseline
 - Phase 07: `required_artifact_ids`, onboarding LLM setup
 

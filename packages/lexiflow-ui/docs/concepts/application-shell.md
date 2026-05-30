@@ -35,6 +35,12 @@ The **Application shell** is LexiFlow's main window frame: toolbar, **sidebar**,
 - Sidebar text selection opens the **Markdown reader** in the content area (see [markdown-reader.md](markdown-reader.md))
 - **Reader tabs**, **read mode**, **edit mode**, and **last viewed tab** persistence in the library index
 
+## Phase 09-2 (UI theme migration)
+
+- **UI theme** bootstrap at app startup — see [ui-theme.md](ui-theme.md) and [ADR-0006](../../../../docs/adr/0006-desktop-ui-theme-strategy.md)
+- **Theme** from **global settings** applied before the main window (system / light / dark)
+- Shell widgets from phases 05–09 migrate off default Fusion chrome; no inline `setStyleSheet` in feature modules
+
 ## Deferred (later phases)
 
 - ~~Sidebar group/text tree~~ → [phase 17 UI cleanup](../../../../docs/roadmap/phases/phase-17-ui-cleanup/README.md)

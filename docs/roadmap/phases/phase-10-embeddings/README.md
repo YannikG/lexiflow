@@ -13,6 +13,7 @@
 ## References
 
 - [common-language.md](../../../../common-language.md): **Embedding model**, **Vector storage**, **Embedding queue**, **Vocabulary database**, **Text vector database**
+- [ui-theme.md](../../../../packages/lexiflow-ui/docs/concepts/ui-theme.md) — convention only; phase 10 is core-heavy and not blocked by 9-2
 
 ## Public interfaces
 

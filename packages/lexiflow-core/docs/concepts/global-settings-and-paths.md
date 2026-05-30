@@ -33,7 +33,9 @@ Pure path formulas stay separate from filesystem mutation and from settings I/O.
 
 ## Global settings
 
-Stored as TOML in the app config directory. Includes native language, `active_target_language`, onboarding flags, Ollama endpoint, optional **Hugging Face token**, LLM toggle, theme, and the **data root** pointer.
+Stored as TOML in the app config directory. Includes native language, `active_target_language`, onboarding flags, Ollama endpoint, optional **Hugging Face token**, LLM toggle, **Theme** (`system` | `light` | `dark`), and the **data root** pointer.
+
+**Theme** is a user preference only in core; applying it to widgets is **UI theme** work in **lexiflow-ui** ([ui-theme.md](../../../lexiflow-ui/docs/concepts/ui-theme.md), [ADR-0006](../../../../docs/adr/0006-desktop-ui-theme-strategy.md)).
 
 Corrupt `settings.toml` surfaces as `SettingsError`; missing file returns defaults.
 

@@ -7,7 +7,7 @@
 
 Close gaps between **Application shell** / [common-language.md](../../../../common-language.md) and what earlier phases shipped as placeholders. One phase, one PR: work through the **UI cleanup checklist** below (vertical TDD slices per item).
 
-**Blocked by:** phase 09 (reader) — sidebar selection and content area are in place before restructuring navigation.
+**Blocked by:** [phase 09-2 — UI theme migration](../phase-09-2-ui-theme-migration/README.md) — **UI theme** baseline before shell restructuring.
 
 ## Why this phase exists
 
@@ -24,12 +24,15 @@ Track each item in the PR Plan. Check off in the PR description as items merge.
 | 3 | **Add text entry points** | One clear primary action; no duplicate chrome. | Remove toolbar **Add text** button. Keep File menu (⌘N), sidebar button, empty-state button; document in **application-shell**. |
 | 4 | **Delete text affordance** | User can remove a **text** from the library. | Wire UI to `TextRepository.delete_to_trash` (moves to **Trash**). Full trash/restore UI remains phase 13; this item is at least delete-from-sidebar or reader with confirm. |
 | 5 | **Shell copy and empty states** | Guidance matches current behavior. | e.g. “Select a text in the sidebar” when tree exists; no “reader deferred” / flat-list assumptions. |
+| 6 | **Theme on new shell controls** | **UI theme** applies to tree, switcher, delete affordances. | No inline QSS; smoke-check light and dark after phase 9-2 baseline. |
 
 Add rows to this table only when a new shell gap is discovered; do not mix unrelated features (jobs panel, search, vocabulary) into this phase.
 
 ## References
 
 - [common-language.md](../../../../common-language.md): **Navigation modes**, **Group**, **Active target language**, **Application shell**, **Trash**
+- [ADR-0006](../../../adr/0006-desktop-ui-theme-strategy.md)
+- [ui-theme.md](../../../../packages/lexiflow-ui/docs/concepts/ui-theme.md) — tree and switcher use themed `QTreeWidget` / combos; verify theme on new controls (checklist)
 - [application-shell.md](../../../../packages/lexiflow-ui/docs/concepts/application-shell.md)
 - Phase 03 **library index** (group + title columns)
 - Phase 06 **LanguageStore** / target languages
@@ -57,10 +60,19 @@ Implement one checklist row at a time: one test → minimal UI → refactor.
 
 ---
 
+### Cycle 17.4 — New shell controls inherit UI theme
+
+**Test:** pytest-qt — tree and language switcher visible with dark **Theme** in settings → no inline QSS; smoke pass in light and dark.
+
+**Depends on:** phase 9-2 **UI theme** baseline (checklist item 6).
+
+---
+
 ## Manual verification
 
 - Tree expand/collapse; select text in each group; switch language and confirm library scope.
 - Add text still works from sidebar / menu after tree lands.
+- Tree and switcher look correct in light and dark **Theme** (checklist item 6).
 
 ## PR checklist
 

@@ -16,6 +16,7 @@
 ## References
 
 - [common-language.md](../../../../common-language.md): **Onboarding flow**, **Language catalog**, **User language level**, **Remove target language**, **Language metadata**
+- [ui-theme.md](../../../../packages/lexiflow-ui/docs/concepts/ui-theme.md) — wizard restyled in phase 9-2 (ships in phase 06)
 
 ## Public interfaces
 
