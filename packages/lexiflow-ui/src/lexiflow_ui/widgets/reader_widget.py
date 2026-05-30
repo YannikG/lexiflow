@@ -34,6 +34,7 @@ from lexiflow_ui.reader_flow import load_variant_markdown, markdown_for_reader_p
 
 class ReaderWidget(QWidget):
     tab_changed = Signal(str)
+    text_saved = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -44,7 +45,7 @@ class ReaderWidget(QWidget):
         self._settings: Settings | None = None
         self._active_tab = TRANSLATED_TAB
         self._simplified_variants: tuple[str, ...] = ()
-        self._loaded_markdown = ""
+        self._loaded_markdown: str | None = None
         self._tab_buttons: dict[str, QPushButton | QToolButton] = {}
         self._single_simplified_variant: str | None = None
 
@@ -159,14 +160,16 @@ class ReaderWidget(QWidget):
         self._show_read_mode()
         markdown, title = load_variant_markdown(self._repo, self._record, tab_id)
         if markdown is None:
-            self._loaded_markdown = ""
+            self._loaded_markdown = None
             self._read_pane.setPlainText(
                 "This variant is not available yet. "
                 "Background jobs may still be running."
             )
+            self._edit_button.setEnabled(False)
             self.tab_changed.emit(tab_id)
             return
         self._loaded_markdown = markdown
+        self._edit_button.setEnabled(True)
         display_title = title if title is not None else self._record.title
         rendered = markdown_for_reader_pane(
             markdown,
@@ -248,7 +251,7 @@ class ReaderWidget(QWidget):
         self._cancel_button.hide()
 
     def _enter_edit_mode(self) -> None:
-        if not self._loaded_markdown:
+        if self._loaded_markdown is None:
             return
         self._edit_pane.setPlainText(self._loaded_markdown)
         self._mode_stack.setCurrentWidget(self._edit_pane)
@@ -273,6 +276,7 @@ class ReaderWidget(QWidget):
         self._title.setText(updated.title)
         self._show_read_mode()
         self.select_tab(self._active_tab)
+        self.text_saved.emit()
 
     def _open_source_url(self) -> None:
         if self._record is None or not self._record.source_url:

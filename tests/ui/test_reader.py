@@ -195,6 +195,61 @@ def test_edit_save_updates_translated_variant(reader_window, qtbot) -> None:
     assert "Texto guardado." in read_pane.toPlainText()
 
 
+def test_edit_disabled_when_translated_variant_missing(qtbot, tmp_path) -> None:
+    data_root = tmp_path / "LexiFlow"
+    coordinator, index = LibraryCoordinator.open(data_root)
+    del coordinator
+    repo = TextRepository(data_root, index)
+    repo.create_text(
+        CreateTextRequest(
+            title="Untitled",
+            group="News",
+            target_language="es",
+            native_language="en",
+            body="hola",
+        )
+    )
+    supervisor = WorkerSupervisor(data_root=data_root)
+    window = MainWindow(
+        supervisor=supervisor,
+        settings=Settings(
+            data_root=data_root,
+            active_target_language="es",
+            native_language="en",
+        ),
+        data_root=data_root,
+    )
+    qtbot.addWidget(window)
+    window.show()
+    qtbot.waitExposed(window)
+
+    _click_sidebar_text(qtbot, window)
+
+    edit_button = window.reader.findChild(QPushButton, "reader_edit_button")
+    assert edit_button is not None
+    assert not edit_button.isEnabled()
+
+
+def test_save_edit_refreshes_sidebar_title(reader_window, qtbot) -> None:
+    window, _data_root = reader_window
+    _click_sidebar_text(qtbot, window)
+
+    edit_button = window.reader.findChild(QPushButton, "reader_edit_button")
+    save_button = window.reader.findChild(QPushButton, "reader_save_button")
+    edit_pane = window.reader.findChild(QPlainTextEdit, "reader_edit_pane")
+    assert edit_button is not None and save_button is not None and edit_pane is not None
+
+    qtbot.mouseClick(edit_button, Qt.MouseButton.LeftButton)
+    edit_pane.setPlainText("# Nuevo Título\n\nTexto guardado.")
+    qtbot.mouseClick(save_button, Qt.MouseButton.LeftButton)
+    qtbot.wait(50)
+
+    sidebar_list = _sidebar_list(window)
+    item = sidebar_list.item(0)
+    assert item is not None
+    assert item.text() == "Nuevo Título"
+
+
 def test_source_url_button_visible_when_metadata_has_url(qtbot, tmp_path) -> None:
     data_root = tmp_path / "LexiFlow"
     _seed_reader_text(data_root, source_url="https://example.com/article")

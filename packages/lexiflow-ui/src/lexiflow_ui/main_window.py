@@ -175,6 +175,7 @@ class MainWindow(QMainWindow):
             texts_action_button.clicked.connect(self._open_add_text_dialog)
         self._reader = ReaderWidget(self._texts_stack)
         self._reader.tab_changed.connect(self._on_reader_tab_changed)
+        self._reader.text_saved.connect(self._refresh_texts_ui)
         self._texts_stack.addWidget(self._texts_view)
         self._texts_stack.addWidget(self._reader)
         self._content_stack = QStackedWidget(container)

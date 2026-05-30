@@ -54,18 +54,24 @@ class SidebarWidget(QWidget):
         self._list.show()
         for record in records:
             item = QListWidgetItem(record.title)
-            item.setData(Qt.ItemDataRole.UserRole, record.id)
+            item.setData(Qt.ItemDataRole.UserRole, str(record.id))
             self._list.addItem(item)
 
     def select_text(self, text_id: UUID) -> None:
         """Highlight a text in the sidebar list."""
         for row in range(self._list.count()):
             item = self._list.item(row)
-            if item.data(Qt.ItemDataRole.UserRole) == text_id:
+            stored_id = item.data(Qt.ItemDataRole.UserRole)
+            if stored_id == text_id or stored_id == str(text_id):
                 self._list.setCurrentItem(item)
                 return
 
     def _emit_selected_text(self, item: QListWidgetItem) -> None:
         text_id = item.data(Qt.ItemDataRole.UserRole)
-        if isinstance(text_id, UUID):
+        if isinstance(text_id, str):
+            try:
+                self.text_selected.emit(UUID(text_id))
+            except ValueError:
+                pass
+        elif isinstance(text_id, UUID):
             self.text_selected.emit(text_id)
