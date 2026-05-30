@@ -85,6 +85,7 @@ def test_upsert_text_preserves_last_viewed_tab(tmp_path: Path) -> None:
         "# Hola\n\nUpdated body.",
     )
     assert updated.title == "Hola"
+    assert updated.last_viewed_tab == NATIVE_TAB
     assert index.get_last_viewed_tab(record.id) == NATIVE_TAB
 
 

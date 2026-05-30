@@ -122,7 +122,7 @@ class LibraryCoordinator:
             update_source_url=update_source_url,
         )
         self._index.upsert_text(record)
-        return record
+        return replace(record, last_viewed_tab=indexed.last_viewed_tab)
 
     def delete_to_trash(self, text_id: UUID) -> None:
         indexed = self._index.get_by_id(text_id)
