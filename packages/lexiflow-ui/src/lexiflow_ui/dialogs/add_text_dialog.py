@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QHBoxLayout,
     QLineEdit,
+    QMessageBox,
     QPlainTextEdit,
     QPushButton,
     QVBoxLayout,
@@ -100,13 +101,18 @@ class AddTextDialog(QDialog):
     def paste_edit(self) -> QPlainTextEdit:
         return self._paste
 
+    def _validation_error(self) -> str | None:
+        if not self._group.currentText().strip():
+            return "Enter a group for this text."
+        if not self._paste.toPlainText().strip():
+            return "Paste or type content to save."
+        return None
+
     def form_data(self) -> AddTextFormData | None:
+        if self._validation_error() is not None:
+            return None
         group = self._group.currentText().strip()
-        if not group:
-            return None
         pasted = self._paste.toPlainText()
-        if not pasted.strip():
-            return None
         url = self._source_url.text().strip() or None
         tab = InputTab.NATIVE if self._native_tab_btn.isChecked() else InputTab.TARGET
         return AddTextFormData(
@@ -125,7 +131,9 @@ class AddTextDialog(QDialog):
         self._target_tab_btn.setChecked(True)
 
     def _on_accept(self) -> None:
-        if self.form_data() is None:
+        error = self._validation_error()
+        if error is not None:
+            QMessageBox.warning(self, "Add text", error)
             return
         self.accept()
 

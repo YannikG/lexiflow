@@ -25,7 +25,13 @@ The **Application shell** is LexiFlow's main window frame: toolbar, **sidebar**,
 - **Active target language** toolbar display shows flag, name, and **user language level**
 - Main window receives `Settings` and `data_root` after onboarding
 
-## Deferred (phase 08+)
+## Phase 08 (add text)
 
-- Sidebar group/text tree, reader, add-text (phase 08+)
+- **Add text** entry points: File menu, toolbar button, sidebar button, empty-state button (Texts mode)
+- Sidebar lists target-language titles from the library index; after add-text, the shell re-reads the index on a short timer ladder while jobs may still be running
+- Reader view deferred to phase 09
+
+## Deferred (later phases)
+
+- Sidebar group/text tree, reader
 - Jobs panel, quit-with-jobs dialog, worker idle lifecycle (phase 14)
