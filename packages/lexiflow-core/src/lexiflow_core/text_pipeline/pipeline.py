@@ -8,6 +8,7 @@ from uuid import UUID
 from lexiflow_core.jobs.handlers.cleanup import SOURCE_ROUTE_NATIVE, SOURCE_ROUTE_TARGET
 from lexiflow_core.jobs.models import JobRequest, JobType
 from lexiflow_core.jobs.service import JobService
+from lexiflow_core.library.document_title import normalize_document_title
 from lexiflow_core.library.index import LibraryIndex
 from lexiflow_core.library.models import CreateTextRequest
 from lexiflow_core.library.text_repository import TextRepository
@@ -18,7 +19,6 @@ from lexiflow_core.text_pipeline.routing import resolve_source_route
 from lexiflow_core.text_pipeline.types import TextId
 
 LARGE_PASTE_THRESHOLD = 50_000
-PROVISIONAL_TITLE = "Untitled"
 
 
 class DuplicateWarning(Exception):
@@ -63,7 +63,6 @@ class TextPipeline:
         if not draft.ignore_duplicate:
             existing = self._duplicates.find_duplicate(
                 target_language=draft.target_language,
-                pasted_content=draft.pasted_content,
                 source_url=draft.source_url,
             )
             if existing is not None:
@@ -84,7 +83,7 @@ class TextPipeline:
 
         record = self._texts.create_text(
             CreateTextRequest(
-                title=PROVISIONAL_TITLE,
+                title=normalize_document_title(draft.title),
                 group=draft.group,
                 target_language=draft.target_language,
                 native_language=draft.native_language,

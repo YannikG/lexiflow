@@ -5,13 +5,13 @@ from __future__ import annotations
 from lexiflow_core.library.markdown_display import markdown_for_display
 
 
-def test_strips_duplicate_document_title_heading() -> None:
+def test_keeps_document_title_heading_in_rendered_markdown() -> None:
     markdown = "# Hola\n\nCuerpo."
 
     rendered = markdown_for_display(markdown, document_title="Hola")
 
-    assert rendered == "Cuerpo."
-    assert rendered.count("# Hola") == 0
+    assert rendered == markdown
+    assert rendered.startswith("# Hola")
 
 
 def test_keeps_body_when_title_heading_differs() -> None:

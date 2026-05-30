@@ -12,9 +12,9 @@ The **Markdown reader** is LexiFlow's reading surface for **text variants**: nat
 
 ## Read mode and edit mode
 
-- **Read mode** is default: rendered markdown in the reading pane.
-- **Edit mode** shows raw markdown for the active tab. Save writes the variant file via `TextRepository.save_variant_edit`; Cancel discards. Save does not enqueue translate or simplify jobs (re-embedding is phase 10).
-- **Document title** is shown in the reader header; duplicate top-level H1 matching the title is stripped before render.
+- **Document title** in the sidebar and reader header comes from **text metadata**. LLM translate/cleanup sets the initial title; in **edit mode** the user changes it in a dedicated title field (not from markdown H1).
+- **Read mode** is default: library title label plus rendered markdown in the reading pane (including any H1 in the file).
+- **Edit mode** shows a **title** text field, an optional **source URL** field, markdown source beside a **live preview**, and Save/Cancel beneath the content. Save writes variant markdown, the library title, and source URL via `TextRepository.save_variant_edit`; Cancel discards. Unsaved edits use the shared `lexiflow_ui.unsaved_changes` guard before switching reader tabs, opening another text, leaving Texts mode, or closing the window. Save does not enqueue translate or simplify jobs (re-embedding is phase 10).
 
 ## Settings
 

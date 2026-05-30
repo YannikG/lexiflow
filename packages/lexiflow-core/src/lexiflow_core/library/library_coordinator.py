@@ -100,13 +100,27 @@ class LibraryCoordinator:
         return self._texts.read_variant_markdown(Path(indexed.folder), variant_name)
 
     def save_variant_edit(
-        self, text_id: UUID, variant_name: str, markdown: str
+        self,
+        text_id: UUID,
+        variant_name: str,
+        markdown: str,
+        *,
+        library_title: str | None = None,
+        source_url: str | None = None,
+        update_source_url: bool = False,
     ) -> TextRecord:
         indexed = self._index.get_by_id(text_id)
         if indexed is None:
             raise TextNotFoundError(f"text not found: {text_id}")
         folder = Path(indexed.folder)
-        record = self._texts.save_user_variant_edit(folder, variant_name, markdown)
+        record = self._texts.save_user_variant_edit(
+            folder,
+            variant_name,
+            markdown,
+            library_title=library_title,
+            source_url=source_url,
+            update_source_url=update_source_url,
+        )
         self._index.upsert_text(record)
         return record
 

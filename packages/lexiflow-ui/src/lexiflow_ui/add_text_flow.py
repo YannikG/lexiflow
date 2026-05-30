@@ -38,6 +38,7 @@ def submit_add_text(
 
     pipeline = TextPipeline(data_root, language_detector=LangdetectLanguageDetector())
     draft = TextDraft(
+        title=form.title,
         group=form.group,
         pasted_content=form.pasted_content,
         input_tab=form.input_tab,
@@ -53,7 +54,7 @@ def submit_add_text(
         answer = QMessageBox.question(
             parent,
             "Duplicate text",
-            "A text with this source URL or content already exists. Save anyway?",
+            "A text with this source URL already exists. Save anyway?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )

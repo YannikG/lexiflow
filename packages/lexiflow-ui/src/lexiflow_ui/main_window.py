@@ -29,6 +29,7 @@ from lexiflow_ui.reader_flow import (
     persist_last_viewed_tab,
     resolve_initial_tab,
 )
+from lexiflow_ui.unsaved_changes import DirtyEditor, confirm_leave_dirty_editors
 from lexiflow_ui.widgets.active_target_language import ActiveTargetLanguageWidget
 from lexiflow_ui.widgets.empty_state import EmptyStateWidget
 from lexiflow_ui.widgets.reader_widget import ReaderWidget
@@ -225,17 +226,34 @@ class MainWindow(QMainWindow):
             )
         self._update_add_text_enabled()
 
+    def _dirty_editors(self) -> tuple[DirtyEditor, ...]:
+        return (self._reader,)
+
+    def _confirm_leave_editing_surfaces(self) -> bool:
+        return confirm_leave_dirty_editors(self, self._dirty_editors())
+
     def _open_reader_for_text(self, text_id: UUID) -> None:
+        if (
+            self._open_text_id == text_id
+            and self._texts_stack.currentWidget() is self._reader
+            and self._reader.is_editing()
+        ):
+            self._sidebar.select_text(text_id)
+            return
         record = self._text_repository.get_text(text_id)
         initial_tab = resolve_initial_tab(self._library_index, record)
-        self._open_text_id = text_id
-        self._reader.open_text(
+        opened = self._reader.open_text(
             record=record,
             repo=self._text_repository,
             index=self._library_index,
             settings=self._settings,
             initial_tab=initial_tab,
         )
+        if not opened:
+            if self._open_text_id is not None:
+                self._sidebar.select_text(self._open_text_id)
+            return
+        self._open_text_id = text_id
         self._texts_stack.setCurrentWidget(self._reader)
 
     def _on_reader_tab_changed(self, tab_id: str) -> None:
@@ -250,6 +268,8 @@ class MainWindow(QMainWindow):
                 "Add text",
                 "Finish language setup in onboarding before adding texts.",
             )
+            return
+        if not self._confirm_leave_editing_surfaces():
             return
         target = self._settings.active_target_language
         assert target is not None
@@ -276,6 +296,9 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(delay_ms, lambda: self._refresh_texts_ui())
 
     def _show_navigation_mode(self, mode: NavigationMode) -> None:
+        if mode != "texts" and not self._confirm_leave_editing_surfaces():
+            self._navigation_actions["texts"].setChecked(True)
+            return
         action = self._navigation_actions[mode]
         action.setChecked(True)
         self._sidebar.setVisible(mode == "texts")
@@ -284,5 +307,8 @@ class MainWindow(QMainWindow):
         )
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+        if not self._confirm_leave_editing_surfaces():
+            event.ignore()
+            return
         self._supervisor.shutdown(wait=True)
         super().closeEvent(event)

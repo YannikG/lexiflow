@@ -1,10 +1,9 @@
-"""Duplicate detection by source URL or content fingerprint."""
+"""Duplicate detection by source URL."""
 
 from __future__ import annotations
 
 from uuid import UUID
 
-from lexiflow_core.library.content_fingerprint import content_fingerprint
 from lexiflow_core.library.index import LibraryIndex
 
 
@@ -16,13 +15,9 @@ class DuplicateChecker:
         self,
         *,
         target_language: str,
-        pasted_content: str,
         source_url: str | None,
     ) -> UUID | None:
-        if source_url:
-            match = self._index.find_by_source_url(target_language, source_url)
-            if match is not None:
-                return match
-
-        candidate = content_fingerprint(pasted_content)
-        return self._index.find_by_content_fingerprint(target_language, candidate)
+        normalized_url = source_url.strip() if source_url is not None else None
+        if not normalized_url:
+            return None
+        return self._index.find_by_source_url(target_language, normalized_url)

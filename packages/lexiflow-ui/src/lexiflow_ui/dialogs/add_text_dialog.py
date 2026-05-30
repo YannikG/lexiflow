@@ -5,6 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from lexiflow_core.library.document_title import (
+    DocumentTitleError,
+    normalize_document_title,
+)
 from lexiflow_core.library.group_repository import GroupRepository
 from lexiflow_core.library.index import LibraryIndex, ensure_library_index
 from lexiflow_core.text_pipeline.models import InputTab
@@ -26,6 +30,7 @@ from PySide6.QtWidgets import (
 
 @dataclass(frozen=True)
 class AddTextFormData:
+    title: str
     group: str
     pasted_content: str
     input_tab: InputTab
@@ -49,6 +54,11 @@ class AddTextDialog(QDialog):
 
         root = QVBoxLayout(self)
         form = QFormLayout()
+
+        self._title = QLineEdit(self)
+        self._title.setObjectName("add_text_title")
+        self._title.setPlaceholderText("Title")
+        form.addRow("Title", self._title)
 
         self._group = QComboBox(self)
         self._group.setObjectName("add_text_group")
@@ -102,6 +112,10 @@ class AddTextDialog(QDialog):
         return self._paste
 
     def _validation_error(self) -> str | None:
+        try:
+            normalize_document_title(self._title.text())
+        except DocumentTitleError as error:
+            return str(error)
         if not self._group.currentText().strip():
             return "Enter a group for this text."
         if not self._paste.toPlainText().strip():
@@ -111,11 +125,13 @@ class AddTextDialog(QDialog):
     def form_data(self) -> AddTextFormData | None:
         if self._validation_error() is not None:
             return None
+        title = normalize_document_title(self._title.text())
         group = self._group.currentText().strip()
         pasted = self._paste.toPlainText()
         url = self._source_url.text().strip() or None
         tab = InputTab.NATIVE if self._native_tab_btn.isChecked() else InputTab.TARGET
         return AddTextFormData(
+            title=title,
             group=group,
             pasted_content=pasted,
             input_tab=tab,

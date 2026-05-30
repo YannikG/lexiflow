@@ -13,6 +13,7 @@ class InputTab(StrEnum):
 
 @dataclass(frozen=True)
 class TextDraft:
+    title: str
     group: str
     pasted_content: str
     input_tab: InputTab

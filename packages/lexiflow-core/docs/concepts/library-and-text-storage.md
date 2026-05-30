@@ -47,9 +47,9 @@ Path helpers live in `lexiflow_core.config.paths`. Filesystem mutations belong i
 
 - **Native variant** (`native.md`) starts with `# {title}\n\n` per **document title** rules.
 - **Translated variant** (`translated.md`) is written by the translate job handler; `meta.json` `title` and the library index row are updated to the translated H1.
-- `LibraryIndex.find_by_source_url` and `find_by_content_fingerprint` support fast duplicate detection.
+- `LibraryIndex.find_by_source_url` supports add-text **duplicate warning** by URL. `find_by_content_fingerprint` remains for index storage; add-text duplicate checks use source URL only in v1.
 - Titles containing `#` are rejected at write time.
-- User edits from the reader call `TextRepository.save_variant_edit`; translated H1 changes update **text metadata** title and the index row without enqueueing generation jobs.
+- User edits from the reader call `TextRepository.save_variant_edit`; they update variant markdown and, when the user saves from edit mode, the **library title** from the title field and optional **source URL**. Markdown H1 alone does not retitle the text.
 
 ## Library index
 
