@@ -49,6 +49,7 @@ Path helpers live in `lexiflow_core.config.paths`. Filesystem mutations belong i
 - **Translated variant** (`translated.md`) is written by the translate job handler; `meta.json` `title` and the library index row are updated to the translated H1.
 - `LibraryIndex.find_by_source_url` and `find_by_content_fingerprint` support fast duplicate detection.
 - Titles containing `#` are rejected at write time.
+- User edits from the reader call `TextRepository.save_variant_edit`; translated H1 changes update **text metadata** title and the index row without enqueueing generation jobs.
 
 ## Library index
 
@@ -58,6 +59,7 @@ Path helpers live in `lexiflow_core.config.paths`. Filesystem mutations belong i
 - The `texts` table caches title, group, languages, variants, and timestamps for fast `list_by_lang` without disk reads.
 - `get_by_id` resolves text locations for `TextRepository.get_text`.
 - `list_by_lang` returns texts for **sidebar** listing (group display name, title, slug).
+- `last_viewed_tab` column stores the per-text **last viewed tab** (Native, Translated, or simplified variant id).
 - `rebuild_from_disk` rescans all language folders after external edits; infers missing `groups.json` entries from folder slugs and repairs the registry (does not write `meta.json`).
 
 ## Repositories

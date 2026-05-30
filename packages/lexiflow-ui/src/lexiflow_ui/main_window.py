@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Literal
+from uuid import UUID
 
 from lexiflow_core.config.settings import Settings
-from lexiflow_core.library.index import ensure_library_index
+from lexiflow_core.library.index import LibraryIndex, ensure_library_index
+from lexiflow_core.library.text_repository import TextRepository
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QActionGroup, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import (
@@ -18,13 +20,18 @@ from PySide6.QtWidgets import (
     QStackedWidget,
     QToolBar,
     QWidget,
-    QWidgetAction,
 )
 
-from lexiflow_ui.add_text_flow import list_texts_for_sidebar, submit_add_text
+from lexiflow_ui.add_text_flow import submit_add_text
 from lexiflow_ui.dialogs.add_text_dialog import open_add_text_dialog
+from lexiflow_ui.reader_flow import (
+    list_texts_for_sidebar,
+    persist_last_viewed_tab,
+    resolve_initial_tab,
+)
 from lexiflow_ui.widgets.active_target_language import ActiveTargetLanguageWidget
 from lexiflow_ui.widgets.empty_state import EmptyStateWidget
+from lexiflow_ui.widgets.reader_widget import ReaderWidget
 from lexiflow_ui.widgets.sidebar import SidebarWidget
 from lexiflow_ui.widgets.worker_status import WorkerStatusBar
 from lexiflow_ui.worker_supervisor import WorkerSupervisor
@@ -55,14 +62,17 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT)
         self.resize(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT)
         self._navigation_actions: dict[NavigationMode, QAction] = {}
-        self._add_text_toolbar_button: QPushButton | None = None
         self._active_target_language: ActiveTargetLanguageWidget | None = None
         self._build_menu_bar()
         self._build_toolbar()
         self._build_central_layout()
         self._status_bar = WorkerStatusBar(supervisor, self)
         self.setStatusBar(self._status_bar)
-        self._refresh_texts_ui(ensure_index=True)
+        ensure_library_index(self._data_root)
+        self._library_index = LibraryIndex(self._data_root)
+        self._text_repository = TextRepository(self._data_root, self._library_index)
+        self._open_text_id: UUID | None = None
+        self._refresh_texts_ui()
         self._show_navigation_mode("texts")
 
     @property
@@ -78,7 +88,18 @@ class MainWindow(QMainWindow):
 
     @property
     def current_content_widget(self) -> QWidget:
-        return self._content_stack.currentWidget()
+        mode_widget = self._content_stack.currentWidget()
+        if mode_widget is self._texts_stack:
+            return self._texts_stack.currentWidget()
+        return mode_widget
+
+    @property
+    def reader(self) -> ReaderWidget:
+        return self._reader
+
+    @property
+    def data_root(self) -> Path:
+        return self._data_root
 
     def add_text_action(self) -> QAction:
         """File menu action wired to the standard New shortcut."""
@@ -132,14 +153,6 @@ class MainWindow(QMainWindow):
             group.addAction(action)
             toolbar.addAction(action)
             self._navigation_actions[mode] = action
-        toolbar.addSeparator()
-        self._add_text_toolbar_button = QPushButton("Add text", self)
-        self._add_text_toolbar_button.setObjectName("toolbar_add_text_button")
-        self._add_text_toolbar_button.setMinimumWidth(96)
-        self._add_text_toolbar_button.clicked.connect(self._open_add_text_dialog)
-        add_text_widget_action = QWidgetAction(self)
-        add_text_widget_action.setDefaultWidget(self._add_text_toolbar_button)
-        toolbar.addAction(add_text_widget_action)
 
     def _build_central_layout(self) -> None:
         container = QWidget(self)
@@ -148,22 +161,29 @@ class MainWindow(QMainWindow):
         self._sidebar = SidebarWidget(container)
         self._sidebar.setFixedWidth(SIDEBAR_WIDTH)
         self._sidebar.add_text_button().clicked.connect(self._open_add_text_dialog)
-        self._content_stack = QStackedWidget(container)
+        self._sidebar.text_selected.connect(self._open_reader_for_text)
+        self._texts_stack = QStackedWidget(container)
+        self._texts_stack.setObjectName("texts_content_stack")
         self._texts_view = EmptyStateWidget(
             title="No texts yet",
             message="Add a text to start reading and building vocabulary.",
             action_text="Add text",
-            parent=self._content_stack,
+            parent=self._texts_stack,
         )
         texts_action_button = self._texts_view.action_button()
         if texts_action_button is not None:
             texts_action_button.clicked.connect(self._open_add_text_dialog)
+        self._reader = ReaderWidget(self._texts_stack)
+        self._reader.tab_changed.connect(self._on_reader_tab_changed)
+        self._texts_stack.addWidget(self._texts_view)
+        self._texts_stack.addWidget(self._reader)
+        self._content_stack = QStackedWidget(container)
         self._vocabulary_view = EmptyStateWidget(
             title="No vocabulary yet",
             message="Words you save while reading will appear here.",
             parent=self._content_stack,
         )
-        self._content_stack.addWidget(self._texts_view)
+        self._content_stack.addWidget(self._texts_stack)
         self._content_stack.addWidget(self._vocabulary_view)
         layout.addWidget(self._sidebar)
         layout.addWidget(self._content_stack, stretch=1)
@@ -175,30 +195,27 @@ class MainWindow(QMainWindow):
     def _update_add_text_enabled(self) -> None:
         enabled = self._can_add_text()
         self._add_text_menu_action.setEnabled(enabled)
-        if self._add_text_toolbar_button is not None:
-            self._add_text_toolbar_button.setEnabled(enabled)
         self._sidebar.add_text_button().setEnabled(enabled)
         action = self._texts_view.action_button()
         if action is not None:
             action.setEnabled(enabled)
 
-    def _refresh_texts_ui(self, *, ensure_index: bool = False) -> None:
-        if ensure_index:
-            ensure_library_index(self._data_root)
+    def _refresh_texts_ui(self) -> None:
         titles = list_texts_for_sidebar(
             self._data_root, self._settings.active_target_language
         )
-        self._sidebar.set_titles(titles)
+        self._sidebar.set_texts(titles)
         if titles:
             self._texts_view.set_content(
                 title="Texts in your library",
-                message=(
-                    "Your texts are listed in the sidebar. "
-                    "Background jobs may still be generating translations. "
-                    "The reader opens in a later phase."
-                ),
+                message="Select a text in the sidebar to open the reader.",
                 show_action=False,
             )
+            if self._open_text_id is not None:
+                self._sidebar.select_text(self._open_text_id)
+                self._texts_stack.setCurrentWidget(self._reader)
+            else:
+                self._texts_stack.setCurrentWidget(self._texts_view)
         else:
             self._texts_view.set_content(
                 title="No texts yet",
@@ -206,6 +223,24 @@ class MainWindow(QMainWindow):
                 show_action=True,
             )
         self._update_add_text_enabled()
+
+    def _open_reader_for_text(self, text_id: UUID) -> None:
+        record = self._text_repository.get_text(text_id)
+        initial_tab = resolve_initial_tab(self._library_index, record)
+        self._open_text_id = text_id
+        self._reader.open_text(
+            record=record,
+            repo=self._text_repository,
+            index=self._library_index,
+            settings=self._settings,
+            initial_tab=initial_tab,
+        )
+        self._texts_stack.setCurrentWidget(self._reader)
+
+    def _on_reader_tab_changed(self, tab_id: str) -> None:
+        if self._open_text_id is None:
+            return
+        persist_last_viewed_tab(self._library_index, self._open_text_id, tab_id)
 
     def _open_add_text_dialog(self) -> None:
         if not self._can_add_text():
@@ -231,7 +266,7 @@ class MainWindow(QMainWindow):
             form=form,
             parent=self,
         )
-        self._refresh_texts_ui(ensure_index=True)
+        self._refresh_texts_ui()
         self._schedule_library_refresh()
 
     def _schedule_library_refresh(self) -> None:
@@ -244,7 +279,7 @@ class MainWindow(QMainWindow):
         action.setChecked(True)
         self._sidebar.setVisible(mode == "texts")
         self._content_stack.setCurrentWidget(
-            self._texts_view if mode == "texts" else self._vocabulary_view
+            self._texts_stack if mode == "texts" else self._vocabulary_view
         )
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802

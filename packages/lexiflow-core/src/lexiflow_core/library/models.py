@@ -31,4 +31,5 @@ class TextRecord:
     updated_at: datetime
     source_url: str | None = None
     content_fingerprint: str | None = None
+    last_viewed_tab: str | None = None
     folder: str = field(default="", compare=False)

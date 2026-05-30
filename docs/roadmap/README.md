@@ -4,7 +4,7 @@
 
 **Rule (v1, phase 01+):** one phase = one GitHub Issue = one PR = one merge to `main`.
 
-Until v1 ships, each feature phase has a **GitHub Issue** (minimal body: link + blockers) and a **phase README** (full spec). Issues use **blocked by** for order (01 → 15). After [phase 16](phases/phase-16-issue-migration-cleanup/), specs move into closed issues and phase folders leave the repo.
+Until v1 ships, each feature phase has a **GitHub Issue** (minimal body: link + blockers) and a **phase README** (full spec). Issues use **blocked by** for order (01 → 15; phase **17** UI cleanup is parallel after 09). After [phase 16](phases/phase-16-issue-migration-cleanup/), specs move into closed issues and phase folders leave the repo.
 
 See [agent workflow](../guides/agent-workflow.md).
 
@@ -22,6 +22,7 @@ flowchart TB
   P07[Phase 07 Model bootstrap HF]
   P08[Phase 08 Add text and translate]
   P09[Phase 09 Reader and markdown]
+  P17[Phase 17 UI cleanup]
   P10[Phase 10 Embeddings and sqlite-vec]
   P11[Phase 11 Simplify and new words]
   P12[Phase 12 Vocabulary]
@@ -31,7 +32,9 @@ flowchart TB
 
   P00 --> P01 --> P02 --> P03 --> P04 --> P05
   P05 --> P06 --> P07 --> P08 --> P09
+  P09 --> P17
   P09 --> P10 --> P10b[Phase 10b Ollama embeddings]
+  P17 --> P10
   P10b --> P11 --> P12 --> P13
   P13 --> P14 --> P15
   P15 --> P16[Phase 16 Issue migration cleanup]
@@ -51,6 +54,7 @@ flowchart TB
 | 07 | [phase-07-model-bootstrap](phases/phase-07-model-bootstrap/) | **Model bootstrap**, **model pinning** |
 | 08 | [phase-08-add-text-translate](phases/phase-08-add-text-translate/) | **Add text flow**, **staged generation** |
 | 09 | [phase-09-reader-markdown](phases/phase-09-reader-markdown/) | **Reader tabs**, **read mode**, **edit mode** |
+| 17 | [phase-17-ui-cleanup](phases/phase-17-ui-cleanup/) | **UI cleanup checklist**: sidebar tree, language switcher, shell alignment |
 | 10 | [phase-10-embeddings](phases/phase-10-embeddings/) | **Vector storage**, **embedding queue** (MiniLM baseline) |
 | 10b | [phase-10b-ollama-embeddings](phases/phase-10b-ollama-embeddings/) | **Ollama embedder**; skip MiniLM when Ollama configured ([ADR 0005](../adr/0005-ollama-embedding-provider-deferred.md)) |
 | 11 | [phase-11-simplify](phases/phase-11-simplify/) | **Simplify word mix**, **new word suggestions** |
@@ -60,9 +64,11 @@ flowchart TB
 | 15 | [phase-15-packaging-release](phases/phase-15-packaging-release/) | **Packaging**, **installers**, **release process** |
 | 16 | [phase-16-issue-migration-cleanup](phases/phase-16-issue-migration-cleanup/) | Specs copied into closed issues; roadmap phase folders removed; post-v1 issue-only workflow |
 
-## GitHub issues (v1, phases 01–15)
+## GitHub issues (v1, phases 01–15, 17)
 
 Create after phase 00 is on `main`, from [phase issue template](../../.github/ISSUE_TEMPLATE/phase.yml) (or `phase.md`). No issue for phase 00.
+
+Phase **17** is a **UI cleanup** track: one issue, one PR, checklist-driven. **Blocked by** phase 09. It can merge before phase 10 if the team prioritises shell alignment over embeddings.
 
 Create labels **`phase`** and **`v1`** on GitHub before using the form (or add them manually per issue).
 

@@ -6,7 +6,6 @@ from pathlib import Path
 from uuid import UUID
 
 from lexiflow_core.config.settings import Settings
-from lexiflow_core.library.index import LibraryIndex
 from lexiflow_core.text_pipeline import (
     DuplicateWarning,
     LargePasteRequiresConfirmation,
@@ -91,11 +90,3 @@ def submit_add_text(
 
     supervisor.ensure_running()
     return text_id
-
-
-def list_texts_for_sidebar(data_root: Path, target_language: str | None) -> list[str]:
-    """Return target-language titles for sidebar display (read-only)."""
-    if target_language is None:
-        return []
-    index = LibraryIndex(data_root)
-    return [record.title for record in index.list_by_lang(target_language)]
