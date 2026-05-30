@@ -27,7 +27,8 @@ class TextRecord:
     target_language: str
     native_language: str
     variants: tuple[str, ...]
-    source_url: str | None
     created_at: datetime
     updated_at: datetime
+    source_url: str | None = None
+    content_fingerprint: str | None = None
     folder: str = field(default="", compare=False)

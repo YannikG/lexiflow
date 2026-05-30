@@ -7,6 +7,7 @@ from lexiflow_core.library.document_title import (
     DocumentTitleError,
     format_document_title,
     format_native_variant,
+    parse_document_title,
 )
 
 
@@ -21,3 +22,7 @@ def test_format_native_variant_includes_body() -> None:
 def test_format_document_title_rejects_hash() -> None:
     with pytest.raises(DocumentTitleError, match="#"):
         format_document_title("Bad # title")
+
+
+def test_parse_document_title() -> None:
+    assert parse_document_title("# Titulo\n\ncuerpo") == "Titulo"

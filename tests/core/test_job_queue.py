@@ -229,7 +229,7 @@ def test_missing_prompt_marks_job_failed(job_service: JobService) -> None:
     jobs = job_service.list_jobs()
     assert len(jobs) == 1
     assert jobs[0].status == JobStatus.FAILED
-    assert "missing a string prompt" in (jobs[0].error_message or "")
+    assert "missing text_id" in (jobs[0].error_message or "")
 
 
 def test_cancel_running_job_raises(job_service: JobService) -> None:

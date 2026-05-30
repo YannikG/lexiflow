@@ -41,11 +41,13 @@ Path helpers live in `lexiflow_core.config.paths`. Filesystem mutations belong i
 - `meta.json` `group` field stores the group **display name**, not the folder slug.
 - **Text slug** folder name comes from title plus a short random suffix; collisions retry.
 - **Text metadata** has no `level` field; CEFR level exists only on **simplified variant** files.
-- At create, `title` is provisional until **plain translation** (phase 08) sets the **target-language title**.
+- At add-text save, `title` is provisional (`Untitled`) until **plain translation** sets the **target-language title** from the translated variant H1.
 
 ## Variants and document title
 
 - **Native variant** (`native.md`) starts with `# {title}\n\n` per **document title** rules.
+- **Translated variant** (`translated.md`) is written by the translate job handler; `meta.json` `title` and the library index row are updated to the translated H1.
+- `LibraryIndex.find_by_source_url` and `find_by_content_fingerprint` support fast duplicate detection.
 - Titles containing `#` are rejected at write time.
 
 ## Library index
@@ -73,5 +75,4 @@ Path helpers live in `lexiflow_core.config.paths`. Filesystem mutations belong i
 
 ## Downstream contracts
 
-- Phase 08 **plain translation** must overwrite `meta.json` title with the target-language **document title** and call `LibraryIndex.upsert_text`.
 - Phase 13 adds FTS to **library index** and full **trash** restore UX.

@@ -34,6 +34,14 @@ def ensure_library_index(data_root: Path) -> Path:
     return db_path
 
 
+_TEXTS_SELECT = """
+    SELECT id, lang, group_display_name, group_folder_slug,
+           title, text_slug, native_language, source_url,
+           content_fingerprint, variants, created_at, updated_at
+    FROM texts
+"""
+
+
 class LibraryIndex:
     def __init__(self, data_root: Path) -> None:
         self._data_root = data_root
@@ -62,13 +70,7 @@ class LibraryIndex:
         connection = self._connect()
         try:
             row = connection.execute(
-                """
-                SELECT id, lang, group_display_name, group_folder_slug,
-                       title, text_slug, native_language, source_url,
-                       variants, created_at, updated_at
-                FROM texts
-                WHERE id = ?
-                """,
+                f"{_TEXTS_SELECT} WHERE id = ?",
                 (str(text_id),),
             ).fetchone()
         finally:
@@ -82,20 +84,54 @@ class LibraryIndex:
         connection = self._connect()
         try:
             rows = connection.execute(
-                """
-                SELECT id, lang, group_display_name, group_folder_slug,
-                       title, text_slug, native_language, source_url,
-                       variants, created_at, updated_at
-                FROM texts
-                WHERE lang = ?
-                ORDER BY group_display_name COLLATE NOCASE, title COLLATE NOCASE
-                """,
+                f"{_TEXTS_SELECT} WHERE lang = ? "
+                "ORDER BY group_display_name COLLATE NOCASE, title COLLATE NOCASE",
                 (lang,),
             ).fetchall()
         finally:
             connection.close()
 
         return [self._record_from_index_row(row) for row in rows]
+
+    def find_by_source_url(self, lang: str, source_url: str) -> UUID | None:
+        """Return a text id with the same source URL in a target language, if any."""
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                """
+                SELECT id
+                FROM texts
+                WHERE lang = ? AND source_url = ?
+                LIMIT 1
+                """,
+                (lang, source_url),
+            ).fetchone()
+        finally:
+            connection.close()
+        if row is None:
+            return None
+        return UUID(str(row[0]))
+
+    def find_by_content_fingerprint(
+        self, lang: str, content_fingerprint: str
+    ) -> UUID | None:
+        """Return a text id with the same content fingerprint, if any."""
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                """
+                SELECT id
+                FROM texts
+                WHERE lang = ? AND content_fingerprint = ?
+                LIMIT 1
+                """,
+                (lang, content_fingerprint),
+            ).fetchone()
+        finally:
+            connection.close()
+        if row is None:
+            return None
+        return UUID(str(row[0]))
 
     def rebuild_from_disk(self, data_root: Path | None = None) -> int:
         """Rescan disk and rebuild the index. Read-only on text metadata."""
@@ -143,6 +179,7 @@ class LibraryIndex:
                                 native_language=record.native_language,
                                 variants=record.variants,
                                 source_url=record.source_url,
+                                content_fingerprint=record.content_fingerprint,
                                 created_at=record.created_at,
                                 updated_at=record.updated_at,
                                 folder=record.folder,
@@ -171,8 +208,8 @@ class LibraryIndex:
             INSERT INTO texts (
                 id, lang, group_display_name, group_folder_slug,
                 title, text_slug, native_language, source_url,
-                variants, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                content_fingerprint, variants, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 lang = excluded.lang,
                 group_display_name = excluded.group_display_name,
@@ -181,6 +218,7 @@ class LibraryIndex:
                 text_slug = excluded.text_slug,
                 native_language = excluded.native_language,
                 source_url = excluded.source_url,
+                content_fingerprint = excluded.content_fingerprint,
                 variants = excluded.variants,
                 created_at = excluded.created_at,
                 updated_at = excluded.updated_at
@@ -198,6 +236,7 @@ class LibraryIndex:
             record.text_slug,
             record.native_language,
             record.source_url,
+            record.content_fingerprint,
             json.dumps(list(record.variants)),
             record.created_at.isoformat(),
             record.updated_at.isoformat(),
@@ -220,6 +259,7 @@ class LibraryIndex:
             text_slug,
             native_language,
             source_url,
+            content_fingerprint,
             variants_json,
             created_at,
             updated_at,
@@ -243,6 +283,9 @@ class LibraryIndex:
             native_language=str(native_language),
             variants=tuple(str(item) for item in variants_list),
             source_url=str(source_url) if source_url is not None else None,
+            content_fingerprint=(
+                str(content_fingerprint) if content_fingerprint is not None else None
+            ),
             created_at=datetime.fromisoformat(str(created_at)),
             updated_at=datetime.fromisoformat(str(updated_at)),
             folder=str(folder),

@@ -28,6 +28,7 @@ def _sample_metadata() -> TextMetadata:
         target_language="es",
         variants=("native",),
         source_url=None,
+        content_fingerprint=None,
         created_at=now,
         updated_at=now,
     )

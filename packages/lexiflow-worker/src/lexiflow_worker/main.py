@@ -36,7 +36,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         job_service = JobService(data_root)
         logger.info("worker consuming queue at %s", job_service.db_path)
-        run_worker_loop(job_service, FakeLLM())
+        run_worker_loop(job_service, FakeLLM(), data_root=data_root)
         logger.info("worker idle")
     finally:
         if temp_dir is not None:

@@ -65,6 +65,32 @@ class LibraryCoordinator:
         )
         self._index.upsert_text(record)
 
+    def write_native_variant(self, text_id: UUID, markdown: str) -> None:
+        indexed = self._index.get_by_id(text_id)
+        if indexed is None:
+            raise TextNotFoundError(f"text not found: {text_id}")
+        folder = Path(indexed.folder)
+        self._texts.write_variant_markdown(folder, "native", markdown)
+        record = self._texts.load(folder)
+        self._index.upsert_text(record)
+
+    def apply_translated_variant(
+        self, text_id: UUID, translated_markdown: str
+    ) -> TextRecord:
+        indexed = self._index.get_by_id(text_id)
+        if indexed is None:
+            raise TextNotFoundError(f"text not found: {text_id}")
+        folder = Path(indexed.folder)
+        record = self._texts.apply_translated_variant(folder, translated_markdown)
+        self._index.upsert_text(record)
+        return record
+
+    def read_native_variant(self, text_id: UUID) -> str:
+        indexed = self._index.get_by_id(text_id)
+        if indexed is None:
+            raise TextNotFoundError(f"text not found: {text_id}")
+        return self._texts.read_variant_markdown(Path(indexed.folder), "native")
+
     def delete_to_trash(self, text_id: UUID) -> None:
         indexed = self._index.get_by_id(text_id)
         if indexed is None:

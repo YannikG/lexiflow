@@ -14,7 +14,11 @@ from lexiflow_core.config.paths import (
     trash_dir,
     variant_path,
 )
-from lexiflow_core.library.document_title import format_native_variant
+from lexiflow_core.library.content_fingerprint import content_fingerprint
+from lexiflow_core.library.document_title import (
+    format_native_variant,
+    parse_document_title,
+)
 from lexiflow_core.library.models import CreateTextRequest, TextRecord
 from lexiflow_core.library.slug import TextSlugError, make_text_slug
 from lexiflow_core.library.text_metadata import (
@@ -46,6 +50,7 @@ class TextStorage:
             target_language=req.target_language,
             variants=("native",),
             source_url=req.source_url,
+            content_fingerprint=content_fingerprint(req.body) if req.body else None,
             created_at=now,
             updated_at=now,
         )
@@ -96,6 +101,7 @@ class TextStorage:
             target_language=metadata.target_language,
             variants=metadata.variants,
             source_url=metadata.source_url,
+            content_fingerprint=metadata.content_fingerprint,
             created_at=metadata.created_at,
             updated_at=datetime.now(UTC),
         )
@@ -116,6 +122,49 @@ class TextStorage:
             shutil.rmtree(destination)
         shutil.move(str(folder), str(destination))
 
+    def write_variant_markdown(
+        self, text_folder: Path, variant_name: str, content: str
+    ) -> None:
+        """Overwrite a variant markdown file."""
+        variant_path(text_folder, variant_name).write_text(content, encoding="utf-8")
+
+    def read_variant_markdown(self, text_folder: Path, variant_name: str) -> str:
+        """Read a variant markdown file."""
+        path = variant_path(text_folder, variant_name)
+        if not path.is_file():
+            raise FileNotFoundError(f"variant not found: {path}")
+        return path.read_text(encoding="utf-8")
+
+    def apply_translated_variant(
+        self, text_folder: Path, translated_markdown: str
+    ) -> TextRecord:
+        """Write translated variant and set target-language title from its heading."""
+        self.write_variant_markdown(text_folder, "translated", translated_markdown)
+        title = parse_document_title(translated_markdown)
+        metadata = load_text_metadata(meta_path(text_folder))
+        variants = metadata.variants
+        if "translated" not in variants:
+            variants = (*variants, "translated")
+        updated = TextMetadata(
+            id=metadata.id,
+            title=title,
+            group=metadata.group,
+            native_language=metadata.native_language,
+            target_language=metadata.target_language,
+            variants=variants,
+            source_url=metadata.source_url,
+            content_fingerprint=metadata.content_fingerprint,
+            created_at=metadata.created_at,
+            updated_at=datetime.now(UTC),
+        )
+        save_text_metadata(meta_path(text_folder), updated)
+        return metadata_to_record(
+            updated,
+            group_folder_slug=text_folder.parent.name,
+            text_slug=text_folder.name,
+            folder=str(text_folder),
+        )
+
     def update_group_label_in_folder(
         self, text_folder: Path, *, group_display: str, group_folder_slug: str
     ) -> TextRecord:
@@ -129,6 +178,7 @@ class TextStorage:
             target_language=metadata.target_language,
             variants=metadata.variants,
             source_url=metadata.source_url,
+            content_fingerprint=metadata.content_fingerprint,
             created_at=metadata.created_at,
             updated_at=datetime.now(UTC),
         )

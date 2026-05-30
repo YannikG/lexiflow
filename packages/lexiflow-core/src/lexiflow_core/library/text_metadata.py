@@ -28,6 +28,7 @@ class TextMetadata:
     target_language: str
     variants: tuple[str, ...]
     source_url: str | None
+    content_fingerprint: str | None
     created_at: datetime
     updated_at: datetime
 
@@ -44,6 +45,8 @@ class TextMetadata:
         }
         if self.source_url is not None:
             payload["source_url"] = self.source_url
+        if self.content_fingerprint is not None:
+            payload["content_fingerprint"] = self.content_fingerprint
         return payload
 
 
@@ -89,6 +92,10 @@ def parse_text_metadata(raw: dict[str, Any]) -> TextMetadata:
     if source_url is not None and not isinstance(source_url, str):
         raise TextMetadataError("source_url must be a string")
 
+    content_fingerprint = raw.get("content_fingerprint")
+    if content_fingerprint is not None and not isinstance(content_fingerprint, str):
+        raise TextMetadataError("content_fingerprint must be a string")
+
     try:
         return TextMetadata(
             id=UUID(str(raw["id"])),
@@ -98,6 +105,7 @@ def parse_text_metadata(raw: dict[str, Any]) -> TextMetadata:
             target_language=str(raw["target_language"]),
             variants=tuple(variants_raw),
             source_url=source_url,
+            content_fingerprint=content_fingerprint,
             created_at=_parse_datetime(str(raw["created_at"])),
             updated_at=_parse_datetime(str(raw["updated_at"])),
         )
@@ -168,6 +176,7 @@ def metadata_to_record(
         native_language=metadata.native_language,
         variants=metadata.variants,
         source_url=metadata.source_url,
+        content_fingerprint=metadata.content_fingerprint,
         created_at=metadata.created_at,
         updated_at=metadata.updated_at,
         folder=folder,
