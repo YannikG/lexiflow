@@ -22,6 +22,7 @@ def test_worker_runs_cleanup_then_translate(tmp_path: Path) -> None:
     pipeline = TextPipeline(data_root, index=index, job_service=jobs)
     text_id = pipeline.submit_new_text(
         TextDraft(
+            title="Raw article",
             group="News",
             pasted_content="raw article",
             input_tab=InputTab.NATIVE,

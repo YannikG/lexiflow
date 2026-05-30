@@ -17,6 +17,7 @@ from lexiflow_core.config.paths import (
 from lexiflow_core.library.content_fingerprint import content_fingerprint
 from lexiflow_core.library.document_title import (
     format_native_variant,
+    normalize_document_title,
     parse_document_title,
 )
 from lexiflow_core.library.models import CreateTextRequest, TextRecord
@@ -153,6 +154,45 @@ class TextStorage:
             target_language=metadata.target_language,
             variants=variants,
             source_url=metadata.source_url,
+            content_fingerprint=metadata.content_fingerprint,
+            created_at=metadata.created_at,
+            updated_at=datetime.now(UTC),
+        )
+        save_text_metadata(meta_path(text_folder), updated)
+        return metadata_to_record(
+            updated,
+            group_folder_slug=text_folder.parent.name,
+            text_slug=text_folder.name,
+            folder=str(text_folder),
+        )
+
+    def save_user_variant_edit(
+        self,
+        text_folder: Path,
+        variant_name: str,
+        markdown: str,
+        *,
+        library_title: str | None = None,
+        source_url: str | None = None,
+        update_source_url: bool = False,
+    ) -> TextRecord:
+        """Write user-edited variant markdown without triggering generation jobs."""
+        self.write_variant_markdown(text_folder, variant_name, markdown)
+        metadata = load_text_metadata(meta_path(text_folder))
+        title = metadata.title
+        if library_title is not None:
+            title = normalize_document_title(library_title)
+        url = metadata.source_url
+        if update_source_url:
+            url = source_url
+        updated = TextMetadata(
+            id=metadata.id,
+            title=title,
+            group=metadata.group,
+            native_language=metadata.native_language,
+            target_language=metadata.target_language,
+            variants=metadata.variants,
+            source_url=url,
             content_fingerprint=metadata.content_fingerprint,
             created_at=metadata.created_at,
             updated_at=datetime.now(UTC),

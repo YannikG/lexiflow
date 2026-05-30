@@ -6,7 +6,6 @@ from pathlib import Path
 from uuid import UUID
 
 from lexiflow_core.config.settings import Settings
-from lexiflow_core.library.index import LibraryIndex
 from lexiflow_core.text_pipeline import (
     DuplicateWarning,
     LargePasteRequiresConfirmation,
@@ -39,6 +38,7 @@ def submit_add_text(
 
     pipeline = TextPipeline(data_root, language_detector=LangdetectLanguageDetector())
     draft = TextDraft(
+        title=form.title,
         group=form.group,
         pasted_content=form.pasted_content,
         input_tab=form.input_tab,
@@ -54,7 +54,7 @@ def submit_add_text(
         answer = QMessageBox.question(
             parent,
             "Duplicate text",
-            "A text with this source URL or content already exists. Save anyway?",
+            "A text with this source URL already exists. Save anyway?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -91,11 +91,3 @@ def submit_add_text(
 
     supervisor.ensure_running()
     return text_id
-
-
-def list_texts_for_sidebar(data_root: Path, target_language: str | None) -> list[str]:
-    """Return target-language titles for sidebar display (read-only)."""
-    if target_language is None:
-        return []
-    index = LibraryIndex(data_root)
-    return [record.title for record in index.list_by_lang(target_language)]

@@ -23,6 +23,7 @@ def test_target_tab_with_detected_native_routes_as_native_source(tmp_path) -> No
     )
     pipeline.submit_new_text(
         TextDraft(
+            title="English article",
             group="News",
             pasted_content="English paste",
             input_tab=InputTab.TARGET,

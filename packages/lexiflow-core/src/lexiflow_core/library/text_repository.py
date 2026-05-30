@@ -41,3 +41,25 @@ class TextRepository:
 
     def read_native_variant(self, text_id: UUID) -> str:
         return self._coordinator.read_native_variant(text_id)
+
+    def read_variant(self, text_id: UUID, variant_name: str) -> str:
+        return self._coordinator.read_variant(text_id, variant_name)
+
+    def save_variant_edit(
+        self,
+        text_id: UUID,
+        variant_name: str,
+        markdown: str,
+        *,
+        library_title: str | None = None,
+        source_url: str | None = None,
+        update_source_url: bool = False,
+    ) -> TextRecord:
+        return self._coordinator.save_variant_edit(
+            text_id,
+            variant_name,
+            markdown,
+            library_title=library_title,
+            source_url=source_url,
+            update_source_url=update_source_url,
+        )

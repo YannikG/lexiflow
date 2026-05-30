@@ -95,11 +95,13 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Text slug** — Short folder name derived from title plus random suffix. Combined with **group** forms **text storage layout**. Collisions resolved by regenerating suffix.
 
-**Text metadata** — Structured record per text: identifier, title, **group** (display name), source and native language, optional source URL, timestamps, and list of available **variants**. No level field on text. At create time the title is provisional until **plain translation** sets the **target-language title** (see **document title**). Source URL can be entered in **add text dialog**.
+**Text metadata** — Structured record per text: identifier, title, **group** (display name), source and native language, optional source URL, timestamps, and list of available **variants**. No level field on text. At create time the title is provisional until **plain translation** sets the **target-language title** (see **document title**). Source URL can be entered in **add text dialog** or added later in **reader edit mode**.
 
-**Document title** — Each **variant** has a title in that variant's language. The title is the document's top heading, not a duplicate heading inside the body. LLM proposes title on cleanup and translate; user can edit in preview or **properties panel**. After **plain translation**, **text metadata** stores the **target-language title** for **sidebar** display.
+**Document title** — Each **variant** has a title in that variant's language, usually as the markdown H1. **Text metadata** stores the **target-language title** for **sidebar** and reader header after **plain translation**; LLM translate/cleanup sets the initial title. The reader header shows this library title in **read mode**; variant markdown keeps its H1 in the body. User edits the library title in **reader edit mode** (not from markdown H1 alone). Full **properties panel** editing is a later phase.
 
-**Text metadata editing** — User edits title, group, and source URL via **properties panel**. Drag-and-drop in **sidebar** moves text between **groups** only. Source URL opens in the system browser when clicked.
+**Text metadata editing** — In phase 9, user edits library **title** and **source URL** in **reader edit mode**; **group** moves via sidebar drag-and-drop come later. **Properties panel** covers remaining metadata in a later phase. **Open source** launches the system browser when a source URL is set.
+
+**Unsaved edit guard** — Shared navigation guard (`lexiflow_ui.unsaved_changes`) prompts before discarding unsaved **edit mode** changes when switching reader tabs, opening another text, leaving Texts mode, or closing the window. **Cancel** in edit mode discards without an extra prompt.
 
 **Text variant** — One representation of a **text**: **native variant**, **translated variant**, or **simplified variant** at a specific CEFR level. Multiple simplified levels may coexist. Content is fixed after generation until the user explicitly regenerates it.
 
@@ -115,7 +117,7 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Read mode** — Default reader state: rendered markdown in the reading pane. No source editor visible.
 
-**Edit mode** — Markdown source editor on the active tab. Save writes the variant; Cancel discards. Entered from **read mode** only.
+**Edit mode** — Markdown source editor on the active reader tab, with library **title** and optional **source URL** fields. Save writes variant markdown and metadata via `TextRepository.save_variant_edit`; Cancel discards without a discard prompt. **Unsaved edit guard** blocks navigation until the user saves, cancels, or confirms discard. Entered from **read mode** only.
 
 **Last viewed tab** — Per text, persisted choice of Native, Translated, or a specific simplified level. Restored when reopening that text.
 
@@ -131,9 +133,9 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Plain translation** — Full-complexity **target-language** rendering of the source. Distinct from **simplified variants**.
 
-**Content fingerprint** — Normalized fingerprint of pasted body text. Used for **duplicate detection** when source URL is absent.
+**Content fingerprint** — Normalized fingerprint of pasted body text. Stored in **text metadata** at create time.
 
-**Duplicate warning** — Shown when source URL or **content fingerprint** matches an existing text. User chooses open existing or save anyway.
+**Duplicate warning** — Shown in **add text flow** when the **source URL** matches an existing text in the active target language. User chooses save anyway or cancel. Skipped when no source URL is entered.
 
 **Large paste warning** — Soft guard at roughly fifty thousand characters in add-text: continue or cancel; no hard block in v1.
 
@@ -480,6 +482,7 @@ Canonical terms (alphabetical):
 - Theme
 - Translated variant
 - Trash
+- Unsaved edit guard
 - User language level
 - Vector storage
 - Vocabulary

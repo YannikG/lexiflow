@@ -7,8 +7,8 @@ class DocumentTitleError(Exception):
     """Raised when a title cannot be used as a markdown heading."""
 
 
-def format_document_title(title: str) -> str:
-    """Return markdown with the document title as the top-level heading."""
+def normalize_document_title(title: str) -> str:
+    """Return a validated library title string."""
     normalized = title.strip()
     if not normalized:
         raise DocumentTitleError("title must not be empty")
@@ -16,7 +16,12 @@ def format_document_title(title: str) -> str:
         raise DocumentTitleError("title must be a single line")
     if "#" in normalized:
         raise DocumentTitleError("title must not contain '#'")
-    return f"# {normalized}\n\n"
+    return normalized
+
+
+def format_document_title(title: str) -> str:
+    """Return markdown with the document title as the top-level heading."""
+    return f"# {normalize_document_title(title)}\n\n"
 
 
 def format_native_variant(title: str, body: str) -> str:

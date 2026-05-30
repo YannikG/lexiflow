@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import weakref
+from dataclasses import replace
 from pathlib import Path
 from uuid import UUID
 
@@ -44,10 +45,11 @@ class LibraryCoordinator:
         return record
 
     def get_text(self, text_id: UUID) -> TextRecord:
-        record = self._index.get_by_id(text_id)
-        if record is None:
+        indexed = self._index.get_by_id(text_id)
+        if indexed is None:
             raise TextNotFoundError(f"text not found: {text_id}")
-        return self._texts.load(Path(record.folder))
+        loaded = self._texts.load(Path(indexed.folder))
+        return replace(loaded, last_viewed_tab=indexed.last_viewed_tab)
 
     def move_to_group(self, text_id: UUID, group: str) -> None:
         indexed = self._index.get_by_id(text_id)
@@ -90,6 +92,37 @@ class LibraryCoordinator:
         if indexed is None:
             raise TextNotFoundError(f"text not found: {text_id}")
         return self._texts.read_variant_markdown(Path(indexed.folder), "native")
+
+    def read_variant(self, text_id: UUID, variant_name: str) -> str:
+        indexed = self._index.get_by_id(text_id)
+        if indexed is None:
+            raise TextNotFoundError(f"text not found: {text_id}")
+        return self._texts.read_variant_markdown(Path(indexed.folder), variant_name)
+
+    def save_variant_edit(
+        self,
+        text_id: UUID,
+        variant_name: str,
+        markdown: str,
+        *,
+        library_title: str | None = None,
+        source_url: str | None = None,
+        update_source_url: bool = False,
+    ) -> TextRecord:
+        indexed = self._index.get_by_id(text_id)
+        if indexed is None:
+            raise TextNotFoundError(f"text not found: {text_id}")
+        folder = Path(indexed.folder)
+        record = self._texts.save_user_variant_edit(
+            folder,
+            variant_name,
+            markdown,
+            library_title=library_title,
+            source_url=source_url,
+            update_source_url=update_source_url,
+        )
+        self._index.upsert_text(record)
+        return replace(record, last_viewed_tab=indexed.last_viewed_tab)
 
     def delete_to_trash(self, text_id: UUID) -> None:
         indexed = self._index.get_by_id(text_id)

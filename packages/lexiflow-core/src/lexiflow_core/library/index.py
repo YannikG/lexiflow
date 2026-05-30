@@ -37,7 +37,8 @@ def ensure_library_index(data_root: Path) -> Path:
 _TEXTS_SELECT = """
     SELECT id, lang, group_display_name, group_folder_slug,
            title, text_slug, native_language, source_url,
-           content_fingerprint, variants, created_at, updated_at
+           content_fingerprint, variants, created_at, updated_at,
+           last_viewed_tab
     FROM texts
 """
 
@@ -133,6 +134,32 @@ class LibraryIndex:
             return None
         return UUID(str(row[0]))
 
+    def get_last_viewed_tab(self, text_id: UUID) -> str | None:
+        """Return the persisted reader tab id for a text, if any."""
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT last_viewed_tab FROM texts WHERE id = ?",
+                (str(text_id),),
+            ).fetchone()
+        finally:
+            connection.close()
+        if row is None or row[0] is None:
+            return None
+        return str(row[0])
+
+    def set_last_viewed_tab(self, text_id: UUID, tab_id: str) -> None:
+        """Persist the reader tab id for a text."""
+        connection = self._connect()
+        try:
+            connection.execute(
+                "UPDATE texts SET last_viewed_tab = ? WHERE id = ?",
+                (tab_id, str(text_id)),
+            )
+            connection.commit()
+        finally:
+            connection.close()
+
     def rebuild_from_disk(self, data_root: Path | None = None) -> int:
         """Rescan disk and rebuild the index. Read-only on text metadata."""
         root = data_root if data_root is not None else self._data_root
@@ -182,6 +209,7 @@ class LibraryIndex:
                                 content_fingerprint=record.content_fingerprint,
                                 created_at=record.created_at,
                                 updated_at=record.updated_at,
+                                last_viewed_tab=record.last_viewed_tab,
                                 folder=record.folder,
                             )
                         self._upsert_on_connection(connection, record)
@@ -208,8 +236,9 @@ class LibraryIndex:
             INSERT INTO texts (
                 id, lang, group_display_name, group_folder_slug,
                 title, text_slug, native_language, source_url,
-                content_fingerprint, variants, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                content_fingerprint, variants, created_at, updated_at,
+                last_viewed_tab
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 lang = excluded.lang,
                 group_display_name = excluded.group_display_name,
@@ -240,6 +269,7 @@ class LibraryIndex:
             json.dumps(list(record.variants)),
             record.created_at.isoformat(),
             record.updated_at.isoformat(),
+            record.last_viewed_tab,
         )
 
     def _connect(self) -> sqlite3.Connection:
@@ -263,6 +293,7 @@ class LibraryIndex:
             variants_json,
             created_at,
             updated_at,
+            last_viewed_tab,
         ) = row
         folder = text_dir(self._data_root, str(lang), str(group_slug), str(text_slug))
         try:
@@ -285,6 +316,9 @@ class LibraryIndex:
             source_url=str(source_url) if source_url is not None else None,
             content_fingerprint=(
                 str(content_fingerprint) if content_fingerprint is not None else None
+            ),
+            last_viewed_tab=(
+                str(last_viewed_tab) if last_viewed_tab is not None else None
             ),
             created_at=datetime.fromisoformat(str(created_at)),
             updated_at=datetime.fromisoformat(str(updated_at)),

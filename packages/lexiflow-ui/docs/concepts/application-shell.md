@@ -27,11 +27,16 @@ The **Application shell** is LexiFlow's main window frame: toolbar, **sidebar**,
 
 ## Phase 08 (add text)
 
-- **Add text** entry points: File menu, toolbar button, sidebar button, empty-state button (Texts mode)
+- **Add text** entry points: File menu, sidebar button, empty-state button (Texts mode)
 - Sidebar lists target-language titles from the library index; after add-text, the shell re-reads the index on a short timer ladder while jobs may still be running
-- Reader view deferred to phase 09
+
+## Phase 09 (reader)
+
+- Sidebar text selection opens the **Markdown reader** in the content area (see [markdown-reader.md](markdown-reader.md))
+- **Reader tabs**, **read mode**, **edit mode**, and **last viewed tab** persistence in the library index
 
 ## Deferred (later phases)
 
-- Sidebar group/text tree, reader
+- ~~Sidebar group/text tree~~ → [phase 17 UI cleanup](../../../../docs/roadmap/phases/phase-17-ui-cleanup/README.md)
+- ~~Active target language switcher (read-only label today)~~ → phase 17
 - Jobs panel, quit-with-jobs dialog, worker idle lifecycle (phase 14)

@@ -37,11 +37,9 @@ def test_main_window_shows_shell_with_navigation_modes(qtbot, tmp_path) -> None:
     assert texts_action.text() == "Texts"
     assert vocabulary_action.text() == "Vocabulary"
 
-    toolbar_button = window.findChild(QPushButton, "toolbar_add_text_button")
-    assert toolbar_button is not None
-    assert toolbar_button.isVisible()
     sidebar_button = window.sidebar.add_text_button()
     assert sidebar_button.isVisible()
+    assert window.findChild(QPushButton, "toolbar_add_text_button") is None
 
 
 def test_texts_empty_state_shows_add_text_button(qtbot, tmp_path) -> None:
