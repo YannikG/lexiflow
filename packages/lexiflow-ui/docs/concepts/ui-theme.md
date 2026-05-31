@@ -15,7 +15,7 @@ See [ADR-0006](../../../../docs/adr/0006-desktop-ui-theme-strategy.md) for the l
 
 ## Phase 9-2 (UI theme migration)
 
-- App startup applies **UI theme** from **global settings** before the main window is shown (see [ui-theme.md](ui-theme.md))
+- App startup applies **UI theme** from **global settings** before the main window is shown
 - Resolves **Theme** = System to OS light or dark
 - Primary dependency: **`qt-material`** (BSD-2-Clause) unless spike chooses **qt-modern-style** (MIT)
 - **UI theme migration** — remove inline `setStyleSheet` from phase 05–09 shell modules (see below); rely on global QSS
