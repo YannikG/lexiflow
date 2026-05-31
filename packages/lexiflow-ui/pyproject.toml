@@ -6,6 +6,7 @@ requires-python = ">=3.12,<3.14"
 dependencies = [
     "lexiflow-core",
     "PySide6>=6.8",
+    "qt-material>=2.14",
 ]
 
 [tool.uv.sources]
