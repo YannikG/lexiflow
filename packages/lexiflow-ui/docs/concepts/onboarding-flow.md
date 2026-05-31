@@ -26,4 +26,8 @@ First-run setup before the **application shell** is shown.
 
 `SystemInfo` supplies RAM for the welcome page. `OllamaProbe`, `ModelStore`, and `FakeModelDownloader` are injectable. `run_onboarding_if_needed()` accepts a custom wizard factory for pytest-qt.
 
+## Phase 9-2 (UI theme migration)
+
+Wizard pages ship in phase 06 on default Fusion chrome. Phase 9-2 restyles onboarding to match the **UI theme** baseline (see [ui-theme.md](ui-theme.md)).
+
 See [common-language.md](../../../../common-language.md): **Onboarding flow**, **Onboarding LLM setup**, **Model bootstrap**, **System requirements**.

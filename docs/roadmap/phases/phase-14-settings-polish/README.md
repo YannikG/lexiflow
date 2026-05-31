@@ -18,7 +18,9 @@
 
 ## References
 
-- [common-language.md](../../../../common-language.md): **Jobs panel**, **Job history UI**, **Shutdown with active jobs**, **Worker idle lifecycle**, **In-app updates**, **Onboarding flow**, **Theme**, **Reset app**, **Re-translate**, **Re-simplify**
+- [common-language.md](../../../../common-language.md): **Jobs panel**, **Job history UI**, **Shutdown with active jobs**, **Worker idle lifecycle**, **In-app updates**, **Onboarding flow**, **Theme**, **Appearance**, **Reset app**, **Re-translate**, **Re-simplify**
+- [ADR-0006](../../../adr/0006-desktop-ui-theme-strategy.md) — **Theme** toggle calls `apply_app_theme`; **appearance** panel for reader font size
+- [ui-theme.md](../../../../packages/lexiflow-ui/docs/concepts/ui-theme.md)
 
 ## TDD cycles
 
@@ -75,6 +77,16 @@
 ### Cycle 14.8 — Drag group updates repository
 
 **Test:** qt signal → move_to_group called.
+
+---
+
+### Cycle 14.9 — Theme toggle reapplies UI theme
+
+**Behavior:** Changing **Theme** in **settings** updates the visible **UI theme** (restart acceptable in v1 if runtime apply is deferred).
+
+**Test:** pytest-qt — set Dark in settings UI → `apply_app_theme` invoked or app restarts with dark chrome.
+
+**Depends on:** phase 9-2 bootstrap ([ADR-0006](../../../adr/0006-desktop-ui-theme-strategy.md)).
 
 ---
 

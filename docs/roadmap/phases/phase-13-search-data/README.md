@@ -16,6 +16,7 @@
 ## References
 
 - [common-language.md](../../../../common-language.md): **Library index**, **Global search UI**, **Search hit navigation**, **Find in texts**, **Trash**, **Library backup**, **Rebuild library index**
+- [ui-theme.md](../../../../packages/lexiflow-ui/docs/concepts/ui-theme.md) — **global search UI** overlay built on themed standard widgets (spotlight-style)
 
 ## TDD cycles
 

@@ -17,6 +17,7 @@
 ## References
 
 - [common-language.md](../../../../common-language.md): **Vocabulary**, **Vocabulary study**, **Reader add word**, **Vocabulary export**, **Vocabulary import**, **Lemma resolution**, **Level when learned**
+- [ui-theme.md](../../../../packages/lexiflow-ui/docs/concepts/ui-theme.md) — Study/Browse modes use standard widgets + **UI theme**
 
 ## TDD cycles
 
