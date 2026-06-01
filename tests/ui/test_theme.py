@@ -20,11 +20,11 @@ _SHELL_MODULE_PATHS = (
     "widgets/sidebar.py",
     "widgets/empty_state.py",
     "widgets/reader_widget.py",
+    "widgets/new_words_panel.py",
     "dialogs/add_text_dialog.py",
     "widgets/worker_status.py",
     "widgets/active_target_language.py",
     "onboarding/wizard.py",
-    "onboarding/model_bootstrap_page.py",
     "onboarding/llm_mode_page.py",
     "onboarding/llm_config_page.py",
 )
@@ -54,8 +54,8 @@ def test_theme_stylesheet_differs_from_fusion_baseline(
 @pytest.mark.parametrize(
     ("theme", "background", "foreground"),
     [
-        ("dark", "#1f1f1f", "#cccccc"),
-        ("light", "#ffffff", "#3b3b3b"),
+        ("dark", "#252526", "#cccccc"),
+        ("light", "#f5f5f5", "#3b3b3b"),
     ],
 )
 def test_reader_pane_uses_high_contrast_text_colors(
@@ -81,6 +81,30 @@ def test_reader_pane_uses_high_contrast_text_colors(
     assert background in stylesheet
     assert foreground in stylesheet
     assert "#181818" in stylesheet or "#f8f8f8" in stylesheet
+
+
+@pytest.mark.parametrize(
+    ("theme", "scrollbar_thumb"),
+    [
+        ("dark", "#5a5a5a"),
+        ("light", "#c4c4c4"),
+    ],
+)
+def test_reader_scrollbar_tokens_in_stylesheet(
+    qtbot,
+    restore_app_stylesheet,
+    theme: str,
+    scrollbar_thumb: str,
+) -> None:
+    app = QApplication.instance()
+    assert app is not None
+    app.setStyleSheet("")
+    apply_app_theme(app, theme=theme)  # type: ignore[arg-type]
+
+    stylesheet = app.styleSheet().lower()
+    assert "new_words_scroll" in stylesheet
+    assert "reader.scrollbarthumb" not in stylesheet
+    assert scrollbar_thumb in stylesheet
 
 
 def test_theme_stylesheet_uses_sidebar_tokens(qtbot, restore_app_stylesheet) -> None:

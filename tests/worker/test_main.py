@@ -197,7 +197,11 @@ def test_main_fails_simplify_job_when_llm_disabled(tmp_path: Path) -> None:
     assert jobs[0].error_message is not None
 
 
-def test_main_fails_job_when_no_llm_configured(tmp_path: Path) -> None:
+def test_main_fails_job_when_no_llm_configured(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(
+        "lexiflow_core.llm.resolution.native_llm_operational",
+        lambda settings: (False, "Install llama-server"),
+    )
     data_root = tmp_path / "library"
     job_service = JobService(data_root)
     job_service.enqueue(
@@ -209,4 +213,4 @@ def test_main_fails_job_when_no_llm_configured(tmp_path: Path) -> None:
     jobs = job_service.list_jobs()
     assert jobs[0].status == JobStatus.FAILED
     assert jobs[0].error_message is not None
-    assert "not installed" in jobs[0].error_message.lower()
+    assert "llama-server" in jobs[0].error_message.lower()

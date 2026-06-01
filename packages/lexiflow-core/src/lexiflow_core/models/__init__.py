@@ -15,15 +15,15 @@ from lexiflow_core.models.lockfile import (
     load_models_lock,
 )
 from lexiflow_core.models.requirements import (
-    EMBEDDED_GEMMA_ID,
     EMBEDDING_MINILM_ID,
+    NATIVE_LLM_ID,
     required_artifact_ids,
 )
 from lexiflow_core.models.store import ModelStore, ModelStoreError, UpdateAvailable
 
 __all__ = [
-    "EMBEDDED_GEMMA_ID",
     "EMBEDDING_MINILM_ID",
+    "NATIVE_LLM_ID",
     "FakeModelDownloader",
     "ModelAccessError",
     "ModelArtifact",

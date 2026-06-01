@@ -15,7 +15,7 @@ uv run python -m lexiflow_ui
 
 Close the window to quit.
 
-**First run:** an internet connection is required to download pinned models (embedding model always; embedded LLM unless you configure Ollama). See [model bootstrap](packages/lexiflow-core/docs/concepts/model-bootstrap.md).
+**First run:** an internet connection may be required on first use (embedding model via `sentence-transformers`; native LLM via llama-server from Hugging Face unless you configure Ollama). See [model bootstrap](packages/lexiflow-core/docs/concepts/model-bootstrap.md).
 
 ## Development
 

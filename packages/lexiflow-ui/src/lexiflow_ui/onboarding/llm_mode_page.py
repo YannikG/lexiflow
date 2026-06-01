@@ -1,4 +1,4 @@
-"""Wizard page: choose how LexiFlow loads LLM and embedding models."""
+"""Wizard page: choose the LLM provider."""
 
 from __future__ import annotations
 
@@ -8,9 +8,8 @@ from PySide6.QtWidgets import QRadioButton, QVBoxLayout, QWizardPage
 
 
 class LlmMode(Enum):
-    HF_DOWNLOAD = "hf_download"
+    NATIVE = "native"
     OLLAMA = "ollama"
-    MANUAL_IMPORT = "manual_import"
 
 
 class LlmModePage(QWizardPage):
@@ -21,51 +20,40 @@ class LlmModePage(QWizardPage):
 
     def __init__(self, parent: QWizardPage | None = None) -> None:
         super().__init__(parent)
-        self.setTitle("LLM and embedding setup")
+        self.setTitle("LLM setup")
         self.setSubTitle(
-            "Choose how LexiFlow loads the LLM and the embedding model. "
-            "You will configure the option on the next step."
+            "LexiFlow uses a built-in llama-server by default. "
+            "Advanced users can point at an external Ollama server instead."
         )
 
-        self._hf_download = QRadioButton("Download models from Hugging Face", self)
-        self._hf_download.setObjectName("hf_download_radio")
-        self._ollama = QRadioButton("Use Ollama for the LLM", self)
+        self._native = QRadioButton("Built-in LLM (llama-server)", self)
+        self._native.setObjectName("native_llm_radio")
+        self._ollama = QRadioButton("Ollama (advanced)", self)
         self._ollama.setObjectName("ollama_radio")
-        self._manual = QRadioButton("Import model folders from disk", self)
-        self._manual.setObjectName("manual_import_radio")
-        self._hf_download.setChecked(True)
+        self._native.setChecked(True)
 
         layout = QVBoxLayout(self)
         layout.setSpacing(12)
-        layout.addWidget(self._hf_download)
+        layout.addWidget(self._native)
         layout.addWidget(self._ollama)
-        layout.addWidget(self._manual)
         layout.addStretch()
 
     def selected_mode(self) -> LlmMode:
-        if self._manual.isChecked():
-            return LlmMode.MANUAL_IMPORT
         if self._ollama.isChecked():
             return LlmMode.OLLAMA
-        return LlmMode.HF_DOWNLOAD
+        return LlmMode.NATIVE
 
-    def select_embedded(self) -> None:
-        self._hf_download.setChecked(True)
+    def select_native(self) -> None:
+        self._native.setChecked(True)
 
     def select_ollama(self) -> None:
         self._ollama.setChecked(True)
 
-    def select_manual_import(self) -> None:
-        self._manual.setChecked(True)
-
     def uses_ollama(self) -> bool:
         return self.selected_mode() == LlmMode.OLLAMA
 
-    def uses_embedded_hf_download(self) -> bool:
-        return self.selected_mode() == LlmMode.HF_DOWNLOAD
-
-    def skips_bootstrap_page(self) -> bool:
-        return self.selected_mode() != LlmMode.HF_DOWNLOAD
+    def uses_native(self) -> bool:
+        return self.selected_mode() == LlmMode.NATIVE
 
     def nextId(self) -> int:  # noqa: N802
         return self.CONFIG_PAGE_ID

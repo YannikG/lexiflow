@@ -257,13 +257,96 @@ QWidget#reader_widget {{
 }}
 
 QTextBrowser#reader_read_pane,
-QPlainTextEdit#reader_edit_pane,
 QTextBrowser#reader_edit_preview_pane {{
-  background-color: {color("editor.background")};
+  background-color: {color("reader.background")};
   color: {color("editor.foreground")};
-  border: none;
+  border: 1px solid {color("reader.border")};
+  border-radius: 2px;
   selection-background-color: {color("editor.inactiveSelectionBackground")};
   selection-color: {color("editor.foreground")};
+}}
+
+QPlainTextEdit#reader_edit_pane {{
+  background-color: {color("input.background")};
+  color: {color("editor.foreground")};
+  border: 1px solid {color("input.border")};
+  border-radius: 2px;
+  selection-background-color: {color("editor.inactiveSelectionBackground")};
+  selection-color: {color("editor.foreground")};
+}}
+
+QWidget#new_words_panel {{
+  background-color: {color("reader.panelBackground")};
+  border-top: 1px solid {color("reader.border")};
+}}
+
+QScrollArea#new_words_scroll {{
+  background-color: {color("reader.panelBackground")};
+  border: none;
+}}
+
+QWidget#new_words_rows {{
+  background-color: {color("reader.panelBackground")};
+}}
+
+QTextBrowser#reader_read_pane QScrollBar:vertical,
+QTextBrowser#reader_edit_preview_pane QScrollBar:vertical,
+QScrollArea#new_words_scroll QScrollBar:vertical {{
+  background: {color("reader.scrollbarBackground")};
+  width: 10px;
+  margin: 0;
+}}
+
+QTextBrowser#reader_read_pane QScrollBar::handle:vertical,
+QTextBrowser#reader_edit_preview_pane QScrollBar::handle:vertical,
+QScrollArea#new_words_scroll QScrollBar::handle:vertical {{
+  background: {color("reader.scrollbarThumb")};
+  min-height: 24px;
+  border-radius: 4px;
+}}
+
+QTextBrowser#reader_read_pane QScrollBar::handle:vertical:hover,
+QTextBrowser#reader_edit_preview_pane QScrollBar::handle:vertical:hover,
+QScrollArea#new_words_scroll QScrollBar::handle:vertical:hover {{
+  background: {color("reader.scrollbarThumbHover")};
+}}
+
+QTextBrowser#reader_read_pane QScrollBar:horizontal,
+QTextBrowser#reader_edit_preview_pane QScrollBar:horizontal,
+QScrollArea#new_words_scroll QScrollBar:horizontal {{
+  background: {color("reader.scrollbarBackground")};
+  height: 10px;
+  margin: 0;
+}}
+
+QTextBrowser#reader_read_pane QScrollBar::handle:horizontal,
+QTextBrowser#reader_edit_preview_pane QScrollBar::handle:horizontal,
+QScrollArea#new_words_scroll QScrollBar::handle:horizontal {{
+  background: {color("reader.scrollbarThumb")};
+  min-width: 24px;
+  border-radius: 4px;
+}}
+
+QTextBrowser#reader_read_pane QScrollBar::handle:horizontal:hover,
+QTextBrowser#reader_edit_preview_pane QScrollBar::handle:horizontal:hover,
+QScrollArea#new_words_scroll QScrollBar::handle:horizontal:hover {{
+  background: {color("reader.scrollbarThumbHover")};
+}}
+
+QTextBrowser#reader_read_pane QScrollBar::add-line,
+QTextBrowser#reader_read_pane QScrollBar::sub-line,
+QTextBrowser#reader_read_pane QScrollBar::add-page,
+QTextBrowser#reader_read_pane QScrollBar::sub-page,
+QTextBrowser#reader_edit_preview_pane QScrollBar::add-line,
+QTextBrowser#reader_edit_preview_pane QScrollBar::sub-line,
+QTextBrowser#reader_edit_preview_pane QScrollBar::add-page,
+QTextBrowser#reader_edit_preview_pane QScrollBar::sub-page,
+QScrollArea#new_words_scroll QScrollBar::add-line,
+QScrollArea#new_words_scroll QScrollBar::sub-line,
+QScrollArea#new_words_scroll QScrollBar::add-page,
+QScrollArea#new_words_scroll QScrollBar::sub-page {{
+  background: none;
+  border: none;
 }}
 
 QTextBrowser#reader_read_pane a,

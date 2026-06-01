@@ -10,13 +10,13 @@ First-run setup before the **application shell** is shown.
 
 1. **Welcome** — Intro copy; RAM warning when system memory is below 8 GiB (user may continue).
 2. **Native language** — Searchable **language catalog** picker.
-3. **LLM mode** — Choose one of: Hugging Face download, Ollama, or manual import (radios only).
-4. **LLM configuration** — Form for the chosen mode (opened on Next; wizard height fits that form only):
-   - **Hugging Face download**: numbered Gemma license steps, **Open Gemma on Hugging Face** (system browser), optional HF token; continues to bootstrap.
-   - **Ollama**: URL + detect; embedding downloads on Next (token optional); skips bootstrap.
-   - **Manual import**: two folder pickers with pinned-repo helper text; imports on Next; skips bootstrap.
-5. **Model bootstrap** — Hugging Face download path only: downloads pinned LLM and embedding artifacts with progress; on gated-repo failure, same Gemma link plus **Open Gemma** and **Retry download**.
-6. **Target language** — Catalog picker plus CEFR level combo for **user language level**.
+3. **LLM mode** — Built-in llama-server (default) or Ollama (advanced).
+4. **LLM configuration** — Form for the chosen mode:
+   - **Native**: llama-server readiness note, link to pinned LLM on Hugging Face, optional HF token.
+   - **Ollama**: URL + detect; optional HF token for embeddings.
+5. **Target language** — Catalog picker plus CEFR level combo for **user language level**.
+
+There is no model download step. LLM and embedding weights load from Hugging Face when first needed.
 
 ## Completion
 
@@ -24,10 +24,6 @@ First-run setup before the **application shell** is shown.
 
 ## Testability
 
-`SystemInfo` supplies RAM for the welcome page. `OllamaProbe`, `ModelStore`, and `FakeModelDownloader` are injectable. `run_onboarding_if_needed()` accepts a custom wizard factory for pytest-qt.
+`SystemInfo` supplies RAM for the welcome page. `OllamaProbe` is injectable. `run_onboarding_if_needed()` accepts a custom wizard factory for pytest-qt.
 
-## Phase 9-2 (UI theme migration)
-
-Wizard pages ship in phase 06 on default Fusion chrome. Phase 9-2 restyles onboarding to match the **UI theme** baseline (see [ui-theme.md](ui-theme.md)).
-
-See [common-language.md](../../../../common-language.md): **Onboarding flow**, **Onboarding LLM setup**, **Model bootstrap**, **System requirements**.
+See [common-language.md](../../../../common-language.md): **Onboarding flow**, **Onboarding LLM setup**, **System requirements**.

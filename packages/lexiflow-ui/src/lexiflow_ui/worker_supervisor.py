@@ -64,15 +64,25 @@ class WorkerSupervisor(QObject):
     def data_root(self) -> Path:
         return self._data_root
 
+    def is_process_running(self) -> bool:
+        if self._process is None:
+            return False
+        return self._process.state() != QProcess.ProcessState.NotRunning
+
     def ensure_running(self) -> None:
-        if self._process is not None:
+        if self._process is not None and not self.is_process_running():
+            self._process = None
+            self._set_state(WorkerState.OFFLINE)
+        if self.is_process_running():
             return
         process = self._process_factory(self)
+        if isinstance(process, QProcess):
+            process.finished.connect(self._on_process_finished)
         command = build_worker_command(self._executable, self._data_root)
         process.setProgram(command[0])
         process.setArguments(command[1:])
-        process.start()
         self._process = process
+        process.start()
         self._set_state(WorkerState.IDLE)
 
     def shutdown(self, *, wait: bool) -> None:
@@ -85,6 +95,10 @@ class WorkerSupervisor(QObject):
                 self._process.kill()
         else:
             self._process.kill()
+        self._process = None
+        self._set_state(WorkerState.OFFLINE)
+
+    def _on_process_finished(self) -> None:
         self._process = None
         self._set_state(WorkerState.OFFLINE)
 

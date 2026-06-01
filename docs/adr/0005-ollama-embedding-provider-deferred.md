@@ -7,7 +7,7 @@
 
 ## Context
 
-Onboarding offers **Ollama** for translate/simplify/cleanup (LLM only). Users still download the pinned **MiniLM** embedding model from Hugging Face on that path ([ADR context in phase 07](../roadmap/phases/phase-07-model-bootstrap/README.md), cycle 7.4). Domain language states: **Ollama replaces embedded LLM only; embeddings run in-app from Hugging Face** ([common-language.md](../../common-language.md)).
+Onboarding offers **Ollama** for translate/simplify/cleanup (LLM only). Embeddings load via `sentence-transformers` from Hugging Face on first use. Domain language states: **Ollama replaces native LLM only** ([common-language.md](../../common-language.md)).
 
 Ollama exposes an embeddings HTTP API (`/api/embeddings`), so a single-provider setup (LLM + embeddings via Ollama) is technically possible and would simplify onboarding (no HF token / MiniLM download when Ollama is selected).
 
@@ -15,7 +15,7 @@ Ollama exposes an embeddings HTTP API (`/api/embeddings`), so a single-provider 
 
 1. **Phase 10** ships the baseline embedding stack: `Embedder` protocol, in-process **MiniLM** (384-dim), sqlite-vec storage, and the **embedding queue**. Do not block phase 10 on Ollama embeddings.
 2. **Phase 10b** (new roadmap phase, immediately after phase 10) implements optional **Ollama-backed embeddings** when `ollama_url` is configured, including ADR follow-through in code and `common-language.md`.
-3. Until phase 10b merges, **required_artifact_ids** and onboarding copy remain unchanged: MiniLM is always required, even with Ollama.
+3. Until phase 10b merges, **required_artifact_ids** returns empty in v1 (no LexiFlow-managed onboarding downloads). Embeddings still load via `sentence-transformers` on first worker use.
 
 ## Rationale
 
@@ -23,7 +23,7 @@ Ollama exposes an embeddings HTTP API (`/api/embeddings`), so a single-provider 
 |--------|----------------|
 | **Vector contract** | Phase 10 fixes schema and tests on 384-dim MiniLM. Ollama embed models vary by name and dimension; choosing and pinning one compatible model needs the `Embedder` + `VectorStore` APIs from phase 10. |
 | **Provider switch** | Moving HF → Ollama (or back) invalidates existing vectors unless we store provider metadata and re-embed; that policy belongs with embed jobs, not model bootstrap. |
-| **Phase scope** | Phase 07 owns download/bootstrap; phase 10 owns embed runtime; Ollama embed wiring spans worker, settings, onboarding, and `required_artifact_ids`. |
+| **Phase scope** | Phase 07 owns `models.lock` pinning; phase 10 owns embed runtime; Ollama embed wiring spans worker, settings, onboarding, and `required_artifact_ids`. |
 | **Simplify / search** | Phase 11+ assume stable similarity; baseline embedder must exist first. |
 
 ## Considered alternatives

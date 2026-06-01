@@ -1,7 +1,9 @@
 # Phase 10-1: Worker LLM provider wiring
 
+> **Historical note:** This phase originally specified in-process **EmbeddedGemmaLLM** (`torch`/`transformers`). [ADR 0007](../../../adr/0007-native-llama-server-llm.md) (phase 11-1) removed that path. Current implementation: **Ollama** or **native llama-server** via HTTP. The spec below is kept as merge history; do not re-implement embedded Gemma.
+
 **Branch:** `phase/10-1-llm-worker`  
-**PR title:** `Phase 10-1: Worker LLM provider wiring (Ollama + embedded Gemma)`  
+**PR title:** `Phase 10-1: Worker LLM provider wiring (Ollama + native LLM)`  
 **Issue:** [#30](https://github.com/YannikG/lexiflow/issues/30)
 
 **Blocked by:** [phase 10 — Embeddings and sqlite-vec](../phase-10-embeddings/README.md) ([#11](https://github.com/YannikG/lexiflow/issues/11))  

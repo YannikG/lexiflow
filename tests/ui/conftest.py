@@ -18,6 +18,21 @@ def restore_app_stylesheet() -> Iterator[None]:
 
 
 @pytest.fixture(autouse=True)
+def _native_runtime_ready(monkeypatch: pytest.MonkeyPatch) -> None:
+    def operational(settings):  # noqa: ANN001
+        return True, None
+
+    monkeypatch.setattr(
+        "lexiflow_core.llm.llama_server.native_llm_operational",
+        operational,
+    )
+    monkeypatch.setattr(
+        "lexiflow_ui.onboarding.llm_config_page.native_llm_operational",
+        operational,
+    )
+
+
+@pytest.fixture(autouse=True)
 def _non_blocking_unsaved_prompt(monkeypatch: pytest.MonkeyPatch) -> None:
     """Prevent modal unsaved-changes dialogs from blocking unattended test runs."""
     monkeypatch.setattr(
@@ -50,18 +65,3 @@ def track_unsaved_prompt(
         _prompt,
     )
     return lambda: calls
-
-
-@pytest.fixture(autouse=True)
-def _cleanup_onboarding_bootstrap_threads() -> None:
-    """Stop bootstrap worker threads so later tests can use the Qt event loop."""
-    yield
-    from lexiflow_ui.onboarding.wizard import OnboardingWizard
-
-    app = QApplication.instance()
-    if app is None:
-        return
-    for widget in QApplication.topLevelWidgets():
-        if isinstance(widget, OnboardingWizard):
-            widget.bootstrap_page._stop_worker()
-    app.processEvents()

@@ -34,6 +34,22 @@ def test_ensure_running_spawns_worker_once(tmp_path: Path) -> None:
     assert str(tmp_path) in process.arguments
 
 
+def test_ensure_running_respawns_after_process_exits(tmp_path: Path) -> None:
+    FakeProcess.instances.clear()
+    supervisor = WorkerSupervisor(
+        data_root=tmp_path,
+        executable=sys.executable,
+        process_factory=FakeProcess,
+    )
+    supervisor.ensure_running()
+    FakeProcess.instances[0].started = False
+
+    supervisor.ensure_running()
+
+    assert supervisor.state is WorkerState.IDLE
+    assert len(FakeProcess.instances) == 2
+
+
 def test_shutdown_waits_for_worker(tmp_path: Path) -> None:
     FakeProcess.instances.clear()
     FakeProcess.shutdown_calls.clear()

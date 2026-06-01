@@ -59,5 +59,5 @@ Several third-party Qt theme libraries were evaluated for PySide6.
 ## Open questions (resolved in phase 9-2 implementation)
 
 - **Accent color** — Theme defaults (`#0078D4` dark / `#005FB8` light focus and buttons).
-- **Reader pane** — `editor.background` / `editor.foreground` tokens on reader panes via global QSS object names.
+- **Reader pane** — `reader.background` / `editor.foreground` tokens on read panes via global QSS object names; scrollbars in the reader and **new words panel** use `reader.scrollbar*` tokens.
 - **Runtime toggle** — Startup apply only in 9-2; phase 14 may re-call `apply_app_theme`.

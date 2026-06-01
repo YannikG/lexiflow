@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -14,22 +13,13 @@ from lexiflow_core.library.text_repository import TextRepository
 from lexiflow_core.text_pipeline.models import InputTab
 from lexiflow_ui.add_text_flow import submit_add_text
 from lexiflow_ui.dialogs.add_text_dialog import AddTextFormData
-from lexiflow_ui.worker_supervisor import WorkerSupervisor
 from PySide6.QtWidgets import QMessageBox
 
-from tests.ui.fakes import FakeProcess
 
-
-def test_submit_add_text_spawns_worker(tmp_path: Path) -> None:
+def test_submit_add_text_enqueues_cleanup_job(tmp_path: Path) -> None:
     data_root = tmp_path / "LexiFlow"
     coordinator, _index = LibraryCoordinator.open(data_root)
     del coordinator
-    FakeProcess.instances.clear()
-    supervisor = WorkerSupervisor(
-        data_root=data_root,
-        executable=sys.executable,
-        process_factory=FakeProcess,
-    )
     settings = Settings(
         data_root=data_root,
         native_language="en",
@@ -46,12 +36,10 @@ def test_submit_add_text_spawns_worker(tmp_path: Path) -> None:
     text_id = submit_add_text(
         data_root=data_root,
         settings=settings,
-        supervisor=supervisor,
         form=form,
         parent=None,
     )
     assert text_id is not None
-    assert len(FakeProcess.instances) == 1
 
 
 def test_submit_add_text_allows_same_content_without_source_url(tmp_path: Path) -> None:
@@ -68,12 +56,6 @@ def test_submit_add_text_allows_same_content_without_source_url(tmp_path: Path) 
             native_language="en",
             body=body,
         )
-    )
-    FakeProcess.instances.clear()
-    supervisor = WorkerSupervisor(
-        data_root=data_root,
-        executable=sys.executable,
-        process_factory=FakeProcess,
     )
     settings = Settings(
         data_root=data_root,
@@ -92,7 +74,6 @@ def test_submit_add_text_allows_same_content_without_source_url(tmp_path: Path) 
     text_id = submit_add_text(
         data_root=data_root,
         settings=settings,
-        supervisor=supervisor,
         form=form,
         parent=None,
     )
@@ -117,12 +98,6 @@ def test_submit_add_text_prompts_on_duplicate_source_url(
             source_url="https://example.com/article",
         )
     )
-    FakeProcess.instances.clear()
-    supervisor = WorkerSupervisor(
-        data_root=data_root,
-        executable=sys.executable,
-        process_factory=FakeProcess,
-    )
     settings = Settings(
         data_root=data_root,
         native_language="en",
@@ -145,7 +120,6 @@ def test_submit_add_text_prompts_on_duplicate_source_url(
     text_id = submit_add_text(
         data_root=data_root,
         settings=settings,
-        supervisor=supervisor,
         form=form,
         parent=None,
     )
@@ -153,4 +127,3 @@ def test_submit_add_text_prompts_on_duplicate_source_url(
     assert text_id is None
     question.assert_called_once()
     assert "source URL" in question.call_args.args[2]
-    assert len(FakeProcess.instances) == 0

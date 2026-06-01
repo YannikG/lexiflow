@@ -11,8 +11,6 @@ from lexiflow_core.languages.models import CEFRLevel
 from lexiflow_core.languages.store import LanguageStore, LanguageStoreError
 from PySide6.QtWidgets import QMessageBox, QWidget
 
-from lexiflow_ui.worker_supervisor import WorkerSupervisor
-
 
 def default_simplify_level(data_root: Path, target_language: str) -> CEFRLevel:
     """Return user language level or A2 when metadata is missing."""
@@ -25,13 +23,11 @@ def default_simplify_level(data_root: Path, target_language: str) -> CEFRLevel:
 def submit_simplify(
     *,
     data_root: Path,
-    supervisor: WorkerSupervisor,
     text_id: UUID,
     level: CEFRLevel,
 ) -> None:
-    """Enqueue a simplify job and ensure the worker is running."""
+    """Enqueue a simplify job."""
     enqueue_simplify(JobService(data_root), text_id, level.value)
-    supervisor.ensure_running()
 
 
 def confirm_simplify_without_translated(parent: QWidget | None) -> None:

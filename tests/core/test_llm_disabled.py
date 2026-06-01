@@ -17,7 +17,7 @@ from lexiflow_core.llm.resolution import resolve_llm
 
 
 def test_disabled_llm_raises_on_complete() -> None:
-    llm = resolve_llm(Settings(llm_enabled=False), Path("/tmp"))
+    llm = resolve_llm(Settings(llm_enabled=False))
 
     with pytest.raises(LLMDisabledError, match="disabled"):
         llm.complete("x")
@@ -44,7 +44,7 @@ def test_worker_fails_translate_when_llm_disabled(tmp_path: Path) -> None:
             payload={"text_id": str(record.id), "phase": "plain"},
         )
     )
-    llm = resolve_llm(Settings(llm_enabled=False), data_root)
+    llm = resolve_llm(Settings(llm_enabled=False))
 
     run_worker_loop(jobs, llm, data_root=data_root)
 

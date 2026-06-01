@@ -1,34 +1,46 @@
 # LLM providers
 
-LexiFlow routes translate, cleanup, and simplify jobs through a single **LLM provider** protocol. The worker resolves the active provider from **global settings** and installed model artifacts.
+LexiFlow routes translate, cleanup, and simplify jobs through a single **LLM provider** protocol. The worker resolves the active provider from **global settings** and runtime availability (llama-server binary, Ollama URL, or LLM toggle).
 
 ## Provider mode
 
-- **Ollama endpoint** set in `settings.toml`: all LLM jobs use `OllamaLLM` (HTTP `POST /api/generate`). LexiFlow does not manage the Ollama process. Users must pull the pinned model tag (`gemma4:2b` for Gemma 4 E2B) locally.
-- **No Ollama URL**: jobs use **Embedded model** Gemma 4 E2B from the official Hub repo `google/gemma-4-E2B-it` when `embedded-gemma` is installed under `{data_root}/.app/models/`.
-- **LLM toggle** off (`llm_enabled = false`): `DisabledLLM` fails jobs with a clear message (full settings UX is phase 14).
-- **Embedded path without a cached Gemma snapshot**: `UnavailableLLM` fails jobs with bootstrap guidance instead of crashing the worker at startup.
+There are exactly two LLM backends:
 
-`resolve_llm(settings, data_root)` in `lexiflow_core.llm.resolution` performs selection. It is a query: no queue writes.
+- **Native llama-server** (default): LexiFlow supervises a local `llama-server` process. The language model is pinned in `models.lock` as `llama_hf_model` and loaded by llama-server from Hugging Face via `-hf`. No torch or transformers in the Python environment.
+- **Ollama endpoint** (advanced): when `ollama_url` is set in `settings.toml`, all LLM jobs use `OllamaLLM` (HTTP `POST /api/generate`). LexiFlow does not manage the Ollama process. Users must pull a compatible model locally (see Ollama docs for tags).
 
-## Embedded Gemma 4 E2B
+**LLM toggle** off (`llm_enabled = false`): `DisabledLLM` fails jobs with a clear message.
 
-- Pinned in `models.lock` as **`google/gemma-4-E2B-it`** (official Google weights, same repo as the license page).
-- Bootstrap downloads the full Hugging Face snapshot via `ModelStore` / `HuggingFaceModelDownloader`.
-- Inference runs in a **child Python subprocess** (`python -m lexiflow_core.llm.gemma_inference`) so native ML crashes do not take down the worker ([ADR 0003](../../../../docs/adr/0003-job-execution-architecture.md)). The child loads `transformers` + `torch` against the cached `google/gemma-4-E2B-it` directory.
-- Not used in CI: tests inject a fake `GemmaGenerator` at the protocol boundary.
+**Native path without llama-server binary**: `UnavailableLLM` with install guidance (`llama-server` on PATH or `LEXIFLOW_LLAMA_SERVER_BIN`).
+
+`resolve_llm(settings)` in `lexiflow_core.llm.resolution` performs selection. It is a query: no queue writes.
+
+## Native llama-server
+
+- Pinned Hugging Face model spec in `models.lock` as **`native-llm`** (`llama_hf_model`, e.g. `repo:quantized-file`).
+- LexiFlow does **not** download or cache LLM weights; llama-server fetches them on first use.
+- The **UI process** supervises `llama-server` via `LlamaServerSupervisor`; the worker calls `LlamaServerLLM` over HTTP (`/v1/chat/completions`).
+- Server starts on first LLM job and stops when the app quits (idle shutdown remains phase 14).
+- Not used in CI: tests inject `FakeLLM` or HTTP fakes at protocol boundaries.
 
 ## Ollama HTTP client
 
 `OllamaLLM` sends non-streaming generate requests. Errors surface as `OllamaError` and become failed job messages.
 
+## Embeddings
+
+- Pinned repo/revision in `models.lock` as **`embedding-minilm`**.
+- The worker loads MiniLM via `sentence-transformers` from Hugging Face on first use; LexiFlow does not cache weights under `.app/models/`.
+- Optional `huggingface_token` from settings is passed through for gated repos.
+- Without `sentence-transformers` installed, the worker uses `FakeEmbedder` (CI and dev).
+
 ## CI and tests
 
-- Tests use `FakeLLM`, HTTP fakes, or a fake `GemmaGenerator` at protocol boundaries.
-- No real Ollama, Hugging Face downloads, or GPU inference in pytest.
+- Tests use `FakeLLM`, HTTP fakes, or `UnavailableLLM` at protocol boundaries.
+- No real Ollama, Hugging Face downloads, or llama-server in pytest.
 
 ## Worker entry
 
 `lexiflow_worker.main` loads `SettingsStore`, calls `resolve_llm`, and passes the provider to `run_worker_loop`. Production never hardcodes `FakeLLM`.
 
-See [common-language.md](../../../../common-language.md): **LLM provider**, **Provider mode**, **Embedded model**, **Ollama endpoint**, **Worker-linked model lifecycle**.
+See [common-language.md](../../../../common-language.md): **LLM provider**, **Provider mode**, **Native LLM**, **Ollama endpoint**, **Native LLM lifecycle**.
