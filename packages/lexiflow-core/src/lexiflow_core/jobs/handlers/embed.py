@@ -1,22 +1,20 @@
-"""Embed translated text into the per-language vector store."""
+"""Route embed jobs to text or vocabulary handlers."""
 
 from __future__ import annotations
 
 from pathlib import Path
-from uuid import UUID
 
 from lexiflow_core.embeddings.protocol import Embedder
+from lexiflow_core.jobs.handlers.embed_text import handle_text_embed
+from lexiflow_core.jobs.handlers.embed_vocabulary import (
+    handle_vocabulary_embed,
+    vocabulary_payload,
+)
 from lexiflow_core.jobs.models import JobRecord
 from lexiflow_core.jobs.service import JobService
 from lexiflow_core.library.text_repository import TextRepository
 from lexiflow_core.vectors.store import VectorStore
-
-
-def _text_id_from_payload(job: JobRecord) -> UUID:
-    raw = job.payload.get("text_id")
-    if not isinstance(raw, str):
-        raise ValueError(f"job {job.id} is missing text_id")
-    return UUID(raw)
+from lexiflow_core.vocabulary.store import VocabularyStore
 
 
 def handle_embed(
@@ -27,31 +25,31 @@ def handle_embed(
     repo: TextRepository,
     job_service: JobService,
     vector_store: VectorStore | None = None,
+    vocabulary_store: VocabularyStore | None = None,
 ) -> None:
-    """Embed the translated variant for a text and persist its vector."""
+    """Dispatch an embed job by payload shape."""
     try:
-        text_id = _text_id_from_payload(job)
+        payload = vocabulary_payload(job)
     except ValueError as exc:
         job_service.fail(job.id, str(exc))
         return
 
-    try:
-        record = repo.get_text(text_id)
-        try:
-            translated = repo.read_variant(text_id, "translated")
-        except FileNotFoundError as exc:
-            raise ValueError(f"text {text_id} has no translated variant") from exc
-        if translated is None:
-            raise ValueError(f"text {text_id} has no translated variant")
-        vector = embedder.embed(translated)
-        store = (
-            vector_store
-            if vector_store is not None
-            else VectorStore(data_root, record.target_language)
+    if payload is not None:
+        handle_vocabulary_embed(
+            job,
+            data_root=data_root,
+            embedder=embedder,
+            job_service=job_service,
+            vector_store=vector_store,
+            vocabulary_store=vocabulary_store,
         )
-        store.upsert_text_vector(text_id, vector)
-    except Exception as exc:
-        job_service.fail(job.id, str(exc))
         return
 
-    job_service.complete(job.id, {})
+    handle_text_embed(
+        job,
+        data_root=data_root,
+        embedder=embedder,
+        repo=repo,
+        job_service=job_service,
+        vector_store=vector_store,
+    )

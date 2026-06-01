@@ -126,3 +126,21 @@ def test_submit_enqueues_cleanup_job(
     assert len(queued) == 1
     assert queued[0].job_type == JobType.CLEANUP
     assert queued[0].payload["text_id"] == str(text_id)
+
+
+def test_submit_does_not_enqueue_simplify_job(
+    pipeline: tuple[TextPipeline, TextRepository, JobService],
+) -> None:
+    text_pipeline, _repo, jobs = pipeline
+    text_pipeline.submit_new_text(
+        TextDraft(
+            title="My article",
+            group="News",
+            pasted_content="hello world",
+            input_tab=InputTab.NATIVE,
+            native_language="en",
+            target_language="es",
+        )
+    )
+    queued = jobs.list_jobs()
+    assert all(job.job_type != JobType.SIMPLIFY for job in queued)

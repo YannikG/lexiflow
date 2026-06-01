@@ -16,6 +16,16 @@ The **Markdown reader** is LexiFlow's reading surface for **text variants**: nat
 - **Read mode** is default: library title label plus rendered markdown in the reading pane (including any H1 in the file).
 - **Edit mode** shows a **title** text field, an optional **source URL** field, markdown source beside a **live preview**, and Save/Cancel beneath the content. Save writes variant markdown, the library title, and source URL via `TextRepository.save_variant_edit`; Cancel discards. Unsaved edits use the shared `lexiflow_ui.unsaved_changes` guard before switching reader tabs, opening another text, leaving Texts mode, or closing the window. Save does not enqueue translate or simplify jobs. Saving the **Translated** tab enqueues a background **embed** job and starts the worker when needed.
 
+## Simplify
+
+- **Simplify level picker** (`reader_simplify_level`) defaults to **user language level**.
+- **Simplify** button enqueues a background simplify job when a **translated variant** exists. Does not run on save or add-text.
+- After completion, the reader reloads simplified tabs from disk.
+
+## New words panel
+
+On a **simplified variant** tab, **new words panel** lists filtered **new word suggestions** from the variant sidecar JSON. **Add** writes a minimal **vocabulary entry** and enqueues a vocabulary **embed** job. Uses standard widgets and **UI theme** (no inline QSS).
+
 ## Settings
 
 - **Reader font size** (`Settings.reader_font_size`, default 14) applies to the read and edit panes. Appearance settings UI is phase 14.

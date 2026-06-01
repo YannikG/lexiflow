@@ -7,6 +7,7 @@ from pathlib import Path
 from lexiflow_core.embeddings.protocol import Embedder
 from lexiflow_core.jobs.handlers.cleanup import handle_cleanup
 from lexiflow_core.jobs.handlers.embed import handle_embed
+from lexiflow_core.jobs.handlers.simplify import handle_simplify
 from lexiflow_core.jobs.handlers.translate import handle_translate
 from lexiflow_core.jobs.models import JobRecord, JobType
 from lexiflow_core.jobs.service import JobService
@@ -41,6 +42,15 @@ def process_job(
             job,
             data_root=data_root,
             embedder=embedder,
+            repo=repo,
+            job_service=job_service,
+        )
+        return
+    if job.job_type == JobType.SIMPLIFY:
+        handle_simplify(
+            job,
+            data_root=data_root,
+            llm=llm,
             repo=repo,
             job_service=job_service,
         )

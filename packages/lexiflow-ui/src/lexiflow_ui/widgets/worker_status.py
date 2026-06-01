@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QStatusBar, QWidget
 
 from lexiflow_ui.worker_supervisor import WorkerState, WorkerSupervisor
@@ -24,3 +25,8 @@ class WorkerStatusBar(QStatusBar):
 
     def refresh(self) -> None:
         self.showMessage(format_worker_status(self._supervisor.state))
+
+    def show_job_error(self, message: str, *, timeout_ms: int = 10000) -> None:
+        """Show a temporary job failure message, then restore worker state."""
+        self.showMessage(message, timeout_ms)
+        QTimer.singleShot(timeout_ms, self.refresh)

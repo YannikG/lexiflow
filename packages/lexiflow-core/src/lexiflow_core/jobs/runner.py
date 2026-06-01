@@ -53,7 +53,12 @@ def run_worker_loop(
         try:
             if "prompt" in job.payload:
                 _process_legacy_prompt_job(job_service, llm, job)
-            elif job.job_type in (JobType.CLEANUP, JobType.TRANSLATE, JobType.EMBED):
+            elif job.job_type in (
+                JobType.CLEANUP,
+                JobType.TRANSLATE,
+                JobType.EMBED,
+                JobType.SIMPLIFY,
+            ):
                 process_job(
                     job,
                     data_root=data_root,

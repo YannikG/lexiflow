@@ -16,3 +16,21 @@ def enqueue_translated_text_embed(job_service: JobService, text_id: UUID) -> Non
             payload={"text_id": str(text_id)},
         )
     )
+
+
+def enqueue_vocabulary_word_embed(
+    job_service: JobService,
+    *,
+    language_code: str,
+    lemma: str,
+) -> None:
+    """Queue a background embed job for a vocabulary lemma."""
+    job_service.enqueue(
+        JobRequest(
+            job_type=JobType.EMBED,
+            payload={
+                "language_code": language_code,
+                "lemma": lemma.strip().lower(),
+            },
+        )
+    )
