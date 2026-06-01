@@ -9,6 +9,7 @@ from uuid import UUID
 
 import pytest
 from lexiflow_core.config.paths import variant_path
+from lexiflow_core.embeddings.fake import FakeEmbedder
 from lexiflow_core.jobs.handlers.simplify import handle_simplify
 from lexiflow_core.jobs.models import JobRequest, JobStatus, JobType
 from lexiflow_core.jobs.service import JobService
@@ -19,6 +20,33 @@ from lexiflow_core.library.models import CreateTextRequest
 from lexiflow_core.library.text_repository import TextRepository
 from lexiflow_core.llm.fake import FakeLLM
 from lexiflow_core.simplify.suggestions_store import load_suggestions
+from lexiflow_core.vectors.store import VectorStore
+from lexiflow_core.vocabulary.models import NewWordSuggestion
+from lexiflow_core.vocabulary.store import VocabularyStore
+
+
+class _RecordingFakeLLM(FakeLLM):
+    def __init__(
+        self,
+        response: str = "fake completion",
+        *,
+        error: Exception | None = None,
+        block_on_call: int | None = None,
+        responses: list[str] | None = None,
+    ) -> None:
+        super().__init__(
+            response=response,
+            error=error,
+            block_on_call=block_on_call,
+            responses=responses,
+        )
+        self.last_prompt = ""
+
+    def complete(
+        self, prompt: str, *, json_schema: dict[str, object] | None = None
+    ) -> str:
+        self.last_prompt = prompt
+        return super().complete(prompt, json_schema=json_schema)
 
 
 def _valid_simplify_json(*, title: str = "Titulo simple", body: str = "Texto.") -> str:
@@ -268,3 +296,59 @@ def test_simplify_fails_without_translated_variant(
     assert jobs[0].status == JobStatus.FAILED
     assert jobs[0].error_message is not None
     assert "translated" in jobs[0].error_message.lower()
+
+
+def _seed_vocabulary_vectors(
+    data_root: Path,
+    *,
+    text_id: UUID,
+    repo: TextRepository,
+) -> None:
+    embedder = FakeEmbedder()
+    vector_store = VectorStore(data_root, "es")
+    vocab = VocabularyStore(data_root, "es")
+    translated = repo.read_variant(text_id, "translated")
+    assert translated is not None
+    vector_store.upsert_text_vector(text_id, embedder.embed(translated))
+    words = (
+        ("basico", CEFRLevel.A1),
+        ("medio", CEFRLevel.A2),
+        ("avanzado", CEFRLevel.B1),
+    )
+    for lemma, level in words:
+        vocab.add_from_suggestion(
+            NewWordSuggestion(lemma=lemma, gloss=lemma, suggested_level=level),
+            level_when_learned=level,
+        )
+        vector_store.upsert_word_vector(lemma, embedder.embed(lemma))
+
+
+def test_simplify_prompt_includes_vector_selected_vocabulary(
+    simplify_context: tuple[JobService, TextRepository, LibraryIndex, UUID, Path],
+) -> None:
+    job_service, repo, _index, text_id, data_root = simplify_context
+    _seed_vocabulary_vectors(data_root, text_id=text_id, repo=repo)
+    llm = _RecordingFakeLLM(response=_valid_simplify_json())
+
+    job_service.enqueue(
+        JobRequest(
+            job_type=JobType.SIMPLIFY,
+            payload={"text_id": str(text_id), "level": "A2"},
+        )
+    )
+    job = job_service.claim_next()
+    assert job is not None
+    handle_simplify(
+        job,
+        data_root=data_root,
+        llm=llm,
+        repo=repo,
+        job_service=job_service,
+    )
+
+    assert "(none available)" not in llm.last_prompt
+    assert "basico" in llm.last_prompt
+    assert "medio" in llm.last_prompt
+    assert "avanzado" in llm.last_prompt
+    jobs = job_service.list_jobs()
+    assert jobs[0].status == JobStatus.COMPLETED

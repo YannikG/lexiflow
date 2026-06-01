@@ -10,6 +10,7 @@ from lexiflow_core.jobs.models import JobStatus, JobType
 from lexiflow_core.jobs.runner import run_worker_loop
 from lexiflow_core.jobs.service import JobService
 from lexiflow_core.languages.models import CEFRLevel
+from lexiflow_core.languages.store import LanguageStore
 from lexiflow_core.library.index import LibraryIndex
 from lexiflow_core.library.library_coordinator import LibraryCoordinator
 from lexiflow_core.library.models import CreateTextRequest
@@ -149,6 +150,20 @@ def test_simplify_button_enqueues_job(qtbot, tmp_path) -> None:
     assert jobs[0].payload["level"] == "A2"
 
 
+def test_simplify_level_picker_defaults_to_user_language_level(
+    qtbot, tmp_path
+) -> None:
+    data_root = tmp_path / "LexiFlow"
+    LanguageStore(data_root).add_target("es", CEFRLevel.B1)
+    _seed_reader_text(data_root)
+    window = _open_reader_window(qtbot, data_root)
+    _click_sidebar_text(qtbot, window)
+
+    level_combo = window.reader.findChild(QComboBox, "reader_simplify_level")
+    assert level_combo is not None
+    assert level_combo.currentText() == "B1"
+
+
 def test_simplified_tab_syncs_simplify_level_picker(qtbot, tmp_path) -> None:
     data_root = tmp_path / "LexiFlow"
     _seed_simplified_with_suggestions(data_root)
@@ -187,6 +202,32 @@ def test_new_words_add_persists_vocabulary_entry(qtbot, tmp_path) -> None:
     entries = store.list_for_simplify()
     assert len(entries) == 1
     assert entries[0].level_when_learned == CEFRLevel.A2
+
+
+def test_new_words_add_enqueues_vocabulary_embed_job(qtbot, tmp_path) -> None:
+    data_root = tmp_path / "LexiFlow"
+    _seed_simplified_with_suggestions(data_root)
+    window = _open_reader_window(qtbot, data_root)
+    _click_sidebar_text(qtbot, window)
+
+    simplified_tab = window.reader.findChild(QPushButton, "reader_tab_simplified")
+    assert simplified_tab is not None
+    qtbot.mouseClick(simplified_tab, Qt.MouseButton.LeftButton)
+    qtbot.wait(50)
+
+    add_button = window.reader.findChild(QPushButton, "new_words_add_button")
+    assert add_button is not None
+    qtbot.mouseClick(add_button, Qt.MouseButton.LeftButton)
+    qtbot.wait(50)
+
+    embed_jobs = [
+        job
+        for job in JobService(data_root).list_jobs()
+        if job.job_type == JobType.EMBED
+        and job.payload.get("lemma") == "nadar"
+    ]
+    assert len(embed_jobs) == 1
+    assert embed_jobs[0].payload["language_code"] == "es"
 
 
 def test_translated_tab_shows_placeholder_when_variant_missing(qtbot, tmp_path) -> None:

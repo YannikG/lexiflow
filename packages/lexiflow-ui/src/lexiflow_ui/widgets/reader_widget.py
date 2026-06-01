@@ -6,7 +6,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from lexiflow_core.config.settings import Settings
-from lexiflow_core.jobs.embed_queue import enqueue_translated_text_embed
+from lexiflow_core.jobs.embed_queue import (
+    enqueue_translated_text_embed,
+    enqueue_vocabulary_word_embed,
+)
 from lexiflow_core.jobs.service import JobService
 from lexiflow_core.jobs.text_job_status import missing_variant_message
 from lexiflow_core.languages.models import CEFRLevel
@@ -601,4 +604,10 @@ class ReaderWidget(QWidget):
         except VocabularyStoreError as error:
             QMessageBox.warning(self, "Add word", str(error))
             return
+        enqueue_vocabulary_word_embed(
+            JobService(self._data_root),
+            language_code=self._record.target_language,
+            lemma=suggestion.lemma,
+        )
+        self._supervisor.ensure_running()
         self._refresh_new_words_panel()
