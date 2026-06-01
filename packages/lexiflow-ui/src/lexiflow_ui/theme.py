@@ -27,9 +27,12 @@ def _resolve_system_effective_theme() -> EffectiveTheme:
     app = QGuiApplication.instance()
     if app is None:
         return "light"
-    scheme = app.styleHints().colorScheme()
-    if scheme == Qt.ColorScheme.Dark:
-        return "dark"
+    try:
+        scheme = app.styleHints().colorScheme()
+        if scheme == Qt.ColorScheme.Dark:
+            return "dark"
+    except (AttributeError, TypeError):
+        pass
     return "light"
 
 

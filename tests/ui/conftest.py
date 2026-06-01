@@ -2,10 +2,19 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 
 import pytest
 from PySide6.QtWidgets import QApplication, QMessageBox
+
+
+@pytest.fixture
+def restore_app_stylesheet() -> Iterator[None]:
+    """Clear QApplication stylesheet after tests that apply global UI theme."""
+    yield
+    app = QApplication.instance()
+    if app is not None:
+        app.setStyleSheet("")
 
 
 @pytest.fixture(autouse=True)

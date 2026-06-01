@@ -37,7 +37,7 @@ def _baseline_stylesheet(app: QApplication) -> str:
 
 @pytest.mark.parametrize("theme", ["dark", "light"])
 def test_theme_stylesheet_differs_from_fusion_baseline(
-    qtbot, theme: str
+    qtbot, restore_app_stylesheet, theme: str
 ) -> None:
     app = QApplication.instance()
     assert app is not None
@@ -59,7 +59,11 @@ def test_theme_stylesheet_differs_from_fusion_baseline(
     ],
 )
 def test_reader_pane_uses_high_contrast_text_colors(
-    qtbot, theme: str, background: str, foreground: str
+    qtbot,
+    restore_app_stylesheet,
+    theme: str,
+    background: str,
+    foreground: str,
 ) -> None:
     app = QApplication.instance()
     assert app is not None
@@ -79,7 +83,7 @@ def test_reader_pane_uses_high_contrast_text_colors(
     assert "#181818" in stylesheet or "#f8f8f8" in stylesheet
 
 
-def test_theme_stylesheet_uses_sidebar_tokens(qtbot) -> None:
+def test_theme_stylesheet_uses_sidebar_tokens(qtbot, restore_app_stylesheet) -> None:
     app = QApplication.instance()
     assert app is not None
     app.setStyleSheet("")
@@ -119,6 +123,19 @@ def test_system_theme_resolves_to_light_when_os_light(
     assert resolve_effective_theme("system") == "light"
 
 
+def test_system_theme_falls_back_to_light_when_style_hints_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    app = QApplication.instance()
+    assert app is not None
+
+    def _broken_style_hints() -> object:
+        raise AttributeError("styleHints unavailable")
+
+    monkeypatch.setattr(app, "styleHints", _broken_style_hints)
+    assert resolve_effective_theme("system") == "light"
+
+
 @pytest.mark.parametrize(
     ("scheme", "marker"),
     [
@@ -128,6 +145,7 @@ def test_system_theme_resolves_to_light_when_os_light(
 )
 def test_system_theme_applies_stylesheet_for_os_scheme(
     monkeypatch: pytest.MonkeyPatch,
+    restore_app_stylesheet,
     scheme: Qt.ColorScheme,
     marker: str,
 ) -> None:
@@ -146,7 +164,9 @@ def test_system_theme_applies_stylesheet_for_os_scheme(
 
 
 @pytest.mark.parametrize("theme", ["dark", "light"])
-def test_main_window_visible_with_theme(qtbot, tmp_path, theme: str) -> None:
+def test_main_window_visible_with_theme(
+    qtbot, tmp_path, restore_app_stylesheet, theme: str
+) -> None:
     app = QApplication.instance()
     assert app is not None
     apply_app_theme(app, theme=theme)  # type: ignore[arg-type]
@@ -184,7 +204,10 @@ class _SmokeInstanceGuard:
 
 
 def test_run_applies_theme_once_before_main_window(
-    qtbot, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    qtbot,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    restore_app_stylesheet,
 ) -> None:
     config_dir = tmp_path / "config"
     data_root = tmp_path / "library"

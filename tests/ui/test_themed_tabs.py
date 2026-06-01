@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -27,11 +28,13 @@ from PySide6.QtWidgets import (
 
 
 @pytest.fixture(autouse=True)
-def _themed_app() -> None:
+def _themed_app() -> Iterator[None]:
     app = QApplication.instance()
     assert app is not None
     app.setStyleSheet("")
     apply_app_theme(app, theme="dark")
+    yield
+    app.setStyleSheet("")
 
 
 def _seed_reader_text(data_root: Path) -> None:

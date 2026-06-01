@@ -20,7 +20,7 @@ class _SmokeInstanceGuard:
         return None
 
 
-def test_app_smoke(qtbot, monkeypatch, tmp_path) -> None:
+def test_app_smoke(qtbot, monkeypatch, tmp_path, restore_app_stylesheet) -> None:
     config_dir = tmp_path / "config"
     data_root = tmp_path / "library"
     store = SettingsStore(config_dir=config_dir)
