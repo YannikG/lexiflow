@@ -26,11 +26,6 @@ class SidebarWidget(QWidget):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(8)
 
-        self._add_text = QPushButton("Add text", self)
-        self._add_text.setObjectName("sidebar_add_text_button")
-        self._add_text.setMinimumHeight(32)
-        layout.addWidget(self._add_text)
-
         self._empty_label = QLabel("No texts yet", self)
         self._empty_label.setObjectName("sidebar_empty_label")
         self._list = QListWidget(self)
@@ -39,6 +34,11 @@ class SidebarWidget(QWidget):
         self._list.hide()
         layout.addWidget(self._empty_label)
         layout.addWidget(self._list, stretch=1)
+
+        self._add_text = QPushButton("Add text", self)
+        self._add_text.setObjectName("sidebar_add_text_button")
+        self._add_text.setMinimumHeight(32)
+        layout.addWidget(self._add_text)
 
     def add_text_button(self) -> QPushButton:
         return self._add_text

@@ -49,13 +49,12 @@ def resolve_effective_theme(theme: Theme) -> Literal["light", "dark"]: ...
 
 ## Manual spike (before implementation PR)
 
-Run three short PySide6 demos on macOS:
+Run short PySide6 demos on macOS (see [`docs/spike/phase-9-2/`](../../../spike/phase-9-2/README.md)):
 
-1. `qt-material` — dark and light themes
-2. `qt-modern-style` — default light
-3. Plain Fusion — current baseline
+1. Plain Fusion — baseline
+2. Bundled **dark theme** / **light theme** via `scripts/theme_spike.py`
 
-Capture screenshots; attach to PR Plan. If Material feels wrong on macOS, ADR allows **qt-modern-style** (MIT) as fallback before adding the dependency.
+Capture screenshots; attach to PR Plan. **Implementation** selected Fusion + bundled `dark_theme.json` / `light_theme.json` (see ADR-0006).
 
 ## TDD cycles
 
@@ -112,6 +111,6 @@ Vertical slices — one test → minimal code → refactor. Spec PR delivers cyc
 - [ ] ADR-0006 and concept doc merged (spec PR) or included (single PR)
 - [ ] Roadmap and downstream phase READMEs reference **UI theme** conventions
 - [ ] **Plan posted** per [pr-plan-template.md](../../../guides/pr-plan-template.md)
-- [ ] Semble + Context7 noted in PR Plan (impl PR: `qt-material` API)
+- [ ] Semble + Context7 noted in PR Plan (impl PR: PySide6 Fusion + `theme_stylesheet` QSS)
 - [ ] No Qt imports added to **lexiflow-core**
 - [ ] Rejected QFluentWidgets path documented in ADR (GPL vs Apache)

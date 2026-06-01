@@ -22,6 +22,8 @@ from lexiflow_core.library.text_repository import TextRepository
 from PySide6.QtCore import Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QFont
 from PySide6.QtWidgets import (
+    QAbstractButton,
+    QButtonGroup,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -68,6 +70,8 @@ class ReaderWidget(QWidget):
         self._tab_buttons: dict[str, QPushButton | QToolButton] = {}
         self._single_simplified_variant: str | None = None
         self._edit_snapshot: _EditSnapshot | None = None
+        self._tab_button_group = QButtonGroup(self)
+        self._tab_button_group.setExclusive(True)
 
         root = QVBoxLayout(self)
         root.setContentsMargins(16, 16, 16, 16)
@@ -116,6 +120,7 @@ class ReaderWidget(QWidget):
         self._simplified_menu.setText("Simplified")
         self._simplified_menu.setCheckable(True)
         self._simplified_menu.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self._register_tab_button(self._simplified_menu)
         self._simplified_menu.hide()
         tab_row.addWidget(self._simplified_menu)
         tab_row.addStretch(1)
@@ -261,12 +266,17 @@ class ReaderWidget(QWidget):
     def simplified_menu(self) -> QToolButton:
         return self._simplified_menu
 
+    def _register_tab_button(self, button: QAbstractButton) -> None:
+        button.setCheckable(True)
+        if button not in self._tab_button_group.buttons():
+            self._tab_button_group.addButton(button)
+
     def _make_tab_button(
         self, label: str, tab_id: str, object_name: str
     ) -> QPushButton:
         button = QPushButton(label, self)
         button.setObjectName(object_name)
-        button.setCheckable(True)
+        self._register_tab_button(button)
         if tab_id:
             self._tab_buttons[tab_id] = button
         return button

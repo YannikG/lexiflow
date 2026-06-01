@@ -16,7 +16,7 @@ Several third-party Qt theme libraries were evaluated for PySide6.
 ## Decision
 
 1. **Widget-first** — Keep `QMainWindow` and standard `QWidget` tree from phases 05–09. No QML rewrite. No full **FluentWindow** / frameless shell migration in v1.
-2. **Stylesheet-based UI theme** — Add a single **lexiflow-ui** module that maps `Settings.theme` to an applied Qt stylesheet at app startup. Primary dependency: **`qt-material`** (BSD-2-Clause, PySide6 support, runtime light/dark).
+2. **Stylesheet-based UI theme** — Map `Settings.theme` to a global Qt stylesheet at app startup via **`lexiflow_ui.theme`** (resolve + apply) and **`lexiflow_ui.theme_stylesheet`** (QSS builder). **Implementation (phase 9-2):** Fusion base + bundled **`dark_theme.json`** / **`light_theme.json`** color tokens, not `qt-material`.
 3. **Core stays Qt-free** — Theme resolution and apply live in **lexiflow-ui** only. **lexiflow-core** keeps the `Theme` literal on `Settings`; no Qt imports in core.
 4. **Phase split** — Phase **9-2** delivers theme bootstrap and migrates the existing shell off default chrome. Phase **14** wires the **Theme** toggle in **settings** and the **appearance** panel (font size already on `Settings`).
 5. **Convention** — Feature widgets must not call `setStyleSheet` inline; styling flows from the global **UI theme** (see [ui-theme.md](../../packages/lexiflow-ui/docs/concepts/ui-theme.md)).
@@ -26,20 +26,20 @@ Several third-party Qt theme libraries were evaluated for PySide6.
 | Option | License | Verdict |
 |--------|---------|---------|
 | **PySide6-Fluent-Widgets** (QFluentWidgets) | GPLv3 (commercial license available) | **Rejected** — GPL conflicts with Apache 2.0 when bundled in PyInstaller unless the whole project relicenses to GPL or a commercial Fluent license is purchased. Full component-library migration also touches every shell widget. |
-| **qt-material** | BSD-2-Clause | **Selected** — Permissive; works on standard widgets; supports runtime theme switch aligned with `Settings.theme`. |
-| **qt-modern-style** | MIT | **Fallback** — Simpler light corporate look; spike in phase 9-2 README if Material feels wrong on macOS. |
+| **qt-material** | BSD-2-Clause | **Rejected after spike** — Permissive, but Material chrome diverged from reader contrast and neutral shell goals. |
+| **qt-modern-style** | MIT | **Rejected after spike** — Recorded in spike appendix; not selected for v1. |
 | **QtModernRedux6** | Per-package | **Rejected for v1** — Dark-biased; smaller ecosystem; frameless focus overlaps deferred shell work. |
-| **Fusion + custom QSS tokens** | Apache (ours) | **Deferred** — Maximum control but highest maintenance; revisit only if `qt-material` proves insufficient. |
+| **Fusion + bundled theme QSS** | Apache (ours) | **Selected (implementation)** — `dark_theme.json` / `light_theme.json` + global QSS; no third-party theme runtime dependency. |
 | **QML / Qt Quick Material** | LGPL (Qt) | **Rejected** — Requires rewriting the widget shell; out of scope for v1. |
 
 ## Rationale
 
 | Factor | Stylesheet on widgets |
 |--------|------------------------|
-| **License** | Apache + BSD-2 stays compatible for hobby OSS and downstream forks. |
+| **License** | Apache + bundled JSON tokens; no GPL theme runtime. |
 | **Migration cost** | Global QSS applies to existing `QPushButton`, `QListWidget`, etc. without replacing class hierarchy. |
-| **Settings model** | `Theme` literal already exists; `qt-material` supports system/light/dark at runtime. |
-| **Package boundary** | Single SRP module in ui: read preference → resolve effective palette → apply once. |
+| **Settings model** | `Theme` literal already exists; effective light/dark resolved from OS when `system`. |
+| **Package boundary** | `theme.py` resolves preference and applies once; `theme_stylesheet.py` owns QSS generation only. |
 | **Downstream phases** | Phase 17 tree, phase 13 search overlay, phase 14 settings inherit theme automatically if they use standard widgets. |
 
 ## Considered alternatives
@@ -50,14 +50,14 @@ Several third-party Qt theme libraries were evaluated for PySide6.
 
 ## Consequences
 
-- **Phase 9-2:** ADR + concept doc + `lexiflow_ui.theme` bootstrap (implementation PR); migrate shell widgets; spike compares `qt-material` vs `qt-modern-style` on macOS (screenshots in PR Plan appendix).
+- **Phase 9-2:** ADR + concept doc + `lexiflow_ui.theme` bootstrap; dark/light theme QSS; migrate shell widgets; spike compares Fusion vs themed chrome on macOS (see `docs/spike/phase-9-2/`).
 - **Phase 14:** **Theme** dropdown calls `apply_app_theme` without restart when feasible; **appearance** panel for reader font size and future density/accent.
-- **Phase 15:** PyInstaller spec bundles `qt-material` theme assets / generated QSS as needed.
+- **Phase 15:** PyInstaller spec bundles `lexiflow_ui/themes/*.json` with the app (no `qt-material` assets).
 - **Phase 17+:** New controls use standard Qt widgets; no inline QSS in feature code.
-- **Dependency:** `qt-material` added to **lexiflow-ui** `pyproject.toml` in the implementation PR (not the spec PR).
+- **Dependency:** No third-party Qt theme package in **lexiflow-ui** for v1 (Fusion + bundled JSON only).
 
-## Open questions (resolve in phase 9-2 implementation PR)
+## Open questions (resolved in phase 9-2 implementation)
 
-- **Accent color** — LexiFlow brand color in `qt-material` theme XML, or default palette for v1?
-- **Reader pane** — Does markdown rendering need separate typography tokens beyond global QSS?
-- **Runtime toggle** — Must theme switch without restart in 9-2, or is phase 14 sufficient?
+- **Accent color** — Theme defaults (`#0078D4` dark / `#005FB8` light focus and buttons).
+- **Reader pane** — `editor.background` / `editor.foreground` tokens on reader panes via global QSS object names.
+- **Runtime toggle** — Startup apply only in 9-2; phase 14 may re-call `apply_app_theme`.

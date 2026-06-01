@@ -11,13 +11,14 @@ See [ADR-0006](../../../../docs/adr/0006-desktop-ui-theme-strategy.md) for the l
 | Package | Role |
 |---------|------|
 | **lexiflow-core** | `Settings.theme` literal only — no Qt |
-| **lexiflow-ui** | Theme bootstrap module — resolve **Theme** preference, apply stylesheet to the application |
+| **lexiflow-ui** | `theme.py` — resolve **Theme** preference, apply stylesheet; `theme_stylesheet.py` — build QSS from bundled color tokens |
 
 ## Phase 9-2 (UI theme migration)
 
 - App startup applies **UI theme** from **global settings** before the main window is shown
 - Resolves **Theme** = System to OS light or dark
-- Primary dependency: **`qt-material`** (BSD-2-Clause) unless spike chooses **qt-modern-style** (MIT)
+- Primary styling: **dark theme** / **light theme** color tokens, applied as Fusion + global QSS in `lexiflow_ui.theme_stylesheet`
+- Token files: `themes/dark_theme.json`, `themes/light_theme.json`
 - **UI theme migration** — remove inline `setStyleSheet` from phase 05–09 shell modules (see below); rely on global QSS
 
 ### Shell modules in scope (phase 9-2)
@@ -34,6 +35,18 @@ Global **UI theme** must cover these without per-widget QSS:
 
 Onboarding ships in phase 06 but is restyled in phase 9-2 so it matches the shell.
 
+### Tab object names (global QSS)
+
+These `objectName` values must stay in sync with `TAB_PUSH_BUTTON_IDS` in `theme_stylesheet.py`:
+
+| Widget | objectName |
+|--------|------------|
+| Reader native tab | `reader_tab_native` |
+| Reader translated tab | `reader_tab_translated` |
+| Reader simplified tab | `reader_tab_simplified` |
+| Reader simplified menu | `reader_simplified_menu` |
+| Add-text native / target | `add_text_tab_native`, `add_text_tab_target` |
+
 ## Inline QSS exceptions
 
 No exceptions today. If global QSS cannot style a widget (e.g. reader monospace block), add a row here with rationale and link from the code comment:
@@ -48,7 +61,7 @@ No exceptions today. If global QSS cannot style a widget (e.g. reader monospace 
 2. **No inline QSS in feature code** — Do not call `setStyleSheet` on widgets in feature modules. Exceptions require a comment linking to this doc and ADR-0006.
 3. **No Fluent component library in v1** — PySide6-Fluent-Widgets rejected (GPL vs Apache). Do not import `qfluentwidgets`.
 4. **New panels and overlays** — Build with standard Qt widgets (phase 11 **new words panel**, phase 13 **global search UI**, phase 14 **settings**) so they inherit **UI theme** automatically.
-5. **Reader typography** — **Markdown reader** body font size comes from **appearance** settings (phase 14); global QSS handles chrome only unless a dedicated reader style helper is added in 9-2.
+5. **Reader typography** — **Markdown reader** body uses `editor.background` / `editor.foreground` tokens on reader panes; font size from **appearance** settings (phase 14).
 
 ## Phase 14 (settings)
 

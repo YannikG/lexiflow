@@ -14,6 +14,7 @@ from lexiflow_core.library.index import LibraryIndex, ensure_library_index
 from lexiflow_core.text_pipeline.models import InputTab
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QButtonGroup,
     QComboBox,
     QDialog,
     QDialogButtonBox,
@@ -77,11 +78,14 @@ class AddTextDialog(QDialog):
         tab_layout.setContentsMargins(0, 0, 0, 0)
         self._native_tab_btn = QPushButton("Native", tab_row)
         self._native_tab_btn.setObjectName("add_text_tab_native")
-        self._native_tab_btn.setCheckable(True)
-        self._native_tab_btn.setChecked(True)
         self._target_tab_btn = QPushButton("Target", tab_row)
         self._target_tab_btn.setObjectName("add_text_tab_target")
-        self._target_tab_btn.setCheckable(True)
+        self._input_tab_group = QButtonGroup(self)
+        self._input_tab_group.setExclusive(True)
+        for button in (self._native_tab_btn, self._target_tab_btn):
+            button.setCheckable(True)
+            self._input_tab_group.addButton(button)
+        self._native_tab_btn.setChecked(True)
         self._native_tab_btn.clicked.connect(self._select_native_tab)
         self._target_tab_btn.clicked.connect(self._select_target_tab)
         tab_layout.addWidget(self._native_tab_btn)
