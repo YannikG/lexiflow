@@ -16,6 +16,7 @@ class ModelArtifact:
     id: str
     repo: str
     revision: str
+    allow_patterns: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -58,6 +59,23 @@ def load_models_lock(path: Path | None = None) -> ModelsLock:
             raise ModelsLockError(
                 f"artifact {artifact_id} missing revision in {lock_path}"
             )
-        artifacts.append(ModelArtifact(id=artifact_id, repo=repo, revision=revision))
+        raw_patterns = entry.get("allow_patterns")
+        allow_patterns: tuple[str, ...] = ()
+        if raw_patterns is not None:
+            if not isinstance(raw_patterns, list) or not all(
+                isinstance(p, str) and p for p in raw_patterns
+            ):
+                raise ModelsLockError(
+                    f"artifact {artifact_id} has invalid allow_patterns in {lock_path}"
+                )
+            allow_patterns = tuple(raw_patterns)
+        artifacts.append(
+            ModelArtifact(
+                id=artifact_id,
+                repo=repo,
+                revision=revision,
+                allow_patterns=allow_patterns,
+            )
+        )
 
     return ModelsLock(artifacts=tuple(artifacts))

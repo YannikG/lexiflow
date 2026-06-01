@@ -7,8 +7,9 @@ import logging
 import tempfile
 from pathlib import Path
 
+from lexiflow_core.config.settings_store import SettingsStore
 from lexiflow_core.jobs.service import JobService
-from lexiflow_core.llm.fake import FakeLLM
+from lexiflow_core.llm.resolution import resolve_llm
 
 from lexiflow_worker.embedder import resolve_embedder
 from lexiflow_worker.runner import run_worker_loop
@@ -37,10 +38,12 @@ def main(argv: list[str] | None = None) -> int:
     try:
         job_service = JobService(data_root)
         logger.info("worker consuming queue at %s", job_service.db_path)
+        settings = SettingsStore().load()
+        llm = resolve_llm(settings, data_root)
         embedder = resolve_embedder(data_root)
         run_worker_loop(
             job_service,
-            FakeLLM(),
+            llm,
             embedder=embedder,
             data_root=data_root,
         )

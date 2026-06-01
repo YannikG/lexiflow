@@ -14,6 +14,8 @@ Installed artifacts live under `{data_root}/.app/models/{artifact_id}/`. A `revi
 
 `ensure_app_layout()` creates `.app/models/`; downloads happen only through `ModelStore.ensure_installed()`.
 
+`ModelStore.remove_installed(artifact_id)` deletes `{data_root}/.app/models/{artifact_id}/` so the next `ensure_installed()` performs a full re-download. Onboarding exposes **Re-download models** (with confirmation) for required artifacts.
+
 ## Download boundary
 
 `ModelDownloader` is the protocol boundary. Production uses `HuggingFaceModelDownloader` (`snapshot_download` with pinned revision and optional token). Tests and CI use `FakeModelDownloader`, which writes the revision marker without network I/O.
@@ -25,7 +27,7 @@ Installed artifacts live under `{data_root}/.app/models/{artifact_id}/`. A `revi
 `required_artifact_ids(settings)` applies product policy:
 
 - **Ollama endpoint** configured: download the **embedding model** (MiniLM) only.
-- **Embedded path**: download embedding model and embedded LLM (Gemma).
+- **Embedded path**: download embedding model and embedded LLM (**Gemma 4 E2B** from official `google/gemma-4-E2B-it`; accept the Hub license before download).
 
 Ollama replaces the embedded LLM only; embeddings run in-app from Hugging Face until [phase 10b](../../../../docs/roadmap/phases/phase-10b-ollama-embeddings/README.md) ([ADR 0005](../../../../docs/adr/0005-ollama-embedding-provider-deferred.md)).
 

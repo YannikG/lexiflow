@@ -23,8 +23,8 @@ def test_gated_repo_error_maps_to_model_access_not_pin(tmp_path: Path) -> None:
     """GatedRepoError must map to ModelAccessError, not ModelPinError."""
     artifact = ModelArtifact(
         id="embedded-gemma",
-        repo="google/gemma-2-2b-it",
-        revision="299a8560bedf22ed1c72a8a11e7dce4a7f9f51f8",
+        repo="google/gemma-4-E2B-it",
+        revision="905e84b50c4d2a365ebde34e685027578e6728db",
     )
     downloader = HuggingFaceModelDownloader()
     dest = tmp_path / "gemma"
@@ -50,3 +50,30 @@ def test_gated_repo_error_maps_to_model_access_not_pin(tmp_path: Path) -> None:
 
 def test_gated_repo_error_is_subclass_of_repository_not_found() -> None:
     assert issubclass(GatedRepoError, RepositoryNotFoundError)
+
+
+def test_download_passes_reporting_tqdm_class_when_callbacks_set(
+    tmp_path: Path,
+) -> None:
+    artifact = ModelArtifact(
+        id="embedding-minilm",
+        repo="sentence-transformers/all-MiniLM-L6-v2",
+        revision="abc",
+    )
+    downloader = HuggingFaceModelDownloader()
+    dest = tmp_path / "minilm"
+    lines: list[str] = []
+
+    with patch(
+        "lexiflow_core.models.huggingface_downloader.snapshot_download",
+    ) as snapshot:
+        downloader.download(
+            artifact,
+            dest,
+            token=None,
+            on_progress=lambda _v: None,
+            on_log_line=lines.append,
+        )
+
+    assert snapshot.call_count == 1
+    assert snapshot.call_args.kwargs.get("tqdm_class") is not None

@@ -29,6 +29,7 @@ class ModelDownloader(Protocol):
         *,
         token: str | None,
         on_progress: Callable[[float], None] | None = None,
+        on_log_line: Callable[[str], None] | None = None,
     ) -> None: ...
 
 
@@ -58,6 +59,7 @@ class FakeModelDownloader:
         *,
         token: str | None,
         on_progress: Callable[[float], None] | None = None,
+        on_log_line: Callable[[str], None] | None = None,
     ) -> None:
         self._call_count += 1
         self.last_token = token
@@ -67,6 +69,8 @@ class FakeModelDownloader:
         if self._error is not None and self._call_count == 1:
             raise self._error
         dest.mkdir(parents=True, exist_ok=True)
+        if on_log_line is not None:
+            on_log_line(f"Installing {artifact.id}…")
         (dest / "revision.txt").write_text(artifact.revision, encoding="utf-8")
         if on_progress is not None:
             on_progress(1.0)
