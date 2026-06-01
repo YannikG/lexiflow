@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import json
+import urllib.error
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
-
 import pytest
 from lexiflow_core.llm.ollama import OllamaError, OllamaLLM
 
@@ -51,6 +51,31 @@ def test_ollama_llm_complete_returns_response_body() -> None:
         assert llm.complete("translate this") == "# Title\n\nbody"
     finally:
         fake.close()
+
+
+def test_ollama_llm_closes_http_error_before_raising() -> None:
+    closed: list[bool] = []
+
+    class RecordingHTTPError(urllib.error.HTTPError):
+        def close(self) -> None:
+            closed.append(True)
+            super().close()
+
+    class RaisingOpener:
+        def open(self, request, timeout=None):
+            del request, timeout
+            raise RecordingHTTPError(
+                url="http://127.0.0.1:11434/api/generate",
+                code=500,
+                msg="error",
+                hdrs={},
+                fp=None,
+            )
+
+    llm = OllamaLLM(base_url="http://127.0.0.1:11434", opener=RaisingOpener())
+    with pytest.raises(OllamaError, match="HTTP 500"):
+        llm.complete("x")
+    assert closed == [True]
 
 
 def test_ollama_llm_complete_raises_on_http_error() -> None:

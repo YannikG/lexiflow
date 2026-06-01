@@ -16,6 +16,21 @@ _GEMMA_INFERENCE_MODULE = "lexiflow_core.llm.gemma_inference"
 _MODEL_DIR_ENV = "LEXIFLOW_GEMMA_MODEL_DIR"
 
 
+def _gemma_inference_env(model_dir: Path) -> dict[str, str]:
+    """Build child-process env so `-m lexiflow_core.llm.gemma_inference` can import."""
+    parent_path = os.path.pathsep.join(sys.path)
+    existing = os.environ.get("PYTHONPATH", "")
+    if existing:
+        pythonpath = f"{parent_path}{os.path.pathsep}{existing}"
+    else:
+        pythonpath = parent_path
+    return {
+        **os.environ,
+        _MODEL_DIR_ENV: str(model_dir),
+        "PYTHONPATH": pythonpath,
+    }
+
+
 class GemmaGenerator(Protocol):
     def generate(self, prompt: str) -> str: ...
 
@@ -28,7 +43,7 @@ class SubprocessGemmaGenerator:
         self._timeout_seconds = timeout_seconds
 
     def generate(self, prompt: str) -> str:
-        env = {**os.environ, _MODEL_DIR_ENV: str(self._model_dir)}
+        env = _gemma_inference_env(self._model_dir)
         try:
             completed = subprocess.run(
                 [sys.executable, "-m", _GEMMA_INFERENCE_MODULE],

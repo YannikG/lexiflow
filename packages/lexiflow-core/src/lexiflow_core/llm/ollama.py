@@ -85,6 +85,7 @@ class OllamaLLM:
                 raise OllamaError(f"Ollama returned HTTP {status}")
             raw = response.read().decode("utf-8")
         except urllib.error.HTTPError as exc:
+            exc.close()
             raise OllamaError(f"Ollama request failed: HTTP {exc.code}") from exc
         except urllib.error.URLError as exc:
             raise OllamaError(f"Ollama request failed: {exc.reason}") from exc

@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
+import sys
+
 from lexiflow_core.llm.embedded_gemma import (
     EmbeddedGemmaLLM,
+    _gemma_inference_env,
     find_model_dir,
 )
 from lexiflow_core.models.lockfile import load_models_lock
@@ -22,6 +26,17 @@ class FakeGemmaGenerator:
     def generate(self, prompt: str) -> str:
         self.last_prompt = prompt
         return self.response
+
+
+def test_gemma_inference_env_includes_pythonpath(tmp_path: Path) -> None:
+    model_dir = tmp_path / "gemma"
+    env = _gemma_inference_env(model_dir)
+
+    assert env["LEXIFLOW_GEMMA_MODEL_DIR"] == str(model_dir)
+    assert "PYTHONPATH" in env
+    for entry in sys.path:
+        if entry:
+            assert entry in env["PYTHONPATH"].split(os.pathsep)
 
 
 def test_find_model_dir_requires_config_json(tmp_path: Path) -> None:
