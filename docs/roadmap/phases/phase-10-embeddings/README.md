@@ -61,6 +61,8 @@ class VectorStore:
 
 ## Deferred
 
+**Worker LLM providers** (replace dev `FakeLLM` in `lexiflow_worker`) → [phase 10-1](../phase-10-1-llm-worker/README.md).
+
 **Ollama embeddings** are out of scope for this phase. See [ADR 0005](../../../adr/0005-ollama-embedding-provider-deferred.md) and [phase 10b](../phase-10b-ollama-embeddings/README.md).
 
 ## Manual verification

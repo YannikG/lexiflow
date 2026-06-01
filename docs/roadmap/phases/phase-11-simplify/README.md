@@ -3,6 +3,8 @@
 **Branch:** `phase/11-simplify`  
 **PR title:** `Phase 11: Level simplify, vocabulary buckets, new word suggestions`
 
+**Blocked by:** [phase 10 — Embeddings](../phase-10-embeddings/README.md) ([#11](https://github.com/YannikG/lexiflow/issues/11)), [phase 10-1 — Worker LLM wiring](../phase-10-1-llm-worker/README.md) ([#30](https://github.com/YannikG/lexiflow/issues/30)), [phase 10b — Ollama embeddings](../phase-10b-ollama-embeddings/README.md) (issue TBD)
+
 ## Outcome
 
 - User runs simplify with **simplify level picker** (default **user language level**)
@@ -18,7 +20,8 @@
 - [common-language.md](../../../../common-language.md): **Simplify word mix**, **Level bucket quotas**, **New word suggestions**, **New words panel**, **LLM structured output**, **Simplified variants**, **Re-simplify**
 - [ui-theme.md](../../../../packages/lexiflow-ui/docs/concepts/ui-theme.md) — **new words panel** uses standard widgets + **UI theme**; no inline QSS
 - Phase 10 VectorStore
-- Phase 10b optional Ollama embedder ([ADR 0005](../../../adr/0005-ollama-embedding-provider-deferred.md)) — blocked by 10b when that issue exists
+- Phase 10-1 worker **LLM provider** (translate/simplify/cleanup in app)
+- Phase 10b optional Ollama embedder ([ADR 0005](../../../adr/0005-ollama-embedding-provider-deferred.md))
 
 ## TDD cycles
 

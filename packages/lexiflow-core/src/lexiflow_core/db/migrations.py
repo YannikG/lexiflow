@@ -20,18 +20,24 @@ class MigrationRunner:
     def migrate(self, db_path: Path, scripts_dir: Path) -> None:
         """Apply pending SQL scripts atomically, one transaction per script."""
         ensure_database_parent(db_path)
-        scripts = MigrationLoader(scripts_dir).discover()
         connection = connect_sqlite(db_path)
         try:
-            journal = SchemaMigrationJournal(connection)
-            journal.ensure_table()
-            applied = journal.applied_versions()
-            for script in scripts:
-                if script.version in applied:
-                    continue
-                self._apply_script(connection, journal, script.version, script.sql)
+            self.migrate_connection(connection, scripts_dir)
         finally:
             connection.close()
+
+    def migrate_connection(
+        self, connection: sqlite3.Connection, scripts_dir: Path
+    ) -> None:
+        """Apply pending SQL scripts on an open connection."""
+        scripts = MigrationLoader(scripts_dir).discover()
+        journal = SchemaMigrationJournal(connection)
+        journal.ensure_table()
+        applied = journal.applied_versions()
+        for script in scripts:
+            if script.version in applied:
+                continue
+            self._apply_script(connection, journal, script.version, script.sql)
 
     def _apply_script(
         self,

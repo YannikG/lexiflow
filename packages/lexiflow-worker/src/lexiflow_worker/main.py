@@ -10,6 +10,7 @@ from pathlib import Path
 from lexiflow_core.jobs.service import JobService
 from lexiflow_core.llm.fake import FakeLLM
 
+from lexiflow_worker.embedder import resolve_embedder
 from lexiflow_worker.runner import run_worker_loop
 
 logger = logging.getLogger(__name__)
@@ -36,7 +37,13 @@ def main(argv: list[str] | None = None) -> int:
     try:
         job_service = JobService(data_root)
         logger.info("worker consuming queue at %s", job_service.db_path)
-        run_worker_loop(job_service, FakeLLM(), data_root=data_root)
+        embedder = resolve_embedder(data_root)
+        run_worker_loop(
+            job_service,
+            FakeLLM(),
+            embedder=embedder,
+            data_root=data_root,
+        )
         logger.info("worker idle")
     finally:
         if temp_dir is not None:

@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from lexiflow_core.config.settings import Settings
+from lexiflow_core.jobs.embed_queue import enqueue_translated_text_embed
+from lexiflow_core.jobs.service import JobService
 from lexiflow_core.library.document_title import (
     DocumentTitleError,
     normalize_document_title,
@@ -44,6 +46,7 @@ from lexiflow_ui.unsaved_changes import (
     confirm_leave_dirty_editor,
     fields_differ_from_snapshot,
 )
+from lexiflow_ui.worker_supervisor import WorkerSupervisor
 
 
 @dataclass(frozen=True)
@@ -57,9 +60,17 @@ class ReaderWidget(QWidget):
     tab_changed = Signal(str)
     text_saved = Signal()
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        data_root: Path | None = None,
+        supervisor: WorkerSupervisor | None = None,
+    ) -> None:
         super().__init__(parent)
         self.setObjectName("reader_widget")
+        self._data_root = data_root
+        self._supervisor = supervisor
         self._record: TextRecord | None = None
         self._repo: TextRepository | None = None
         self._index: LibraryIndex | None = None
@@ -409,6 +420,13 @@ class ReaderWidget(QWidget):
             source_url=source_url,
             update_source_url=True,
         )
+        if self._active_tab == TRANSLATED_TAB and self._data_root is not None:
+            enqueue_translated_text_embed(
+                JobService(self._data_root),
+                self._record.id,
+            )
+            if self._supervisor is not None:
+                self._supervisor.ensure_running()
         self._record = updated
         self._library_title.setText(updated.title)
         self._show_read_mode()

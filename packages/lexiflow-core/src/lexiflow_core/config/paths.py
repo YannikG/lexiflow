@@ -42,6 +42,16 @@ def queue_db_path(data_root: Path) -> Path:
     return data_root / ".app" / "queue.sqlite"
 
 
+def vocabulary_db_path(data_root: Path, language_code: str) -> Path:
+    """Return the per-language vocabulary database path."""
+    return language_data_dir(data_root, language_code) / "vocabulary.sqlite"
+
+
+def text_vectors_db_path(data_root: Path, language_code: str) -> Path:
+    """Return the per-language text vector database path."""
+    return language_data_dir(data_root, language_code) / "text_vectors.sqlite"
+
+
 def trash_dir(data_root: Path) -> Path:
     """Return the trash directory for deleted texts."""
     return data_root / ".trash"

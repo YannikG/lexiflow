@@ -5,7 +5,7 @@
 **ADR:** [0005 — Ollama embedding provider deferred](../../../adr/0005-ollama-embedding-provider-deferred.md)
 
 **Blocked by:** [phase 10 — Embeddings and sqlite-vec](../phase-10-embeddings/README.md)  
-**Blocks:** [phase 11 — Simplify and new words](../phase-11-simplify/README.md) (update GitHub **blocked by** when this issue exists)
+**Blocks:** [phase 11 — Simplify and new words](../phase-11-simplify/README.md) (update GitHub **blocked by** when this issue exists; parallel with [phase 10-1](../phase-10-1-llm-worker/README.md))
 
 Insert phase between 10 and 11. Phase 10 establishes MiniLM + `Embedder` + vector storage; this phase adds an optional second provider without re-opening bootstrap design from phase 07.
 
@@ -84,7 +84,7 @@ def required_artifact_ids(settings: Settings) -> tuple[str, ...]:
 - [ ] ADR 0005 consequences implemented; common-language updated
 - [ ] Semble/context7 used for Ollama embeddings API
 - [ ] No MiniLM import in UI process
-- [ ] Phase 11 README **blocked by** includes 10b when issue created
+- [ ] Phase 11 README **blocked by** includes 10b and 10-1 when issues created
 
 ## Deferred out of scope
 
