@@ -9,10 +9,9 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QApplication
 
-EffectiveTheme = Literal["light", "dark"]
+from lexiflow_ui.theme_stylesheet import build_theme_stylesheet
 
-_DARK_MATERIAL_THEME = "dark_teal.xml"
-_LIGHT_MATERIAL_THEME = "light_teal.xml"
+EffectiveTheme = Literal["light", "dark"]
 
 
 def resolve_effective_theme(theme: Theme) -> EffectiveTheme:
@@ -34,21 +33,8 @@ def _resolve_system_effective_theme() -> EffectiveTheme:
     return "light"
 
 
-def _material_theme_file(effective: EffectiveTheme) -> str:
-    if effective == "dark":
-        return _DARK_MATERIAL_THEME
-    return _LIGHT_MATERIAL_THEME
-
-
 def apply_app_theme(app: QApplication, *, theme: Theme) -> None:
-    """Apply global stylesheet for the given Theme preference."""
-    from qt_material import apply_stylesheet
-
+    """Apply dark or light UI theme styling to the application."""
     effective = resolve_effective_theme(theme)
-    material_theme = _material_theme_file(effective)
-    invert_secondary = effective == "light"
-    apply_stylesheet(
-        app,
-        theme=material_theme,
-        invert_secondary=invert_secondary,
-    )
+    app.setStyle("Fusion")
+    app.setStyleSheet(build_theme_stylesheet(effective))

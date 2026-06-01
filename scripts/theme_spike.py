@@ -6,6 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
+from lexiflow_ui.theme import apply_app_theme
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import (
     QApplication,
@@ -39,7 +40,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Phase 9-2 theme spike")
     parser.add_argument(
         "variant",
-        choices=["fusion", "material-dark", "material-light", "modern-light"],
+        choices=["fusion", "dark_theme", "light_theme"],
     )
     parser.add_argument(
         "--screenshot",
@@ -54,22 +55,11 @@ def main() -> int:
     window = _build_demo_window(title)
 
     if args.variant == "fusion":
-        pass
-    elif args.variant == "material-dark":
-        from qt_material import apply_stylesheet
-
-        apply_stylesheet(app, theme="dark_teal.xml")
-    elif args.variant == "material-light":
-        from qt_material import apply_stylesheet
-
-        apply_stylesheet(app, theme="light_teal.xml", invert_secondary=True)
-    elif args.variant == "modern-light":
-        try:
-            from qt_modern_style import apply
-        except ImportError:
-            print("qt-modern-style not installed; skipping modern-light spike")
-            return 1
-        apply(app)
+        app.setStyle("Fusion")
+    elif args.variant == "dark_theme":
+        apply_app_theme(app, theme="dark")
+    elif args.variant == "light_theme":
+        apply_app_theme(app, theme="light")
 
     window.show()
 

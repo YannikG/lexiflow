@@ -12,7 +12,7 @@ from lexiflow_ui.main_window import MainWindow
 from lexiflow_ui.theme import apply_app_theme, resolve_effective_theme
 from lexiflow_ui.worker_supervisor import WorkerSupervisor
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QTextBrowser
 
 # Shell modules listed in packages/lexiflow-ui/docs/concepts/ui-theme.md
 _SHELL_MODULE_PATHS = (
@@ -35,17 +35,60 @@ def _baseline_stylesheet(app: QApplication) -> str:
     return app.styleSheet()
 
 
-def test_dark_theme_stylesheet_differs_from_fusion_baseline() -> None:
+@pytest.mark.parametrize("theme", ["dark", "light"])
+def test_theme_stylesheet_differs_from_fusion_baseline(
+    qtbot, theme: str
+) -> None:
     app = QApplication.instance()
     assert app is not None
     app.setStyleSheet("")
     baseline = _baseline_stylesheet(app)
 
-    apply_app_theme(app, theme="dark")
+    apply_app_theme(app, theme=theme)  # type: ignore[arg-type]
 
     themed = app.styleSheet()
     assert themed != baseline
     assert len(themed) > 100
+
+
+@pytest.mark.parametrize(
+    ("theme", "background", "foreground"),
+    [
+        ("dark", "#1f1f1f", "#cccccc"),
+        ("light", "#ffffff", "#3b3b3b"),
+    ],
+)
+def test_reader_pane_uses_high_contrast_text_colors(
+    qtbot, theme: str, background: str, foreground: str
+) -> None:
+    app = QApplication.instance()
+    assert app is not None
+    app.setStyleSheet("")
+    apply_app_theme(app, theme=theme)  # type: ignore[arg-type]
+
+    pane = QTextBrowser()
+    pane.setObjectName("reader_read_pane")
+    qtbot.addWidget(pane)
+    pane.show()
+    qtbot.waitExposed(pane)
+
+    stylesheet = app.styleSheet().lower()
+    assert "reader_read_pane" in stylesheet
+    assert background in stylesheet
+    assert foreground in stylesheet
+    assert "#181818" in stylesheet or "#f8f8f8" in stylesheet
+
+
+def test_theme_stylesheet_uses_sidebar_tokens(qtbot) -> None:
+    app = QApplication.instance()
+    assert app is not None
+    app.setStyleSheet("")
+    apply_app_theme(app, theme="dark")
+
+    stylesheet = app.styleSheet().lower()
+    assert "sidebar" in stylesheet
+    assert "#181818" in stylesheet
+    assert "#04395e" in stylesheet
 
 
 def test_system_theme_resolves_to_dark_when_os_dark(
@@ -76,10 +119,37 @@ def test_system_theme_resolves_to_light_when_os_light(
     assert resolve_effective_theme("system") == "light"
 
 
-def test_main_window_visible_with_dark_theme(qtbot, tmp_path) -> None:
+@pytest.mark.parametrize(
+    ("scheme", "marker"),
+    [
+        (Qt.ColorScheme.Dark, "#1f1f1f"),
+        (Qt.ColorScheme.Light, "#ffffff"),
+    ],
+)
+def test_system_theme_applies_stylesheet_for_os_scheme(
+    monkeypatch: pytest.MonkeyPatch,
+    scheme: Qt.ColorScheme,
+    marker: str,
+) -> None:
     app = QApplication.instance()
     assert app is not None
-    apply_app_theme(app, theme="dark")
+    app.setStyleSheet("")
+
+    class _FakeStyleHints:
+        def colorScheme(self) -> Qt.ColorScheme:
+            return scheme
+
+    monkeypatch.setattr(app, "styleHints", lambda: _FakeStyleHints())
+    apply_app_theme(app, theme="system")
+
+    assert marker in app.styleSheet().lower()
+
+
+@pytest.mark.parametrize("theme", ["dark", "light"])
+def test_main_window_visible_with_theme(qtbot, tmp_path, theme: str) -> None:
+    app = QApplication.instance()
+    assert app is not None
+    apply_app_theme(app, theme=theme)  # type: ignore[arg-type]
 
     supervisor = WorkerSupervisor(data_root=tmp_path)
     window = MainWindow(
@@ -90,6 +160,13 @@ def test_main_window_visible_with_dark_theme(qtbot, tmp_path) -> None:
     window.show()
     qtbot.waitExposed(window)
     assert window.isVisible()
+
+
+def test_bundled_theme_token_files_exist() -> None:
+    from lexiflow_ui.theme_stylesheet import load_theme_colors
+
+    assert len(load_theme_colors("dark")) > 10
+    assert len(load_theme_colors("light")) > 10
 
 
 class _SmokeInstanceGuard:
