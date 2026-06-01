@@ -36,6 +36,17 @@ def test_get_text_vector_returns_none_when_missing(tmp_path: Path) -> None:
     assert store.get_text_vector(UUID("22222222-2222-4222-8222-222222222222")) is None
 
 
+def test_get_text_vector_does_not_create_database_file(tmp_path: Path) -> None:
+    from lexiflow_core.config.paths import text_vectors_db_path
+
+    data_root = tmp_path / "LexiFlow"
+    store = VectorStore(data_root, "es")
+    db_path = text_vectors_db_path(data_root, "es")
+
+    assert store.get_text_vector(UUID("33333333-3333-4333-8333-333333333333")) is None
+    assert not db_path.exists()
+
+
 def test_ensure_vocabulary_db_uses_wal_mode(tmp_path: Path) -> None:
     data_root = tmp_path / "LexiFlow"
     db_path = ensure_vocabulary_db(data_root, "es")

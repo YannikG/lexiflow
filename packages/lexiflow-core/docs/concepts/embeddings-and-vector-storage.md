@@ -15,6 +15,10 @@ Under `{data_root}/{language}/.data/`:
 
 Both use WAL journaling and schema migrations like other LexiFlow databases.
 
+## sqlite-vec loading
+
+The **sqlite-vec** Python package ships platform wheels (`sqlite-vec>=0.1.6` in `lexiflow-core`). At runtime, `lexiflow_core.vectors.sqlite_vec.load_sqlite_vec(connection)` calls `sqlite_vec.load(connection)` to register the extension on an open SQLite connection before creating `vec0` virtual tables. No separate extension file path is configured; the wheel bundles the native library for each supported OS.
+
 ## Embed queue
 
 Background **EMBED** jobs run when:

@@ -20,11 +20,10 @@ class VectorStore:
     def __init__(self, data_root: Path, language_code: str) -> None:
         self._data_root = data_root
         self._language_code = language_code
-        ensure_text_vectors_db(data_root, language_code)
-        ensure_vocabulary_db(data_root, language_code)
 
     def upsert_text_vector(self, text_id: UUID, vec: list[float]) -> None:
         self._validate_dimensions(vec)
+        ensure_text_vectors_db(self._data_root, self._language_code)
         connection = self._open_text_vectors_db()
         try:
             text_id_text = str(text_id)
@@ -41,6 +40,9 @@ class VectorStore:
             connection.close()
 
     def get_text_vector(self, text_id: UUID) -> list[float] | None:
+        db_path = text_vectors_db_path(self._data_root, self._language_code)
+        if not db_path.is_file():
+            return None
         connection = self._open_text_vectors_db()
         try:
             row = connection.execute(
@@ -62,6 +64,7 @@ class VectorStore:
 
     def upsert_word_vector(self, lemma: str, vec: list[float]) -> None:
         self._validate_dimensions(vec)
+        ensure_vocabulary_db(self._data_root, self._language_code)
         connection = self._open_vocabulary_db()
         try:
             with connection:
@@ -78,6 +81,9 @@ class VectorStore:
 
     def search_similar_words(self, vec: list[float], *, limit: int) -> list[WordHit]:
         self._validate_dimensions(vec)
+        db_path = vocabulary_db_path(self._data_root, self._language_code)
+        if not db_path.is_file():
+            return []
         connection = self._open_vocabulary_db()
         try:
             rows = connection.execute(
