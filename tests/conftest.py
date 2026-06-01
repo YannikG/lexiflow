@@ -2,6 +2,13 @@
 
 from __future__ import annotations
 
+import os
+
+# Headless Qt for UI tests avoids macOS "Python quit unexpectedly" dialogs from
+# native window teardown. Set LEXIFLOW_QT_HEADED=1 to run UI tests with real windows.
+if os.environ.get("LEXIFLOW_QT_HEADED") != "1":
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
 import subprocess
 import sys
 

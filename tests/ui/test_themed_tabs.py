@@ -34,7 +34,6 @@ def _themed_app() -> Iterator[None]:
     app.setStyleSheet("")
     apply_app_theme(app, theme="dark")
     yield
-    app.setStyleSheet("")
 
 
 def _seed_reader_text(data_root: Path) -> None:
