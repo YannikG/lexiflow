@@ -119,6 +119,84 @@ def test_main_completes_legacy_job_via_ollama_settings(tmp_path: Path) -> None:
     assert jobs[0].result == {"text": "from ollama"}
 
 
+def test_main_completes_simplify_job_with_fake_llm(tmp_path: Path) -> None:
+    import json
+
+    from lexiflow_core.config.paths import variant_path
+    from lexiflow_core.jobs.simplify_queue import enqueue_simplify
+    from lexiflow_core.library.library_coordinator import LibraryCoordinator
+    from lexiflow_core.library.models import CreateTextRequest
+    from lexiflow_core.library.text_repository import TextRepository
+
+    data_root = tmp_path / "LexiFlow"
+    coordinator, index = LibraryCoordinator.open(data_root)
+    del coordinator
+    repo = TextRepository(data_root, index)
+    record = repo.create_text(
+        CreateTextRequest(
+            title="Untitled",
+            group="News",
+            target_language="es",
+            native_language="en",
+            body="hola",
+        )
+    )
+    repo.apply_translated_variant(record.id, "# Traducción\n\nCuerpo.")
+    job_service = JobService(data_root)
+    simplify_json = json.dumps(
+        {
+            "title": "Simple",
+            "body": "Texto corto.",
+            "new_words": [],
+        }
+    )
+    enqueue_simplify(job_service, record.id, "A2")
+
+    with patch("lexiflow_worker.main.resolve_llm", return_value=FakeLLM(simplify_json)):
+        assert main(["--data-root", str(data_root)]) == 0
+
+    folder = variant_path(Path(record.folder), "simplified-a2").parent
+    simplified = variant_path(folder, "simplified-a2").read_text(encoding="utf-8")
+    assert simplified.startswith("# Simple")
+    jobs = job_service.list_jobs()
+    assert jobs[0].status == JobStatus.COMPLETED
+    assert jobs[0].job_type == JobType.SIMPLIFY
+
+
+def test_main_fails_simplify_job_when_llm_disabled(tmp_path: Path) -> None:
+    from lexiflow_core.config.paths import variant_path
+    from lexiflow_core.jobs.simplify_queue import enqueue_simplify
+    from lexiflow_core.library.library_coordinator import LibraryCoordinator
+    from lexiflow_core.library.models import CreateTextRequest
+    from lexiflow_core.library.text_repository import TextRepository
+    from lexiflow_core.llm.disabled import DisabledLLM
+
+    data_root = tmp_path / "LexiFlow"
+    coordinator, index = LibraryCoordinator.open(data_root)
+    del coordinator
+    repo = TextRepository(data_root, index)
+    record = repo.create_text(
+        CreateTextRequest(
+            title="Untitled",
+            group="News",
+            target_language="es",
+            native_language="en",
+            body="hola",
+        )
+    )
+    repo.apply_translated_variant(record.id, "# Traducción\n\nCuerpo.")
+    job_service = JobService(data_root)
+    enqueue_simplify(job_service, record.id, "A2")
+
+    with patch("lexiflow_worker.main.resolve_llm", return_value=DisabledLLM()):
+        assert main(["--data-root", str(data_root)]) == 0
+
+    assert not variant_path(Path(record.folder), "simplified-a2").exists()
+    jobs = job_service.list_jobs()
+    assert jobs[0].status == JobStatus.FAILED
+    assert jobs[0].error_message is not None
+
+
 def test_main_fails_job_when_no_llm_configured(tmp_path: Path) -> None:
     data_root = tmp_path / "library"
     job_service = JobService(data_root)

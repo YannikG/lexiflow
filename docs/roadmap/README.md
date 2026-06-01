@@ -40,7 +40,9 @@ flowchart TB
   P09 --> P10 --> P10b[Phase 10b Ollama embeddings]
   P17 --> P10
   P101 --> P11
-  P10b --> P11 --> P12 --> P13
+  P10b --> P11
+  P11 --> P111[Phase 11-1 Markdown cleanup and embedded runtime]
+  P111 --> P12 --> P13
   P13 --> P14 --> P15
   P15 --> P16[Phase 16 Issue migration cleanup]
 ```
@@ -65,6 +67,7 @@ flowchart TB
 | 10-1 | [phase-10-1-llm-worker](phases/phase-10-1-llm-worker/) | **Worker LLM wiring** — Ollama + embedded Gemma; replaces dev `FakeLLM` stub |
 | 10b | [phase-10b-ollama-embeddings](phases/phase-10b-ollama-embeddings/) | **Ollama embedder**; skip MiniLM when Ollama configured ([ADR 0005](../adr/0005-ollama-embedding-provider-deferred.md)) |
 | 11 | [phase-11-simplify](phases/phase-11-simplify/) | **Simplify word mix**, **new word suggestions** |
+| 11-1 | [phase-11-1-markdown-cleanup](phases/phase-11-1-markdown-cleanup/) | **Markdown cleanup** reliable after bootstrap; embedded inference runtime verified |
 | 12 | [phase-12-vocabulary](phases/phase-12-vocabulary/) | **Vocabulary study**, export/import |
 | 13 | [phase-13-search-data](phases/phase-13-search-data/) | **Global search UI**, **trash**, **library backup** |
 | 14 | [phase-14-settings-polish](phases/phase-14-settings-polish/) | **Jobs panel**, **settings**, **reset app** |
@@ -79,13 +82,15 @@ Phase **09-2** is a **mid-roadmap insert**: one issue ([#27](https://github.com/
 
 Phase **10-1** wires **LLM providers** into the worker (Ollama + embedded Gemma). Issue [#30](https://github.com/YannikG/lexiflow/issues/30); **blocked by** phase 10; **blocks** phase 11 together with phase 10b. Can run in parallel with phase 10b after phase 10 merges.
 
+Phase **11-1** fixes **markdown cleanup** and **embedded inference runtime** after model bootstrap (weights download ≠ runnable subprocess). Issue [#33](https://github.com/YannikG/lexiflow/issues/33); **blocked by** phase 11 ([#12](https://github.com/YannikG/lexiflow/issues/12)); **blocks** phase 12 ([#13](https://github.com/YannikG/lexiflow/issues/13)).
+
 Phase **17** is a **UI cleanup** track: one issue, one PR, checklist-driven. **Blocked by** phase **09-2** (themed baseline before tree/switcher work). Optional before phase 10 when the team prioritises shell alignment over embeddings (`P17 --> P10` in the diagram).
 
 Create labels **`phase`** and **`v1`** on GitHub before using the form (or add them manually per issue).
 
 Each issue:
 
-- **Title:** `Phase XX: <name>` (insert phases: `Phase 9-2: …`, `Phase 10-1: …`, `Phase 10b: …`)
+- **Title:** `Phase XX: <name>` (insert phases: `Phase 9-2: …`, `Phase 10-1: …`, `Phase 10b: …`, `Phase 11-1: …`)
 - **Body:** link to `docs/roadmap/phases/phase-XX-.../README.md` only
 - **Blocked by:** previous phase issue (phase 01 has no blocker; insert phases declare **Blocked by** / **Blocks** in their README)
 

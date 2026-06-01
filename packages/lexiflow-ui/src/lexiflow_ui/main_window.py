@@ -7,6 +7,9 @@ from typing import Literal
 from uuid import UUID
 
 from lexiflow_core.config.settings import Settings
+from lexiflow_core.jobs.models import JobStatus, JobType
+from lexiflow_core.jobs.service import JobService
+from lexiflow_core.languages.models import CEFRLevel
 from lexiflow_core.library.index import LibraryIndex, ensure_library_index
 from lexiflow_core.library.text_repository import TextRepository
 from PySide6.QtCore import Qt, QTimer
@@ -73,8 +76,14 @@ class MainWindow(QMainWindow):
         self._library_index = LibraryIndex(self._data_root)
         self._text_repository = TextRepository(self._data_root, self._library_index)
         self._open_text_id: UUID | None = None
+        self._seen_completed_job_ids: set[UUID] = set()
+        self._seen_failed_job_ids: set[UUID] = set()
         self._refresh_texts_ui()
         self._show_navigation_mode("texts")
+        self._job_poll_timer = QTimer(self)
+        self._job_poll_timer.setInterval(1000)
+        self._job_poll_timer.timeout.connect(self._poll_background_jobs)
+        self._job_poll_timer.start()
 
     @property
     def active_target_language(self) -> ActiveTargetLanguageWidget | None:
@@ -181,6 +190,8 @@ class MainWindow(QMainWindow):
         )
         self._reader.tab_changed.connect(self._on_reader_tab_changed)
         self._reader.text_saved.connect(self._refresh_texts_ui)
+        self._reader.text_deleted.connect(self._on_reader_text_deleted)
+        self._reader.simplify_submitted.connect(self._on_simplify_submitted)
         self._texts_stack.addWidget(self._texts_view)
         self._texts_stack.addWidget(self._reader)
         self._content_stack = QStackedWidget(container)
@@ -265,6 +276,11 @@ class MainWindow(QMainWindow):
             return
         persist_last_viewed_tab(self._library_index, self._open_text_id, tab_id)
 
+    def _on_reader_text_deleted(self) -> None:
+        self._open_text_id = None
+        self._refresh_texts_ui()
+        self._texts_stack.setCurrentWidget(self._texts_view)
+
     def _open_add_text_dialog(self) -> None:
         if not self._can_add_text():
             QMessageBox.information(
@@ -298,6 +314,55 @@ class MainWindow(QMainWindow):
         """Re-read the library index while background jobs may update titles."""
         for delay_ms in (500, 2000, 5000, 10000, 20000, 40000):
             QTimer.singleShot(delay_ms, lambda: self._refresh_texts_ui())
+
+    def _on_simplify_submitted(self) -> None:
+        self._schedule_reader_refresh()
+
+    def _schedule_reader_refresh(self) -> None:
+        for delay_ms in (500, 1500, 3000, 6000, 12000):
+            QTimer.singleShot(delay_ms, self._poll_background_jobs)
+
+    def _poll_background_jobs(self) -> None:
+        if self._open_text_id is None:
+            return
+        job_service = JobService(self._data_root)
+        open_text = str(self._open_text_id)
+        reload_reader = False
+        refresh_sidebar = False
+        focus_simplified_level: CEFRLevel | None = None
+        for job in job_service.list_jobs():
+            payload_text_id = job.payload.get("text_id")
+            if payload_text_id != open_text:
+                continue
+            if job.id in self._seen_completed_job_ids:
+                continue
+            if job.id in self._seen_failed_job_ids:
+                continue
+            if job.status == JobStatus.FAILED:
+                if job.job_type in (JobType.TRANSLATE, JobType.SIMPLIFY):
+                    self._seen_failed_job_ids.add(job.id)
+                    label = job.job_type.value.capitalize()
+                    error = job.error_message or "unknown error"
+                    self._status_bar.show_job_error(f"{label} failed: {error}")
+                    reload_reader = True
+                continue
+            if job.status != JobStatus.COMPLETED:
+                continue
+            self._seen_completed_job_ids.add(job.id)
+            if job.job_type in (JobType.TRANSLATE, JobType.SIMPLIFY):
+                refresh_sidebar = True
+                reload_reader = True
+            if job.job_type == JobType.SIMPLIFY:
+                level_raw = job.payload.get("level")
+                if isinstance(level_raw, str):
+                    try:
+                        focus_simplified_level = CEFRLevel(level_raw.strip().upper())
+                    except ValueError:
+                        focus_simplified_level = None
+        if refresh_sidebar:
+            self._refresh_texts_ui()
+        if reload_reader and self._texts_stack.currentWidget() is self._reader:
+            self._reader.reload_from_disk(focus_simplified_level=focus_simplified_level)
 
     def _show_navigation_mode(self, mode: NavigationMode) -> None:
         if mode != "texts" and not self._confirm_leave_editing_surfaces():

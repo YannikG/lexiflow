@@ -5,11 +5,17 @@ from __future__ import annotations
 from pathlib import Path
 
 from lexiflow_core.config.paths import variant_path
+from lexiflow_core.languages.models import CEFRLevel
 
 DEFAULT_TAB = "translated"
 NATIVE_TAB = "native"
 TRANSLATED_TAB = "translated"
 SIMPLIFIED_PREFIX = "simplified-"
+
+
+def simplified_variant_name(level: CEFRLevel) -> str:
+    """Return on-disk variant stem for a simplified level (e.g. ``simplified-a2``)."""
+    return f"{SIMPLIFIED_PREFIX}{level.value.lower()}"
 
 
 def discover_simplified_variants(text_folder: Path) -> tuple[str, ...]:
@@ -27,6 +33,16 @@ def simplified_tab_label(variant_name: str) -> str:
     if not variant_name.startswith(SIMPLIFIED_PREFIX):
         return variant_name
     return variant_name.removeprefix(SIMPLIFIED_PREFIX).upper()
+
+
+def level_from_simplified_variant(variant_name: str) -> CEFRLevel | None:
+    """Parse the CEFR level encoded in a simplified variant stem."""
+    if not variant_name.startswith(SIMPLIFIED_PREFIX):
+        return None
+    try:
+        return CEFRLevel(simplified_tab_label(variant_name))
+    except ValueError:
+        return None
 
 
 def resolve_open_tab(

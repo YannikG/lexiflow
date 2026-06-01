@@ -6,8 +6,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from lexiflow_core.config.settings import Settings
-from lexiflow_core.jobs.embed_queue import enqueue_translated_text_embed
+from lexiflow_core.jobs.embed_queue import (
+    enqueue_translated_text_embed,
+    enqueue_vocabulary_word_embed,
+)
 from lexiflow_core.jobs.service import JobService
+from lexiflow_core.jobs.text_job_status import missing_variant_message
+from lexiflow_core.languages.models import CEFRLevel
 from lexiflow_core.library.document_title import (
     DocumentTitleError,
     normalize_document_title,
@@ -16,16 +21,24 @@ from lexiflow_core.library.index import LibraryIndex
 from lexiflow_core.library.models import TextRecord
 from lexiflow_core.library.reader_tabs import (
     NATIVE_TAB,
+    SIMPLIFIED_PREFIX,
     TRANSLATED_TAB,
     discover_simplified_variants,
+    level_from_simplified_variant,
     simplified_tab_label,
+    simplified_variant_name,
 )
 from lexiflow_core.library.text_repository import TextRepository
+from lexiflow_core.simplify.new_words import visible_stored_suggestions
+from lexiflow_core.simplify.suggestions_store import load_suggestions
+from lexiflow_core.vocabulary.models import NewWordSuggestion
+from lexiflow_core.vocabulary.store import VocabularyStore, VocabularyStoreError
 from PySide6.QtCore import Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QFont
 from PySide6.QtWidgets import (
     QAbstractButton,
     QButtonGroup,
+    QComboBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -41,11 +54,18 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from lexiflow_ui.delete_text_flow import confirm_delete_text, delete_text_to_trash
 from lexiflow_ui.reader_flow import load_variant_markdown, markdown_for_reader_pane
+from lexiflow_ui.simplify_flow import (
+    confirm_simplify_without_translated,
+    default_simplify_level,
+    submit_simplify,
+)
 from lexiflow_ui.unsaved_changes import (
     confirm_leave_dirty_editor,
     fields_differ_from_snapshot,
 )
+from lexiflow_ui.widgets.new_words_panel import NewWordsPanel
 from lexiflow_ui.worker_supervisor import WorkerSupervisor
 
 
@@ -59,6 +79,8 @@ class _EditSnapshot:
 class ReaderWidget(QWidget):
     tab_changed = Signal(str)
     text_saved = Signal()
+    text_deleted = Signal()
+    simplify_submitted = Signal()
 
     def __init__(
         self,
@@ -134,6 +156,15 @@ class ReaderWidget(QWidget):
         self._register_tab_button(self._simplified_menu)
         self._simplified_menu.hide()
         tab_row.addWidget(self._simplified_menu)
+        self._simplify_level = QComboBox(self)
+        self._simplify_level.setObjectName("reader_simplify_level")
+        for level in CEFRLevel:
+            self._simplify_level.addItem(level.value, level)
+        self._simplify_button = QPushButton("Simplify", self)
+        self._simplify_button.setObjectName("reader_simplify_button")
+        self._simplify_button.clicked.connect(self._run_simplify)
+        tab_row.addWidget(self._simplify_level)
+        tab_row.addWidget(self._simplify_button)
         tab_row.addStretch(1)
         root.addLayout(tab_row)
 
@@ -153,6 +184,9 @@ class ReaderWidget(QWidget):
         read_layout = QVBoxLayout(read_page)
         read_layout.setContentsMargins(0, 0, 0, 0)
         read_layout.addWidget(self._read_pane)
+        self._new_words_panel = NewWordsPanel(read_page)
+        self._new_words_panel.add_requested.connect(self._add_new_word)
+        read_layout.addWidget(self._new_words_panel)
 
         edit_page = QWidget(self)
         edit_layout = QVBoxLayout(edit_page)
@@ -175,6 +209,9 @@ class ReaderWidget(QWidget):
         self._edit_button = QPushButton("Edit", self)
         self._edit_button.setObjectName("reader_edit_button")
         self._edit_button.clicked.connect(self._enter_edit_mode)
+        self._delete_button = QPushButton("Delete", self)
+        self._delete_button.setObjectName("reader_delete_button")
+        self._delete_button.clicked.connect(self._delete_text)
         self._save_button = QPushButton("Save", self)
         self._save_button.setObjectName("reader_save_button")
         self._save_button.clicked.connect(self._save_edit)
@@ -184,6 +221,7 @@ class ReaderWidget(QWidget):
         self._cancel_button.clicked.connect(self._cancel_edit)
         self._cancel_button.hide()
         controls.addWidget(self._edit_button)
+        controls.addWidget(self._delete_button)
         controls.addWidget(self._save_button)
         controls.addWidget(self._cancel_button)
         root.addLayout(controls)
@@ -236,6 +274,7 @@ class ReaderWidget(QWidget):
         self._simplified_variants = discover_simplified_variants(Path(record.folder))
         self._configure_simplified_tabs()
         self._library_title.setText(record.title)
+        self._configure_simplify_level(record.target_language)
         self._update_source_url_controls()
         self._apply_reader_font()
         self._show_read_mode()
@@ -261,18 +300,45 @@ class ReaderWidget(QWidget):
         markdown, _title = load_variant_markdown(self._repo, self._record, tab_id)
         if markdown is None:
             self._loaded_markdown = None
-            self._read_pane.setPlainText(
-                "This variant is not available yet. "
-                "Background jobs may still be running."
-            )
+            message = "This variant is not available yet."
+            if self._data_root is not None:
+                jobs = JobService(self._data_root).list_jobs()
+                message = missing_variant_message(
+                    jobs,
+                    text_id=self._record.id,
+                    variant_name=tab_id,
+                )
+            self._read_pane.setPlainText(message)
             self._edit_button.setEnabled(False)
+            self._refresh_new_words_panel()
             self.tab_changed.emit(tab_id)
             return
         self._loaded_markdown = markdown
         self._edit_button.setEnabled(True)
         rendered = markdown_for_reader_pane(markdown, document_title=None)
         self._read_pane.setMarkdown(rendered)
+        self._sync_simplify_level_picker()
+        self._refresh_new_words_panel()
         self.tab_changed.emit(tab_id)
+
+    def reload_from_disk(
+        self, *, focus_simplified_level: CEFRLevel | None = None
+    ) -> None:
+        """Refresh simplified tabs and active content after background jobs."""
+        if self._record is None or self._repo is None or self._index is None:
+            return
+        self._record = self._repo.get_text(self._record.id)
+        self._simplified_variants = discover_simplified_variants(
+            Path(self._record.folder)
+        )
+        self._configure_simplified_tabs()
+        self._library_title.setText(self._record.title)
+        if focus_simplified_level is not None:
+            variant = simplified_variant_name(focus_simplified_level)
+            if variant in self._simplified_variants:
+                self.select_tab(variant)
+                return
+        self.select_tab(self._active_tab)
 
     def simplified_menu(self) -> QToolButton:
         return self._simplified_menu
@@ -365,6 +431,7 @@ class ReaderWidget(QWidget):
         self._source_url_edit.hide()
         self._update_source_url_controls()
         self._edit_button.show()
+        self._delete_button.show()
         self._save_button.hide()
         self._cancel_button.hide()
 
@@ -388,6 +455,7 @@ class ReaderWidget(QWidget):
         self._update_edit_preview()
         self._mode_stack.setCurrentIndex(1)
         self._edit_button.hide()
+        self._delete_button.hide()
         self._save_button.show()
         self._cancel_button.show()
 
@@ -437,3 +505,109 @@ class ReaderWidget(QWidget):
         if self._record is None or not self._record.source_url:
             return
         QDesktopServices.openUrl(QUrl(self._record.source_url))
+
+    def _configure_simplify_level(self, target_language: str) -> None:
+        if self._data_root is None:
+            return
+        if level_from_simplified_variant(self._active_tab) is not None:
+            self._sync_simplify_level_picker()
+            return
+        level = default_simplify_level(self._data_root, target_language)
+        index = self._simplify_level.findData(level)
+        if index >= 0:
+            self._simplify_level.setCurrentIndex(index)
+
+    def _sync_simplify_level_picker(self) -> None:
+        level = level_from_simplified_variant(self._active_tab)
+        if level is None:
+            return
+        index = self._simplify_level.findData(level)
+        if index >= 0:
+            self._simplify_level.setCurrentIndex(index)
+
+    def _selected_simplify_level(self) -> CEFRLevel:
+        tab_level = level_from_simplified_variant(self._active_tab)
+        if tab_level is not None:
+            return tab_level
+        level_value = self._simplify_level.currentData()
+        if isinstance(level_value, CEFRLevel):
+            return level_value
+        return CEFRLevel(self._simplify_level.currentText())
+
+    def _run_simplify(self) -> None:
+        if (
+            self._record is None
+            or self._repo is None
+            or self._data_root is None
+            or self._supervisor is None
+        ):
+            return
+        if not self.confirm_leave_edit_mode(self):
+            return
+        try:
+            self._repo.read_variant(self._record.id, TRANSLATED_TAB)
+        except FileNotFoundError:
+            confirm_simplify_without_translated(self)
+            return
+        submit_simplify(
+            data_root=self._data_root,
+            supervisor=self._supervisor,
+            text_id=self._record.id,
+            level=self._selected_simplify_level(),
+        )
+        self.simplify_submitted.emit()
+
+    def _delete_text(self) -> None:
+        if self._record is None or self._repo is None:
+            return
+        if not self.confirm_leave_edit_mode(self):
+            return
+        if not confirm_delete_text(self, title=self._record.title):
+            return
+        text_id = self._record.id
+        delete_text_to_trash(self._repo, text_id)
+        self._record = None
+        self._repo = None
+        self._index = None
+        self._loaded_markdown = None
+        self._show_read_mode()
+        self.text_deleted.emit()
+
+    def _refresh_new_words_panel(self) -> None:
+        if self._record is None or not self._active_tab.startswith(SIMPLIFIED_PREFIX):
+            self._new_words_panel.set_suggestions(())
+            return
+        suggestions = self._visible_suggestions(self._active_tab)
+        self._new_words_panel.set_suggestions(suggestions)
+
+    def _visible_suggestions(self, variant_name: str) -> tuple[NewWordSuggestion, ...]:
+        if self._record is None or self._data_root is None:
+            return ()
+        folder = Path(self._record.folder)
+        stored = load_suggestions(folder, variant_name)
+        if not stored:
+            return ()
+        store = VocabularyStore(self._data_root, self._record.target_language)
+        existing = {entry.lemma for entry in store.list_for_simplify()}
+        return visible_stored_suggestions(stored, existing_lemmas=existing)
+
+    def _add_new_word(self, suggestion: NewWordSuggestion) -> None:
+        if self._record is None or self._data_root is None or self._supervisor is None:
+            return
+        tab_level = level_from_simplified_variant(self._active_tab)
+        store = VocabularyStore(self._data_root, self._record.target_language)
+        try:
+            store.add_from_suggestion(
+                suggestion,
+                level_when_learned=tab_level,
+            )
+        except VocabularyStoreError as error:
+            QMessageBox.warning(self, "Add word", str(error))
+            return
+        enqueue_vocabulary_word_embed(
+            JobService(self._data_root),
+            language_code=self._record.target_language,
+            lemma=suggestion.lemma,
+        )
+        self._supervisor.ensure_running()
+        self._refresh_new_words_panel()

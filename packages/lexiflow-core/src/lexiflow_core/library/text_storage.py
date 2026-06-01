@@ -140,8 +140,8 @@ class TextStorage:
         self, text_folder: Path, translated_markdown: str
     ) -> TextRecord:
         """Write translated variant and set target-language title from its heading."""
-        self.write_variant_markdown(text_folder, "translated", translated_markdown)
         title = parse_document_title(translated_markdown)
+        self.write_variant_markdown(text_folder, "translated", translated_markdown)
         metadata = load_text_metadata(meta_path(text_folder))
         variants = metadata.variants
         if "translated" not in variants:
@@ -149,6 +149,40 @@ class TextStorage:
         updated = TextMetadata(
             id=metadata.id,
             title=title,
+            group=metadata.group,
+            native_language=metadata.native_language,
+            target_language=metadata.target_language,
+            variants=variants,
+            source_url=metadata.source_url,
+            content_fingerprint=metadata.content_fingerprint,
+            created_at=metadata.created_at,
+            updated_at=datetime.now(UTC),
+        )
+        save_text_metadata(meta_path(text_folder), updated)
+        return metadata_to_record(
+            updated,
+            group_folder_slug=text_folder.parent.name,
+            text_slug=text_folder.name,
+            folder=str(text_folder),
+        )
+
+    def apply_simplified_variant(
+        self,
+        text_folder: Path,
+        *,
+        level: str,
+        markdown: str,
+    ) -> TextRecord:
+        """Write a simplified variant without changing the library title."""
+        variant_name = f"simplified-{level.lower()}"
+        self.write_variant_markdown(text_folder, variant_name, markdown)
+        metadata = load_text_metadata(meta_path(text_folder))
+        variants = metadata.variants
+        if variant_name not in variants:
+            variants = (*variants, variant_name)
+        updated = TextMetadata(
+            id=metadata.id,
+            title=metadata.title,
             group=metadata.group,
             native_language=metadata.native_language,
             target_language=metadata.target_language,

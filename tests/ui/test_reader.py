@@ -981,3 +981,47 @@ def test_reader_applies_font_size_from_settings(qtbot, tmp_path) -> None:
     qtbot.mouseClick(edit_button, Qt.MouseButton.LeftButton)
 
     assert edit_pane.font().pointSize() == 22
+
+
+def test_delete_button_moves_text_to_trash(
+    reader_window, qtbot, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from lexiflow_core.config.paths import trash_dir
+    from lexiflow_core.library.index import LibraryIndex
+
+    window, data_root = reader_window
+    _click_sidebar_text(qtbot, window)
+    text_id = LibraryIndex(data_root).list_by_lang("es")[0].id
+
+    monkeypatch.setattr(
+        "lexiflow_ui.widgets.reader_widget.confirm_delete_text",
+        lambda *_args, **_kwargs: True,
+    )
+
+    delete_button = window.reader.findChild(QPushButton, "reader_delete_button")
+    assert delete_button is not None
+    qtbot.mouseClick(delete_button, Qt.MouseButton.LeftButton)
+    qtbot.wait(50)
+
+    assert (trash_dir(data_root) / str(text_id)).is_dir()
+    assert LibraryIndex(data_root).list_by_lang("es") == []
+    assert window.reader.findChild(QPushButton, "reader_edit_button") is not None
+
+
+def test_delete_cancelled_keeps_text(reader_window, qtbot, monkeypatch) -> None:
+    from lexiflow_core.library.index import LibraryIndex
+
+    window, data_root = reader_window
+    _click_sidebar_text(qtbot, window)
+
+    monkeypatch.setattr(
+        "lexiflow_ui.widgets.reader_widget.confirm_delete_text",
+        lambda *_args, **_kwargs: False,
+    )
+
+    delete_button = window.reader.findChild(QPushButton, "reader_delete_button")
+    assert delete_button is not None
+    qtbot.mouseClick(delete_button, Qt.MouseButton.LeftButton)
+    qtbot.wait(50)
+
+    assert len(LibraryIndex(data_root).list_by_lang("es")) == 1

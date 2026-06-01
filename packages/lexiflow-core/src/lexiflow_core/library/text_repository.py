@@ -39,6 +39,19 @@ class TextRepository:
     ) -> TextRecord:
         return self._coordinator.apply_translated_variant(text_id, translated_markdown)
 
+    def apply_simplified_variant(
+        self,
+        text_id: UUID,
+        *,
+        level: str,
+        markdown: str,
+    ) -> TextRecord:
+        return self._coordinator.apply_simplified_variant(
+            text_id,
+            level=level,
+            markdown=markdown,
+        )
+
     def read_native_variant(self, text_id: UUID) -> str:
         return self._coordinator.read_native_variant(text_id)
 

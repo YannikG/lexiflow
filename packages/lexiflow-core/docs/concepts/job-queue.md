@@ -20,8 +20,8 @@ On startup, **Running** jobs return to **Pending** and are picked up automatical
 |------|---------|
 | `cleanup` | Markdown cleanup (LLM) |
 | `translate` | Plain translation (LLM) |
-| `simplify` | Simplified variant (LLM) |
-| `embed` | Embedding generation |
+| `simplify` | Simplified variant (LLM); payload `text_id`, `level` |
+| `embed` | Embedding generation (translated text or vocabulary lemma) |
 | `download_spacy` | spaCy language pack download (enqueued when a target language is added) |
 
 LLM job types share the one-at-a-time rule. `download_spacy` is persisted in phase 06; worker handling arrives in a later phase.
@@ -34,7 +34,16 @@ Only one LLM job runs globally at a time. Additional requests stay **Pending** u
 
 The **worker process** consumes the queue headlessly. Phase 08 enqueues **cleanup** and **translate** jobs from the add-text flow; the UI spawns the worker via `WorkerSupervisor.ensure_running()`.
 
-`run_worker_loop` dispatches `cleanup` and `translate` jobs to `lexiflow_core.jobs.handlers` (library + LLM). Jobs with a legacy `prompt` payload still use the phase 04 prompt-only path for tests. Other types without handlers are marked **Failed**.
+`run_worker_loop` dispatches `cleanup`, `translate`, `simplify`, and `embed` jobs to `lexiflow_core.jobs.handlers`. Jobs with a legacy `prompt` payload still use the phase 04 prompt-only path for tests. Other types without handlers are marked **Failed**.
+
+### Simplify
+
+User-triggered only (not staged generation). Payload: `text_id`, `level` (CEFR). Writes `simplified-{level}.md` and a suggestions sidecar. Invalid LLM JSON → **Failed** with no file write. See [simplify-and-word-mix.md](simplify-and-word-mix.md).
+
+### Embed payloads
+
+- `{text_id}` — embed translated variant body
+- `{language_code, lemma}` — embed a vocabulary entry after add from **new words panel**
 
 ### Staged generation chain
 

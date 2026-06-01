@@ -87,6 +87,25 @@ class LibraryCoordinator:
         self._index.upsert_text(record)
         return record
 
+    def apply_simplified_variant(
+        self,
+        text_id: UUID,
+        *,
+        level: str,
+        markdown: str,
+    ) -> TextRecord:
+        indexed = self._index.get_by_id(text_id)
+        if indexed is None:
+            raise TextNotFoundError(f"text not found: {text_id}")
+        folder = Path(indexed.folder)
+        record = self._texts.apply_simplified_variant(
+            folder,
+            level=level,
+            markdown=markdown,
+        )
+        self._index.upsert_text(record)
+        return replace(record, last_viewed_tab=indexed.last_viewed_tab)
+
     def read_native_variant(self, text_id: UUID) -> str:
         indexed = self._index.get_by_id(text_id)
         if indexed is None:

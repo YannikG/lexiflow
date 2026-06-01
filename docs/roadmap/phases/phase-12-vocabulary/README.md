@@ -3,6 +3,8 @@
 **Branch:** `phase/12-vocabulary`  
 **PR title:** `Phase 12: Vocabulary CRUD, Study/Browse, highlight-add, export`
 
+**Blocked by:** [phase 11-1 — Markdown cleanup and embedded inference runtime](../phase-11-1-markdown-cleanup/README.md) ([#33](https://github.com/YannikG/lexiflow/issues/33))
+
 ## Outcome
 
 - **Vocabulary study** mode: Study (flashcards) and Browse (full list)

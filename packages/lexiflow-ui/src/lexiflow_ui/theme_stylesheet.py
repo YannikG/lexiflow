@@ -57,6 +57,7 @@ def build_theme_stylesheet(effective: EffectiveTheme) -> str:
 
     secondary_buttons = (
         "QPushButton#reader_edit_button",
+        "QPushButton#reader_delete_button",
         "QPushButton#reader_cancel_button",
         "QPushButton#sidebar_add_text_button",
         "QPushButton#empty_state_action",

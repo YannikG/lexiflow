@@ -13,6 +13,7 @@ from lexiflow_core.jobs.models import JobStatus, JobType
 from lexiflow_core.jobs.runner import run_worker_loop
 from lexiflow_core.jobs.service import JobService
 from lexiflow_core.library.library_coordinator import LibraryCoordinator
+from lexiflow_core.library.models import CreateTextRequest
 from lexiflow_core.library.text_metadata import load_text_metadata
 from lexiflow_core.library.text_repository import TextRepository
 from lexiflow_core.llm.fake import FakeLLM
@@ -114,3 +115,89 @@ def test_worker_staged_generation_with_ollama_llm(tmp_path: Path) -> None:
     embed_jobs = [j for j in listed if j.job_type == JobType.EMBED]
     assert len(embed_jobs) == 1
     assert embed_jobs[0].status == JobStatus.COMPLETED
+
+
+def test_worker_fails_translate_when_llm_output_has_no_title(tmp_path: Path) -> None:
+    data_root = tmp_path / "LexiFlow"
+    coordinator, index = LibraryCoordinator.open(data_root)
+    del coordinator
+    jobs = JobService(data_root)
+    pipeline = TextPipeline(data_root, index=index, job_service=jobs)
+    text_id = pipeline.submit_new_text(
+        TextDraft(
+            title="Raw article",
+            group="News",
+            pasted_content="raw article",
+            input_tab=InputTab.NATIVE,
+            native_language="en",
+            target_language="es",
+        )
+    )
+    run_worker_loop(
+        jobs,
+        FakeLLM(
+            responses=[
+                "# Native Title\n\nnative body",
+                "plain body without heading",
+            ]
+        ),
+        data_root=data_root,
+    )
+
+    repo = TextRepository(data_root, index)
+    record = repo.get_text(text_id)
+    folder = Path(record.folder)
+    assert variant_path(folder, "native").is_file()
+
+    translate_jobs = [
+        job for job in jobs.list_jobs() if job.job_type == JobType.TRANSLATE
+    ]
+    assert len(translate_jobs) == 1
+    assert translate_jobs[0].status == JobStatus.FAILED
+    assert translate_jobs[0].error_message is not None
+    assert "document title" in translate_jobs[0].error_message.lower()
+    assert not variant_path(folder, "translated").exists()
+
+
+def test_worker_leaves_translated_missing_when_plain_translate_llm_fails(
+    tmp_path: Path,
+) -> None:
+    from lexiflow_core.jobs.handlers.cleanup import TRANSLATE_PHASE_PLAIN
+    from lexiflow_core.jobs.models import JobRequest
+    from lexiflow_core.llm.unavailable import UnavailableLLM
+
+    data_root = tmp_path / "LexiFlow"
+    coordinator, index = LibraryCoordinator.open(data_root)
+    del coordinator
+    repo = TextRepository(data_root, index)
+    record = repo.create_text(
+        CreateTextRequest(
+            title="Untitled",
+            group="News",
+            target_language="es",
+            native_language="en",
+            body="body",
+        )
+    )
+    repo.write_native_variant(record.id, "# Native\n\ncontent")
+    jobs = JobService(data_root)
+    jobs.enqueue(
+        JobRequest(
+            job_type=JobType.TRANSLATE,
+            payload={"text_id": str(record.id), "phase": TRANSLATE_PHASE_PLAIN},
+        )
+    )
+
+    run_worker_loop(
+        jobs,
+        UnavailableLLM("LLM not configured for tests"),
+        data_root=data_root,
+    )
+
+    folder = Path(record.folder)
+    assert not variant_path(folder, "translated").exists()
+    translate_jobs = [
+        job for job in jobs.list_jobs() if job.job_type == JobType.TRANSLATE
+    ]
+    assert len(translate_jobs) == 1
+    assert translate_jobs[0].status == JobStatus.FAILED
