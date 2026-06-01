@@ -4,6 +4,7 @@ repo = "sentence-transformers/all-MiniLM-L6-v2"
 revision = "c9745ed1d9f207416be6d2e6f8de32d1f16199bf"
 
 [[artifacts]]
-id = "embedded-gemma"
-repo = "google/gemma-4-E2B-it"
-revision = "905e84b50c4d2a365ebde34e685027578e6728db"
+id = "native-llm"
+repo = "ggml-org/gemma-4-E2B-it-GGUF"
+revision = "a1dac71d3ab220618f5a7573a52acdc4baf3ae3b"
+llama_hf_model = "ggml-org/gemma-4-E2B-it-GGUF:Q8_0"

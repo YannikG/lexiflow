@@ -65,6 +65,31 @@ def test_translate_writes_translated_variant(
     assert jobs[0].status == JobStatus.COMPLETED
 
 
+def test_translate_fails_when_output_is_unchanged(
+    translate_context: tuple[JobService, TextRepository, LibraryIndex, UUID, Path],
+) -> None:
+    job_service, repo, _index, text_id, _data_root = translate_context
+    record = repo.get_text(text_id)
+    folder = Path(record.folder)
+    llm = FakeLLM(response="# Native\n\ncontent")
+
+    job_service.enqueue(
+        JobRequest(
+            job_type=JobType.TRANSLATE,
+            payload={"text_id": str(text_id), "phase": TRANSLATE_PHASE_PLAIN},
+        )
+    )
+    job = job_service.claim_next()
+    assert job is not None
+    handle_translate(job, llm=llm, repo=repo, job_service=job_service)
+
+    assert not variant_path(folder, "translated").exists()
+    jobs = job_service.list_jobs()
+    assert jobs[0].status == JobStatus.FAILED
+    assert jobs[0].error_message is not None
+    assert "unchanged" in jobs[0].error_message.lower()
+
+
 def test_translate_updates_metadata_title_and_index(
     translate_context: tuple[JobService, TextRepository, LibraryIndex, UUID, Path],
 ) -> None:

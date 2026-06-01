@@ -8,9 +8,11 @@ Phase 08 wires the **add text dialog** to **staged generation** through a headle
 2. User enters a **title**, picks a **group** (required), optional **source URL**, **input tab** (Native or Target), and pastes content.
 3. `TextPipeline.submit_new_text` validates **duplicate warning** and **large paste warning** (50k characters, soft guard).
 4. A **text** is created on disk with the user title and raw body in `native.md`.
-5. A `cleanup` job is enqueued; the UI calls `WorkerSupervisor.ensure_running()`.
-6. Worker runs **markdown cleanup** → enqueues `translate` (plain translation, or ensure-native then plain for Target-tab paste).
+5. A `cleanup` job is enqueued; the UI opens the reader on the new text (native tab), schedules job polling, and calls `WorkerSupervisor.ensure_running()`.
+6. Worker runs **markdown cleanup** (output validated before `native.md` is replaced) → enqueues `translate` (plain translation, or ensure-native then plain for Target-tab paste).
 7. **Plain translation** writes `translated.md` and sets **text metadata** / **library index** title to the target-language **document title**.
+
+While cleanup is pending or failed, the **native reader tab** shows job status instead of the provisional paste. Failures surface in the status bar with short, actionable messages.
 
 **Simplify** is not part of this chain.
 

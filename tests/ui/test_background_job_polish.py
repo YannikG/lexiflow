@@ -7,15 +7,16 @@ from uuid import UUID
 
 import pytest
 from lexiflow_core.jobs.handlers.cleanup import TRANSLATE_PHASE_PLAIN
-from lexiflow_core.jobs.models import JobRequest, JobType
+from lexiflow_core.jobs.models import JobRequest, JobStatus, JobType
 from lexiflow_core.jobs.runner import run_worker_loop
 from lexiflow_core.jobs.service import JobService
 from lexiflow_core.library.index import LibraryIndex
-from lexiflow_core.library.reader_tabs import SIMPLIFIED_PREFIX
+from lexiflow_core.library.reader_tabs import NATIVE_TAB, SIMPLIFIED_PREFIX
 from lexiflow_core.llm.fake import FakeLLM
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QPushButton, QTextBrowser, QWidget
 
+from tests.ui.staged_generation_helpers import seed_staged_text
 from tests.ui.test_reader import (
     _click_sidebar_text,
     _open_reader_window,
@@ -104,6 +105,32 @@ def test_poll_reloads_translated_when_translate_completes(qtbot, tmp_path) -> No
     window._poll_background_jobs()
 
     assert "Cuerpo traducido" in read_pane.toPlainText()
+
+
+def test_poll_shows_status_bar_error_when_cleanup_fails(qtbot, tmp_path) -> None:
+    data_root = tmp_path / "LexiFlow"
+    _repo, text_id, _folder = seed_staged_text(data_root)
+    jobs = JobService(data_root)
+    window = _open_reader_window_without_worker(qtbot, data_root)
+    _click_sidebar_text(qtbot, window)
+    window.reader.select_tab(NATIVE_TAB)
+    run_worker_loop(
+        jobs,
+        FakeLLM(response="plain body without heading"),
+        data_root=data_root,
+    )
+    window._poll_background_jobs()
+
+    assert "cleanup failed" in window.statusBar().currentMessage().lower()
+    cleanup_jobs = [
+        job
+        for job in jobs.list_jobs()
+        if (
+            job.job_type == JobType.CLEANUP
+            and job.payload.get("text_id") == str(text_id)
+        )
+    ]
+    assert cleanup_jobs[0].status == JobStatus.FAILED
 
 
 def test_poll_shows_status_bar_error_when_simplify_fails(qtbot, tmp_path) -> None:

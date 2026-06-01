@@ -1,14 +1,21 @@
-"""Onboarding page that downloads required model artifacts."""
+"""Onboarding page that downloads required model artifacts.
+
+Retained for phase 14 re-download UI; v1 onboarding skips this page entirely.
+"""
 
 from __future__ import annotations
 
+from lexiflow_core.llm.llama_server import native_llm_operational
 from lexiflow_core.models.download import (
     ModelAccessError,
     ModelPinError,
     NetworkError,
 )
-from lexiflow_core.models.model_hints import gemma_hub_page_url
-from lexiflow_core.models.requirements import required_artifact_ids
+from lexiflow_core.models.model_hints import (
+    artifact_hub_page_url,
+    native_llm_hub_page_url,
+)
+from lexiflow_core.models.requirements import EMBEDDING_MINILM_ID, required_artifact_ids
 from lexiflow_core.models.store import ModelStore, ModelStoreError
 from PySide6.QtCore import QThread, Slot
 from PySide6.QtGui import QFont
@@ -68,7 +75,7 @@ class ModelBootstrapPage(QWizardPage):
         console_font.setStyleHint(QFont.StyleHint.Monospace)
         self._console.setFont(console_font)
         self._console.hide()
-        self._open_gemma = QPushButton("Open Gemma on Hugging Face", self)
+        self._open_gemma = QPushButton("Open model on Hugging Face", self)
         self._open_gemma.setObjectName("bootstrap_open_gemma_button")
         self._open_gemma.hide()
         self._open_gemma.clicked.connect(self._on_open_gemma_hub)
@@ -154,7 +161,7 @@ class ModelBootstrapPage(QWizardPage):
         self._begin_bootstrap(force_redownload=True)
 
     def _on_open_gemma_hub(self) -> None:
-        open_url(gemma_hub_page_url())
+        open_url(native_llm_hub_page_url())
 
     def _hide_access_actions(self) -> None:
         self._error.hide()
@@ -195,12 +202,7 @@ class ModelBootstrapPage(QWizardPage):
             self._model_store.is_installed(artifact_id) for artifact_id in artifact_ids
         )
         if all_installed and not force_redownload:
-            self._bootstrap_complete = True
-            self._progress.setRange(0, 100)
-            self._progress.setValue(100)
-            self._status.setText("All required models are ready.")
-            self._redownload.show()
-            self.completeChanged.emit()
+            self._try_complete_embedded_bootstrap(wizard)
             return
 
         self._status.setText("Downloading required models…")
@@ -257,12 +259,44 @@ class ModelBootstrapPage(QWizardPage):
 
     @Slot()
     def _on_bootstrap_succeeded(self) -> None:
+        from lexiflow_ui.onboarding.wizard import OnboardingWizard
+
+        wizard = self.wizard()
+        if not isinstance(wizard, OnboardingWizard):
+            return
+        self._try_complete_embedded_bootstrap(wizard)
+
+    def _mark_bootstrap_complete(self) -> None:
         self._bootstrap_complete = True
         self._progress.setRange(0, 100)
         self._progress.setValue(100)
         self._status.setText("All required models are ready.")
+        self._error.hide()
         self._console.hide()
         self._redownload.show()
+        self.completeChanged.emit()
+
+    def _try_complete_embedded_bootstrap(self, wizard: object) -> None:
+        from lexiflow_ui.onboarding.wizard import OnboardingWizard
+
+        if not isinstance(wizard, OnboardingWizard):
+            return
+        if wizard.settings.ollama_url:
+            self._mark_bootstrap_complete()
+            return
+        ready, message = native_llm_operational(wizard.settings)
+        if ready:
+            self._mark_bootstrap_complete()
+            return
+        self._bootstrap_complete = False
+        self._progress.setRange(0, 100)
+        self._progress.setValue(0)
+        self._status.setText("llama-server is not ready.")
+        self._error.setText(
+            message or "Install llama-server from llama.cpp before continuing."
+        )
+        self._error.show()
+        self._retry.show()
         self.completeChanged.emit()
 
     @Slot(object)
@@ -277,13 +311,11 @@ class ModelBootstrapPage(QWizardPage):
                 "Model manifest pin is invalid. Update LexiFlow or report a bug."
             )
         elif isinstance(exc, ModelAccessError):
-            gemma_url = gemma_hub_page_url()
+            embedding_url = artifact_hub_page_url(EMBEDDING_MINILM_ID)
             self._error.setText(
-                "Gemma is a gated model on Hugging Face.\n"
-                "1. Log in at huggingface.co with the same account as your token.\n"
-                f"2. Open the model page and accept the license: {gemma_url}\n"
-                "3. Click Open Gemma on Hugging Face (or use the link above), "
-                "then Retry download."
+                "Model download requires Hugging Face access.\n"
+                f"Check the model page: {embedding_url}\n"
+                "Add a token if needed, then retry."
             )
             self._open_gemma.show()
             self._retry.show()

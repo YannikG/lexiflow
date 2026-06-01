@@ -239,6 +239,30 @@ def test_translated_tab_shows_placeholder_when_variant_missing(qtbot, tmp_path) 
     assert "not available yet" in read_pane.toPlainText().lower()
 
 
+def test_simplify_click_shows_pending_tab_before_worker_runs(qtbot, tmp_path) -> None:
+    data_root = tmp_path / "LexiFlow"
+    _seed_reader_text(data_root)
+    window = _open_reader_window_without_worker(qtbot, data_root)
+    _click_sidebar_text(qtbot, window)
+
+    simplify_button = window.reader.findChild(QPushButton, "reader_simplify_button")
+    assert simplify_button is not None
+    qtbot.mouseClick(simplify_button, Qt.MouseButton.LeftButton)
+    qtbot.wait(50)
+
+    simplified_tab = window.reader.findChild(QPushButton, "reader_tab_simplified")
+    assert simplified_tab is not None
+    assert simplified_tab.isVisible()
+    assert window.reader.active_tab_id == "simplified-a2"
+    read_pane = window.reader.findChild(QTextBrowser, "reader_read_pane")
+    assert read_pane is not None
+    pane_text = read_pane.toPlainText().lower()
+    assert (
+        "still being generated" in pane_text
+        or "generating a simplified variant" in pane_text
+    )
+
+
 def test_simplify_click_worker_completion_shows_simplified_tab(qtbot, tmp_path) -> None:
     data_root = tmp_path / "LexiFlow"
     _seed_reader_text(data_root)

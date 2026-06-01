@@ -11,7 +11,7 @@ from lexiflow_core.jobs.embed_queue import (
     enqueue_vocabulary_word_embed,
 )
 from lexiflow_core.jobs.service import JobService
-from lexiflow_core.jobs.text_job_status import missing_variant_message
+from lexiflow_core.jobs.text_job_status import pending_simplified_variants
 from lexiflow_core.languages.models import CEFRLevel
 from lexiflow_core.library.document_title import (
     DocumentTitleError,
@@ -45,6 +45,7 @@ from PySide6.QtWidgets import (
     QMenu,
     QMessageBox,
     QPlainTextEdit,
+    QProgressBar,
     QPushButton,
     QSplitter,
     QStackedWidget,
@@ -55,7 +56,9 @@ from PySide6.QtWidgets import (
 )
 
 from lexiflow_ui.delete_text_flow import confirm_delete_text, delete_text_to_trash
-from lexiflow_ui.reader_flow import load_variant_markdown, markdown_for_reader_pane
+from lexiflow_ui.generation_status import generation_indicator
+from lexiflow_ui.llama_server_supervisor import LlamaServerSupervisor
+from lexiflow_ui.reader_flow import markdown_for_reader_pane, variant_reader_state
 from lexiflow_ui.simplify_flow import (
     confirm_simplify_without_translated,
     default_simplify_level,
@@ -88,11 +91,13 @@ class ReaderWidget(QWidget):
         *,
         data_root: Path | None = None,
         supervisor: WorkerSupervisor | None = None,
+        llama_supervisor: LlamaServerSupervisor | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("reader_widget")
         self._data_root = data_root
         self._supervisor = supervisor
+        self._llama_supervisor = llama_supervisor
         self._record: TextRecord | None = None
         self._repo: TextRepository | None = None
         self._index: LibraryIndex | None = None
@@ -183,6 +188,21 @@ class ReaderWidget(QWidget):
         read_page = QWidget(self)
         read_layout = QVBoxLayout(read_page)
         read_layout.setContentsMargins(0, 0, 0, 0)
+        self._generation_banner = QWidget(read_page)
+        self._generation_banner.setObjectName("reader_generation_banner")
+        banner_layout = QVBoxLayout(self._generation_banner)
+        banner_layout.setContentsMargins(0, 0, 0, 8)
+        self._generation_headline = QLabel(self._generation_banner)
+        self._generation_headline.setObjectName("reader_generation_headline")
+        self._generation_headline.setWordWrap(True)
+        self._generation_progress = QProgressBar(self._generation_banner)
+        self._generation_progress.setObjectName("reader_generation_progress")
+        self._generation_progress.setTextVisible(False)
+        self._generation_progress.setRange(0, 0)
+        banner_layout.addWidget(self._generation_headline)
+        banner_layout.addWidget(self._generation_progress)
+        self._generation_banner.hide()
+        read_layout.addWidget(self._generation_banner)
         read_layout.addWidget(self._read_pane)
         self._new_words_panel = NewWordsPanel(read_page)
         self._new_words_panel.add_requested.connect(self._add_new_word)
@@ -271,7 +291,7 @@ class ReaderWidget(QWidget):
         self._repo = repo
         self._index = index
         self._settings = settings
-        self._simplified_variants = discover_simplified_variants(Path(record.folder))
+        self._refresh_simplified_variants()
         self._configure_simplified_tabs()
         self._library_title.setText(record.title)
         self._configure_simplify_level(record.target_language)
@@ -297,24 +317,23 @@ class ReaderWidget(QWidget):
         self._active_tab = tab_id
         self._update_tab_buttons()
         self._show_read_mode()
-        markdown, _title = load_variant_markdown(self._repo, self._record, tab_id)
+        markdown, status_message, edit_enabled = variant_reader_state(
+            self._repo,
+            self._record,
+            tab_id,
+            data_root=self._data_root,
+        )
         if markdown is None:
             self._loaded_markdown = None
-            message = "This variant is not available yet."
-            if self._data_root is not None:
-                jobs = JobService(self._data_root).list_jobs()
-                message = missing_variant_message(
-                    jobs,
-                    text_id=self._record.id,
-                    variant_name=tab_id,
-                )
-            self._read_pane.setPlainText(message)
+            message = status_message or "This variant is not available yet."
+            self._show_status_overlay(message)
             self._edit_button.setEnabled(False)
             self._refresh_new_words_panel()
             self.tab_changed.emit(tab_id)
             return
+        self._hide_generation_banner()
         self._loaded_markdown = markdown
-        self._edit_button.setEnabled(True)
+        self._edit_button.setEnabled(edit_enabled)
         rendered = markdown_for_reader_pane(markdown, document_title=None)
         self._read_pane.setMarkdown(rendered)
         self._sync_simplify_level_picker()
@@ -328,9 +347,7 @@ class ReaderWidget(QWidget):
         if self._record is None or self._repo is None or self._index is None:
             return
         self._record = self._repo.get_text(self._record.id)
-        self._simplified_variants = discover_simplified_variants(
-            Path(self._record.folder)
-        )
+        self._refresh_simplified_variants()
         self._configure_simplified_tabs()
         self._library_title.setText(self._record.title)
         if focus_simplified_level is not None:
@@ -339,6 +356,37 @@ class ReaderWidget(QWidget):
                 self.select_tab(variant)
                 return
         self.select_tab(self._active_tab)
+
+    def refresh_infrastructure_status(self) -> None:
+        """Refresh pending overlays when llama-server or worker state changes."""
+        if self._record is None or self._loaded_markdown is not None:
+            self._hide_generation_banner()
+            return
+        self.select_tab(self._active_tab)
+
+    def _show_status_overlay(self, message: str) -> None:
+        indicator = generation_indicator(
+            llama_supervisor=self._llama_supervisor,
+            worker_supervisor=self._supervisor,
+            pending_message=message,
+            variant_name=self._active_tab,
+        )
+        if indicator is not None:
+            self._generation_headline.setText(indicator.headline)
+            if indicator.show_progress:
+                self._generation_progress.setRange(0, 0)
+                self._generation_progress.show()
+            else:
+                self._generation_progress.hide()
+            self._generation_banner.show()
+            self._read_pane.setPlainText(indicator.detail)
+            return
+        self._hide_generation_banner()
+        self._read_pane.setPlainText(message)
+
+    def _hide_generation_banner(self) -> None:
+        self._generation_banner.hide()
+        self._generation_progress.hide()
 
     def simplified_menu(self) -> QToolButton:
         return self._simplified_menu
@@ -361,6 +409,17 @@ class ReaderWidget(QWidget):
     def _select_single_simplified_tab(self) -> None:
         if self._single_simplified_variant is not None:
             self.request_select_tab(self._single_simplified_variant)
+
+    def _refresh_simplified_variants(self) -> None:
+        if self._record is None:
+            self._simplified_variants = ()
+            return
+        on_disk = discover_simplified_variants(Path(self._record.folder))
+        pending: tuple[str, ...] = ()
+        if self._data_root is not None:
+            jobs = JobService(self._data_root).list_jobs()
+            pending = pending_simplified_variants(jobs, text_id=self._record.id)
+        self._simplified_variants = tuple(dict.fromkeys(on_disk + pending))
 
     def _configure_simplified_tabs(self) -> None:
         self._simplified_tab.hide()
@@ -549,12 +608,16 @@ class ReaderWidget(QWidget):
         except FileNotFoundError:
             confirm_simplify_without_translated(self)
             return
+        level = self._selected_simplify_level()
         submit_simplify(
             data_root=self._data_root,
-            supervisor=self._supervisor,
             text_id=self._record.id,
-            level=self._selected_simplify_level(),
+            level=level,
         )
+        variant = simplified_variant_name(level)
+        self._refresh_simplified_variants()
+        self._configure_simplified_tabs()
+        self.select_tab(variant)
         self.simplify_submitted.emit()
 
     def _delete_text(self) -> None:

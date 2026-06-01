@@ -1,4 +1,6 @@
-# Phase 11-1: Markdown cleanup and embedded inference runtime
+# Phase 11-1: Markdown cleanup and native inference runtime
+
+> **Architecture update (2026-06):** In-process embedded Gemma (`torch`/`transformers`) was replaced by **native llama-server** + **Ollama** only. See [ADR 0007](../../../adr/0007-native-llama-server-llm.md). Workstreams B/C (cleanup validation, reader UX) remain the acceptance focus; Workstream A targets `native_llm_operational` and HTTP LLM wiring instead of `embedded-llm`.
 
 **Branch:** `phase/11-1-markdown-cleanup`  
 **PR title:** `Phase 11-1: Markdown cleanup works after model bootstrap`  

@@ -18,3 +18,4 @@ Create an ADR when **all** are true:
 | [0004](0004-conceptual-docs-and-pr-plans.md) | Conceptual docs next to code; mandatory PR Plan |
 | [0005](0005-ollama-embedding-provider-deferred.md) | Ollama embeddings deferred until phase 10b (after phase 10) |
 | [0006](0006-desktop-ui-theme-strategy.md) | Desktop UI theme strategy (Fusion + dark/light theme QSS) |
+| [0007](0007-native-llama-server-llm.md) | Native LLM via llama-server (no in-process torch) |

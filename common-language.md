@@ -299,37 +299,37 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **LLM provider** — Pluggable backend for translate, simplify, and cleanup. Optional **Ollama endpoint**. No runtime lock-in.
 
-**Provider mode** — Embedded default; Ollama overrides when configured. Same prompts for both paths.
+**Provider mode** — Native llama-server default; Ollama overrides when configured. Same prompts for both paths.
 
-**Embedded model** — Default in-app model: Gemma 4 E2B, run locally. Loaded on demand, unloaded when idle.
+**Native LLM** — Default in-app path: pinned model loaded by a supervised local `llama-server` process (Hugging Face via `-hf`). LexiFlow does not cache LLM weights under the data root.
 
-**Ollama endpoint** — Optional external LLM server. Replaces embedded for all LLM tasks when set. App does not manage Ollama lifecycle.
+**Ollama endpoint** — Optional external LLM server. Replaces native LLM for all LLM tasks when set. App does not manage the Ollama process.
 
-**Model bootstrap** — First-use download of LLM and embedding models from Hugging Face with progress UI. Cached locally. **Manual weight import** available as offline LLM fallback.
+**Model bootstrap** — First-run onboarding pins models in `models.lock`. Runtime libraries fetch LLM and embedding weights from Hugging Face on first use; LexiFlow does not download or cache them under `.app/models/` in v1.
 
-**Bootstrap network retry** — On download failure during onboarding, wizard shows error with Retry; does not skip the gate silently.
+**Bootstrap network retry** — Deprecated for v1 onboarding (no download step). Retry UX for runtime fetch failures remains phase 14.
 
-**Model pinning** — Shipped manifest pins exact model revisions. Settings can check for updates. No floating latest-only pins in v1. Hugging Face is the single download source for models and spaCy packs in v1.
+**Model pinning** — Shipped manifest pins exact model revisions and native `llama_hf_model` spec. Settings can check for updates. No floating latest-only pins in v1.
 
-**Onboarding LLM setup** — Detect local Ollama; offer one-click setup or embedded path with size and RAM expectations. Wizard blocks main UI until bootstrap completes (embedding model always; LLM unless Ollama configured).
+**Onboarding LLM setup** — Choose native llama-server or Ollama; optional Hugging Face token for gated repos. Native path validates `llama-server` binary before continuing.
 
-**Onboarding flow** — Welcome and RAM check, native language, LLM mode (Hugging Face download, Ollama, or manual import), model bootstrap when required, add first target language with level (required), then main UI. First launch only; later via **settings**. `onboarding_complete` in **global settings** is set only after the full wizard finishes (including LLM setup and **model bootstrap** where applicable).
+**Onboarding flow** — Welcome and RAM check, native language, LLM mode (native or Ollama), LLM configuration, add first target language with level (required), then main UI. First launch only; later via **settings**. `onboarding_complete` in **global settings** is set only after the full wizard finishes.
 
-**Reset app** — Wipes all local data including cached models and re-runs **onboarding flow**. **Strong confirmation** required.
+**Reset app** — Wipes all local data and re-runs **onboarding flow**. **Strong confirmation** required.
 
-**Gemma Terms of Use** — Embedded Gemma weights subject to Google's Gemma license in addition to app Apache 2.0. Accepted via Hugging Face download.
+**Pinned model terms** — Native LLM weights may be subject to upstream licenses (e.g. Gemma) in addition to app Apache 2.0. Users accept terms via Hugging Face when models are fetched.
 
-**LLM toggle** — Force embedded model off or allow auto-load from **status bar** or **settings**.
+**LLM toggle** — Force LLM off or allow auto-load from **status bar** or **settings**.
 
 **Model updates** — User-initiated check for newer pinned revisions. No silent auto-upgrade in v1.
 
-**Hugging Face token** — Optional token in **settings** for rate limits and gated repos. Anonymous download works without token.
+**Hugging Face token** — Optional token in **settings** for rate limits and gated repos. Anonymous download works without token when the hub allows it.
 
-**Ollama and embeddings** — Until [phase 10b](docs/roadmap/phases/phase-10b-ollama-embeddings/README.md) ([ADR 0005](docs/adr/0005-ollama-embedding-provider-deferred.md)): Ollama replaces embedded LLM only; embedding model always runs in-app from Hugging Face. After 10b: when **Ollama endpoint** is set, embeddings may use Ollama HTTP instead of MiniLM (pinned embed model; same vector contract as phase 10).
+**Ollama and embeddings** — Until [phase 10b](docs/roadmap/phases/phase-10b-ollama-embeddings/README.md) ([ADR 0005](docs/adr/0005-ollama-embedding-provider-deferred.md)): Ollama replaces native LLM only; embeddings load via `sentence-transformers` from Hugging Face on first use. After 10b: when **Ollama endpoint** is set, embeddings may use Ollama HTTP instead of MiniLM (pinned embed model; same vector contract as phase 10).
 
-**Embedded model lifecycle** — Manual on/off; auto-unload after idle when on. Ollama path: HTTP client only, no in-app model load.
+**Native LLM lifecycle** — UI supervises `llama-server` on first LLM job; process stops on app quit (idle shutdown phase 14). Ollama path: HTTP client only.
 
-**Worker-linked model lifecycle** — Embedded LLM and embedding model load in worker. **Worker idle lifecycle** unloads both. Manual off forces immediate shutdown.
+**Worker-linked model lifecycle** — Worker calls native LLM over HTTP or Ollama HTTP. Embedding model loads in worker via `sentence-transformers` when available. **Worker idle lifecycle** unloads worker state; LLM process lifecycle is UI-owned.
 
 ## Engineering
 
@@ -382,14 +382,14 @@ Canonical terms (alphabetical):
 - Domain language
 - Duplicate warning
 - Edit mode
-- Embedded model
-- Embedded model lifecycle
+- Native LLM
+- Native LLM lifecycle
 - Embedding model
 - Embedding queue
 - Empty state
 - External markdown import
 - Find in texts
-- Gemma Terms of Use
+- Pinned model terms
 - Global search UI
 - Global settings
 - Group

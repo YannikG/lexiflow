@@ -9,6 +9,7 @@ from lexiflow_core.config.bootstrap import bootstrap_runtime
 from lexiflow_core.config.settings_store import SettingsStore
 from PySide6.QtWidgets import QApplication
 
+from lexiflow_ui.llama_server_supervisor import LlamaServerSupervisor
 from lexiflow_ui.main_window import MainWindow
 from lexiflow_ui.onboarding.system_info import SystemInfo
 from lexiflow_ui.onboarding.wizard import OnboardingWizard, run_onboarding_if_needed
@@ -50,11 +51,25 @@ def run(
         return 0
 
     supervisor = WorkerSupervisor(data_root=data_root)
-    window = MainWindow(supervisor=supervisor, settings=settings, data_root=data_root)
+    llama_supervisor: LlamaServerSupervisor | None = None
+    if not settings.ollama_url:
+        llama_supervisor = LlamaServerSupervisor(
+            data_root=data_root,
+            base_url=settings.llama_server_url,
+            huggingface_token=settings.huggingface_token,
+        )
+    window = MainWindow(
+        supervisor=supervisor,
+        llama_supervisor=llama_supervisor,
+        settings=settings,
+        data_root=data_root,
+    )
     guard.listen_for_activation(window.request_activation)
     window.show()
     try:
         return app.exec()
     finally:
+        if llama_supervisor is not None:
+            llama_supervisor.shutdown(wait=True)
         supervisor.shutdown(wait=True)
         guard.release()

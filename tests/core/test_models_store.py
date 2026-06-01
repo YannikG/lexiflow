@@ -82,7 +82,7 @@ repo = "sentence-transformers/all-MiniLM-L6-v2"
 revision = "newer-revision-sha"
 
 [[artifacts]]
-id = "embedded-gemma"
+id = "native-llm"
 repo = "google/gemma-4-E2B-it"
 revision = "gemma-pinned-sha"
 """.strip(),

@@ -9,9 +9,15 @@ from lexiflow_core.jobs.handlers.cleanup import (
     TRANSLATE_PHASE_ENSURE_NATIVE,
     TRANSLATE_PHASE_PLAIN,
 )
+from lexiflow_core.jobs.handlers.translate_output import (
+    TranslateOutputError,
+    validate_translate_output,
+)
+from lexiflow_core.jobs.job_errors import user_facing_job_error
 from lexiflow_core.jobs.models import JobRecord, JobRequest, JobType
 from lexiflow_core.jobs.service import JobService
 from lexiflow_core.library.text_repository import TextRepository
+from lexiflow_core.llm.prompt_languages import prompt_language_label
 from lexiflow_core.llm.prompts import render_prompt
 from lexiflow_core.llm.protocol import LLMProvider
 
@@ -48,6 +54,8 @@ def handle_translate(
         return
 
     record = repo.get_text(text_id)
+    native_label = prompt_language_label(record.native_language)
+    target_label = prompt_language_label(record.target_language)
 
     try:
         if phase == TRANSLATE_PHASE_ENSURE_NATIVE:
@@ -56,11 +64,14 @@ def handle_translate(
                 raise ValueError(f"job {job.id} is missing cleaned markdown")
             prompt = render_prompt(
                 "translate",
-                native_language=record.target_language,
-                target_language=record.native_language,
+                native_language=target_label,
+                target_language=native_label,
                 source_markdown=cleaned,
             )
-            native_markdown = llm.complete(prompt)
+            native_markdown = validate_translate_output(
+                source_markdown=cleaned,
+                translated=llm.complete(prompt),
+            )
             repo.write_native_variant(text_id, native_markdown)
             job_service.enqueue(
                 JobRequest(
@@ -77,13 +88,19 @@ def handle_translate(
         source_markdown = repo.read_native_variant(text_id)
         prompt = render_prompt(
             "translate",
-            native_language=record.native_language,
-            target_language=record.target_language,
+            native_language=native_label,
+            target_language=target_label,
             source_markdown=source_markdown,
         )
-        translated = llm.complete(prompt)
+        translated = validate_translate_output(
+            source_markdown=source_markdown,
+            translated=llm.complete(prompt),
+        )
+    except TranslateOutputError as exc:
+        job_service.fail(job.id, user_facing_job_error(str(exc)))
+        return
     except Exception as exc:
-        job_service.fail(job.id, str(exc))
+        job_service.fail(job.id, user_facing_job_error(str(exc)))
         return
 
     repo.apply_translated_variant(text_id, translated)

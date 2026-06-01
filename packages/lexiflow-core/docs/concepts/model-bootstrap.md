@@ -1,42 +1,35 @@
 # Model bootstrap and pinning
 
-LexiFlow ships a pinned **models.lock** manifest and downloads artifacts from Hugging Face on first use.
+LexiFlow ships a pinned **models.lock** manifest. Runtime libraries fetch models from Hugging Face; LexiFlow does not download or cache weights under `{data_root}/.app/models/`.
 
 ## Pinning
 
-`models.lock` lists each artifact with a stable `id`, Hugging Face `repo`, and full commit `revision`. The app never pins floating “latest” tags in v1. Revisions in `models.lock` must be full commit SHAs from the Hugging Face Hub. spaCy packs are pinned when the job handler lands (phase N+1), not in v1 bootstrap.
+`models.lock` lists each artifact with a stable `id`, Hugging Face `repo`, and full commit `revision`. The app never pins floating “latest” tags in v1. Revisions in `models.lock` must be full commit SHAs from the Hugging Face Hub.
+
+Native LLM artifacts also carry `llama_hf_model`, passed to `llama-server -hf`.
 
 `load_models_lock()` reads the bundled manifest shipped inside `lexiflow-core`.
 
-## Local cache
+## Runtime loading
 
-Installed artifacts live under `{data_root}/.app/models/{artifact_id}/`. A `revision.txt` marker records the installed revision. `ModelStore.is_installed()` compares that marker to the lock pin.
+| Capability | Loader | LexiFlow responsibility |
+|------------|--------|-------------------------|
+| **LLM (native)** | `llama-server -hf` | Pin spec; supervise process |
+| **Embeddings** | `sentence-transformers` | Pin repo/revision; pass HF token from settings |
+| **Ollama LLM** | User's Ollama | HTTP client only |
 
-`ensure_app_layout()` creates `.app/models/`; downloads happen only through `ModelStore.ensure_installed()`.
+First use may require network access and optional `huggingface_token` in **global settings** for gated repos.
 
-`ModelStore.remove_installed(artifact_id)` deletes `{data_root}/.app/models/{artifact_id}/` so the next `ensure_installed()` performs a full re-download. Onboarding exposes **Re-download models** (with confirmation) for required artifacts.
+## ModelStore (phase 14)
 
-## Download boundary
+`ModelStore` remains in core for future update checks and optional manual cache management (phase 14). Onboarding does **not** call `ensure_installed()` in v1 after this change.
 
-`ModelDownloader` is the protocol boundary. Production uses `HuggingFaceModelDownloader` (`snapshot_download` with pinned revision and optional token). Tests and CI use `FakeModelDownloader`, which writes the revision marker without network I/O.
+## Native inference runtime
 
-`NetworkError` signals connectivity failures during onboarding; the wizard shows an error and a **Retry** control.
-
-## Onboarding requirements
-
-`required_artifact_ids(settings)` applies product policy:
-
-- **Ollama endpoint** configured: download the **embedding model** (MiniLM) only.
-- **Embedded path**: download embedding model and embedded LLM (**Gemma 4 E2B** from official `google/gemma-4-E2B-it`; accept the Hub license before download).
-
-Ollama replaces the embedded LLM only; embeddings run in-app from Hugging Face until [phase 10b](../../../../docs/roadmap/phases/phase-10b-ollama-embeddings/README.md) ([ADR 0005](../../../../docs/adr/0005-ollama-embedding-provider-deferred.md)).
-
-## Updates
-
-`ModelStore.check_for_updates()` compares installed revision markers to the lock. Settings UI to trigger checks ships in phase 14; the core API is available from phase 07.
+On the **native path**, onboarding validates `native_llm_operational()`: `llama-server` on PATH (or `LEXIFLOW_LLAMA_SERVER_BIN`) and a valid `llama_hf_model` pin.
 
 ## Settings
 
-Optional `huggingface_token` in **global settings** is passed to the downloader for gated repos and rate limits.
+Optional `huggingface_token` in **global settings** is passed to Hugging Face clients for gated repos and rate limits.
 
-See [common-language.md](../../../../common-language.md): **Model bootstrap**, **Model pinning**, **Hugging Face token**, **Bootstrap network retry**, **Ollama and embeddings**.
+See [common-language.md](../../../../common-language.md): **Model bootstrap**, **Model pinning**, **Hugging Face token**, **Ollama and embeddings**.

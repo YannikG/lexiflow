@@ -17,6 +17,7 @@ class ModelArtifact:
     repo: str
     revision: str
     allow_patterns: tuple[str, ...] = ()
+    llama_hf_model: str | None = None
 
 
 @dataclass(frozen=True)
@@ -69,12 +70,21 @@ def load_models_lock(path: Path | None = None) -> ModelsLock:
                     f"artifact {artifact_id} has invalid allow_patterns in {lock_path}"
                 )
             allow_patterns = tuple(raw_patterns)
+        raw_llama_hf = entry.get("llama_hf_model")
+        llama_hf_model: str | None = None
+        if raw_llama_hf is not None:
+            if not isinstance(raw_llama_hf, str) or not raw_llama_hf:
+                raise ModelsLockError(
+                    f"artifact {artifact_id} has invalid llama_hf_model in {lock_path}"
+                )
+            llama_hf_model = raw_llama_hf
         artifacts.append(
             ModelArtifact(
                 id=artifact_id,
                 repo=repo,
                 revision=revision,
                 allow_patterns=allow_patterns,
+                llama_hf_model=llama_hf_model,
             )
         )
 

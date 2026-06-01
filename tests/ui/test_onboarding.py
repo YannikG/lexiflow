@@ -5,23 +5,17 @@ from __future__ import annotations
 from dataclasses import replace
 from pathlib import Path
 
-import pytest
 from lexiflow_core.config.settings import Settings
 from lexiflow_core.config.settings_store import SettingsStore
-from lexiflow_core.models.download import (
-    FakeModelDownloader,
-    ModelAccessError,
-    NetworkError,
-)
+from lexiflow_core.models.download import FakeModelDownloader
 from lexiflow_core.models.lockfile import load_models_lock
-from lexiflow_core.models.model_hints import gemma_hub_page_url
-from lexiflow_core.models.requirements import EMBEDDED_GEMMA_ID, EMBEDDING_MINILM_ID
+from lexiflow_core.models.model_hints import native_llm_hub_page_url
 from lexiflow_core.models.store import ModelStore
 from lexiflow_ui.app import run
 from lexiflow_ui.main_window import MainWindow
 from lexiflow_ui.onboarding.wizard import OnboardingWizard, run_onboarding_if_needed
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import QApplication, QMessageBox, QPlainTextEdit, QWizard
+from PySide6.QtWidgets import QApplication, QWizard
 
 
 class _SmokeInstanceGuard:
@@ -106,13 +100,6 @@ def _advance_wizard_to_finish(
         wizard.llm_page.select_ollama("http://127.0.0.1:11434")
     wizard.next()
     qtbot.wait(50)
-    if not use_ollama:
-        qtbot.waitUntil(
-            lambda: wizard.bootstrap_page.bootstrap_complete,
-            timeout=10000,
-        )
-        wizard.next()
-        qtbot.wait(50)
     wizard.target_page.select_language("es")
     wizard.target_page.select_level("A2")
     finish = wizard.button(QWizard.WizardButton.FinishButton)
@@ -239,7 +226,7 @@ def test_completing_onboarding_sets_flag(qtbot, tmp_path: Path) -> None:
 
     loaded = store.load()
     assert loaded.onboarding_complete is True
-    assert downloader.call_count >= 1
+    assert downloader.call_count == 0
     assert loaded.native_language == "en"
     assert loaded.active_target_language == "es"
 
@@ -360,8 +347,8 @@ def test_active_target_language_shows_fallback_for_invalid_iso(
     assert widget.label().text() == "Language: ru"
 
 
-def test_ollama_downloads_minilm_on_bootstrap_not_gemma(qtbot, tmp_path: Path) -> None:
-    """Ollama path uses bootstrap for MiniLM only, never Gemma."""
+def test_ollama_path_skips_bootstrap_and_completes(qtbot, tmp_path: Path) -> None:
+    """Ollama path goes straight to target language; no model downloads."""
     config_dir = tmp_path / "config"
     data_root = tmp_path / "library"
     store = SettingsStore(config_dir=config_dir)
@@ -386,28 +373,12 @@ def test_ollama_downloads_minilm_on_bootstrap_not_gemma(qtbot, tmp_path: Path) -
     qtbot.wait(10)
     wizard.llm_page.select_ollama("http://127.0.0.1:11434")
     assert wizard.llm_page.uses_ollama()
-    assert wizard.llm_page.nextId() == 4
-
-    wizard.next()
-    qtbot.waitUntil(
-        lambda: wizard.currentPage() is wizard.bootstrap_page,
-        timeout=10000,
-    )
-    qtbot.waitUntil(
-        lambda: wizard.bootstrap_page.bootstrap_complete,
-        timeout=10000,
-    )
-
-    assert downloader.artifact_ids == [EMBEDDING_MINILM_ID]
-    assert EMBEDDED_GEMMA_ID not in downloader.artifact_ids
-
-    console = wizard.bootstrap_page.findChild(QPlainTextEdit, "bootstrap_console")
-    assert console is not None
-    assert "Downloading" in console.toPlainText()
+    assert wizard.llm_page.nextId() == 5
 
     wizard.next()
     qtbot.wait(50)
     assert wizard.currentPage() is wizard.target_page
+    assert downloader.artifact_ids == []
 
     wizard.target_page.select_language("es")
     wizard.target_page.select_level("A2")
@@ -420,103 +391,7 @@ def test_ollama_downloads_minilm_on_bootstrap_not_gemma(qtbot, tmp_path: Path) -
     assert loaded.ollama_url == "http://127.0.0.1:11434"
 
 
-def test_ollama_embedding_download_failure_shows_clear_message_and_retry(
-    qtbot, tmp_path: Path
-) -> None:
-    config_dir = tmp_path / "config"
-    data_root = tmp_path / "library"
-    store = SettingsStore(config_dir=config_dir)
-    settings = Settings(data_root=data_root, onboarding_complete=False)
-    failing = FakeModelDownloader(error=NetworkError("offline"), fail_on_call=1)
-    wizard = OnboardingWizard(
-        data_root=data_root,
-        settings_store=store,
-        settings=settings,
-        system_info=FakeSystemInfo(16 * 1024**3),
-        model_store=_make_model_store(data_root, downloader=failing),
-    )
-    qtbot.addWidget(wizard)
-    wizard.show()
-    wizard.next()
-    qtbot.wait(10)
-    wizard.native_page.select_language("en")
-    wizard.next()
-    qtbot.wait(10)
-    wizard.llm_mode_page.select_ollama()
-    wizard.next()
-    qtbot.wait(10)
-    wizard.llm_page.select_ollama("http://127.0.0.1:11434")
-
-    wizard.next()
-    qtbot.waitUntil(
-        lambda: wizard.currentPage() is wizard.bootstrap_page,
-        timeout=10000,
-    )
-    qtbot.waitUntil(
-        lambda: wizard.bootstrap_page.is_bootstrap_error_visible(),
-        timeout=10000,
-    )
-    assert "network" in wizard.bootstrap_page.bootstrap_error_text().lower()
-
-    succeeding = FakeModelDownloader()
-    wizard.bootstrap_page.set_model_store(
-        _make_model_store(data_root, downloader=succeeding)
-    )
-    qtbot.mouseClick(wizard.bootstrap_page.retry_button(), Qt.MouseButton.LeftButton)
-    qtbot.waitUntil(
-        lambda: wizard.bootstrap_page.bootstrap_complete,
-        timeout=10000,
-    )
-
-    wizard.next()
-    qtbot.wait(50)
-    assert wizard.currentPage() is wizard.target_page
-
-
-def test_switching_llm_mode_clears_stale_download_error(qtbot, tmp_path: Path) -> None:
-    config_dir = tmp_path / "config"
-    data_root = tmp_path / "library"
-    store = SettingsStore(config_dir=config_dir)
-    failing = FakeModelDownloader(error=NetworkError("offline"), fail_on_call=1)
-    wizard = OnboardingWizard(
-        data_root=data_root,
-        settings_store=store,
-        settings=Settings(data_root=data_root, onboarding_complete=False),
-        system_info=FakeSystemInfo(16 * 1024**3),
-        model_store=_make_model_store(data_root, downloader=failing),
-    )
-    qtbot.addWidget(wizard)
-    wizard.show()
-    wizard.next()
-    qtbot.wait(10)
-    wizard.native_page.select_language("en")
-    wizard.next()
-    qtbot.wait(10)
-    wizard.llm_mode_page.select_ollama()
-    wizard.next()
-    qtbot.wait(10)
-    wizard.llm_page.select_ollama("http://127.0.0.1:11434")
-    wizard.next()
-    qtbot.waitUntil(
-        lambda: wizard.currentPage() is wizard.bootstrap_page,
-        timeout=10000,
-    )
-    qtbot.waitUntil(
-        lambda: wizard.bootstrap_page.is_bootstrap_error_visible(),
-        timeout=10000,
-    )
-
-    back = wizard.button(QWizard.WizardButton.BackButton)
-    qtbot.mouseClick(back, Qt.MouseButton.LeftButton)
-    qtbot.wait(10)
-    wizard.llm_mode_page.select_embedded()
-    wizard.next()
-    qtbot.wait(10)
-    assert not wizard.bootstrap_page.is_bootstrap_error_visible()
-
-
-def test_embedded_scenario_shows_download_models_page(qtbot, tmp_path: Path) -> None:
-    """Embedded path uses the Download models page before target language."""
+def test_native_path_skips_bootstrap_page(qtbot, tmp_path: Path) -> None:
     config_dir = tmp_path / "config"
     data_root = tmp_path / "library"
     store = SettingsStore(config_dir=config_dir)
@@ -539,105 +414,12 @@ def test_embedded_scenario_shows_download_models_page(qtbot, tmp_path: Path) -> 
     wizard.llm_mode_page.select_embedded()
     wizard.next()
     qtbot.wait(10)
-    assert wizard.llm_page.nextId() == 4
+    assert wizard.llm_page.nextId() == 5
 
     wizard.next()
-    qtbot.waitUntil(
-        lambda: wizard.currentPage() is wizard.bootstrap_page,
-        timeout=10000,
-    )
-    qtbot.waitUntil(
-        lambda: wizard.bootstrap_page.bootstrap_complete,
-        timeout=10000,
-    )
-
-    assert wizard.bootstrap_page.bootstrap_complete is True
-    assert EMBEDDING_MINILM_ID in downloader.artifact_ids
-    assert EMBEDDED_GEMMA_ID in downloader.artifact_ids
-
-
-def _wizard_on_bootstrap_with_cached_embedded_models(
-    qtbot,
-    tmp_path: Path,
-    *,
-    downloader: FakeModelDownloader,
-) -> OnboardingWizard:
-    """Embedded HF path always visits bootstrap; pre-install required artifacts."""
-    config_dir = tmp_path / "config"
-    data_root = tmp_path / "library"
-    store = SettingsStore(config_dir=config_dir)
-    settings = Settings(data_root=data_root, onboarding_complete=False)
-    model_store = _make_model_store(data_root, downloader=downloader)
-    for artifact_id in (EMBEDDING_MINILM_ID, EMBEDDED_GEMMA_ID):
-        model_store.ensure_installed(artifact_id, on_progress=lambda _v: None)
-    wizard = OnboardingWizard(
-        data_root=data_root,
-        settings_store=store,
-        settings=settings,
-        system_info=FakeSystemInfo(16 * 1024**3),
-        model_store=model_store,
-    )
-    qtbot.addWidget(wizard)
-    wizard.show()
-    wizard.next()
-    qtbot.wait(10)
-    wizard.native_page.select_language("en")
-    wizard.next()
-    qtbot.wait(10)
-    wizard.llm_mode_page.select_embedded()
-    wizard.next()
-    qtbot.wait(10)
-    wizard.next()
-    qtbot.waitUntil(
-        lambda: wizard.currentPage() is wizard.bootstrap_page,
-        timeout=10000,
-    )
-    qtbot.waitUntil(
-        lambda: wizard.bootstrap_page.bootstrap_complete,
-        timeout=10000,
-    )
-    return wizard
-
-
-def test_bootstrap_shows_redownload_when_models_cached(qtbot, tmp_path: Path) -> None:
-    wizard = _wizard_on_bootstrap_with_cached_embedded_models(
-        qtbot,
-        tmp_path,
-        downloader=FakeModelDownloader(),
-    )
-
-    assert wizard.bootstrap_page.redownload_button().isVisible()
-
-
-def test_bootstrap_redownload_forces_second_download(
-    qtbot, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    downloader = FakeModelDownloader()
-    wizard = _wizard_on_bootstrap_with_cached_embedded_models(
-        qtbot,
-        tmp_path,
-        downloader=downloader,
-    )
-    calls_before = downloader.call_count
-
-    monkeypatch.setattr(
-        QMessageBox,
-        "question",
-        lambda *args, **kwargs: QMessageBox.StandardButton.Yes,
-    )
-    qtbot.mouseClick(
-        wizard.bootstrap_page.redownload_button(),
-        Qt.MouseButton.LeftButton,
-    )
-    qtbot.waitUntil(
-        lambda: wizard.bootstrap_page.bootstrap_complete,
-        timeout=10000,
-    )
-
-    assert downloader.call_count > calls_before
-    store = wizard.bootstrap_page.model_store
-    assert store.is_installed(EMBEDDING_MINILM_ID)
-    assert store.is_installed(EMBEDDED_GEMMA_ID)
+    qtbot.wait(50)
+    assert wizard.currentPage() is wizard.target_page
+    assert downloader.artifact_ids == []
 
 
 def test_ollama_path_skips_bootstrap_page(qtbot, tmp_path: Path) -> None:
@@ -646,15 +428,12 @@ def test_ollama_path_skips_bootstrap_page(qtbot, tmp_path: Path) -> None:
     store = SettingsStore(config_dir=config_dir)
     settings = Settings(data_root=data_root, onboarding_complete=False)
     downloader = FakeModelDownloader()
-    model_store = _make_model_store(data_root, downloader=downloader)
-    model_store.ensure_installed(EMBEDDING_MINILM_ID, on_progress=lambda _v: None)
-    downloads_before_wizard = downloader.call_count
     wizard = OnboardingWizard(
         data_root=data_root,
         settings_store=store,
         settings=settings,
         system_info=FakeSystemInfo(16 * 1024**3),
-        model_store=model_store,
+        model_store=_make_model_store(data_root, downloader=downloader),
     )
     qtbot.addWidget(wizard)
     wizard.show()
@@ -672,10 +451,10 @@ def test_ollama_path_skips_bootstrap_page(qtbot, tmp_path: Path) -> None:
     qtbot.wait(50)
 
     assert wizard.currentId() == 5
-    assert downloader.call_count == downloads_before_wizard
+    assert downloader.call_count == 0
 
 
-def test_ollama_path_skips_gemma_download(qtbot, tmp_path: Path) -> None:
+def test_ollama_onboarding_does_not_download_models(qtbot, tmp_path: Path) -> None:
     config_dir = tmp_path / "config"
     data_root = tmp_path / "library"
     store = SettingsStore(config_dir=config_dir)
@@ -692,13 +471,11 @@ def test_ollama_path_skips_gemma_download(qtbot, tmp_path: Path) -> None:
     wizard.show()
     _advance_wizard_to_finish(wizard, qtbot, use_ollama=True)
 
-    assert downloader.call_count == 1
-    assert downloader.last_artifact is not None
-    assert downloader.last_artifact.id == "embedding-minilm"
+    assert downloader.call_count == 0
     assert store.load().ollama_url == "http://127.0.0.1:11434"
 
 
-def test_hf_download_page_shows_gemma_license_guidance(qtbot, tmp_path: Path) -> None:
+def test_native_config_page_shows_model_guidance(qtbot, tmp_path: Path) -> None:
     config_dir = tmp_path / "config"
     data_root = tmp_path / "library"
     store = SettingsStore(config_dir=config_dir)
@@ -721,137 +498,47 @@ def test_hf_download_page_shows_gemma_license_guidance(qtbot, tmp_path: Path) ->
     wizard.next()
     qtbot.wait(10)
 
-    steps_text = wizard.llm_page.gemma_license_steps_text()
-    assert "accept the license" in steps_text.lower()
-    assert gemma_hub_page_url() in steps_text
-    assert wizard.llm_page.open_gemma_hub_button().isVisible()
-    assert "Accept the Gemma license" in wizard.llm_page.subTitle()
+    steps_text = wizard.llm_page.native_license_steps_text()
+    assert native_llm_hub_page_url() in steps_text
+    assert wizard.llm_page.open_native_hub_button().isVisible()
+    assert "hugging face" in wizard.llm_page.subTitle().lower()
 
 
-def test_bootstrap_access_error_shows_gemma_help(qtbot, tmp_path: Path) -> None:
+def test_native_config_blocks_when_llama_server_missing(qtbot, tmp_path: Path) -> None:
     config_dir = tmp_path / "config"
     data_root = tmp_path / "library"
     store = SettingsStore(config_dir=config_dir)
     settings = Settings(data_root=data_root, onboarding_complete=False)
-    failing = FakeModelDownloader(error=ModelAccessError("gated"), fail_on_call=1)
-    wizard = OnboardingWizard(
-        data_root=data_root,
-        settings_store=store,
-        settings=settings,
-        system_info=FakeSystemInfo(16 * 1024**3),
-        model_store=_make_model_store(data_root, downloader=failing),
-    )
-    qtbot.addWidget(wizard)
-    wizard.show()
-    wizard.next()
-    qtbot.wait(10)
-    wizard.native_page.select_language("en")
-    wizard.next()
-    qtbot.wait(10)
-    wizard.llm_mode_page.select_embedded()
-    wizard.next()
-    qtbot.wait(10)
-    wizard.next()
-    qtbot.waitUntil(
-        lambda: wizard.bootstrap_page.is_bootstrap_error_visible(),
-        timeout=10000,
-    )
 
-    error_text = wizard.bootstrap_page.bootstrap_error_text()
-    assert "gated" in error_text.lower() or "gemma" in error_text.lower()
-    assert gemma_hub_page_url() in error_text
-    assert wizard.bootstrap_page.open_gemma_button().isVisible()
-    assert wizard.bootstrap_page.retry_button().isVisible()
+    def _not_ready(settings: Settings) -> tuple[bool, str | None]:
+        return False, "Install llama-server from llama.cpp."
 
+    import lexiflow_ui.onboarding.llm_config_page as llm_config_page
 
-def test_bootstrap_network_error_shows_retry(qtbot, tmp_path: Path) -> None:
-    config_dir = tmp_path / "config"
-    data_root = tmp_path / "library"
-    store = SettingsStore(config_dir=config_dir)
-    settings = Settings(data_root=data_root, onboarding_complete=False)
-    failing = FakeModelDownloader(error=NetworkError("offline"), fail_on_call=1)
-    wizard = OnboardingWizard(
-        data_root=data_root,
-        settings_store=store,
-        settings=settings,
-        system_info=FakeSystemInfo(16 * 1024**3),
-        model_store=_make_model_store(data_root, downloader=failing),
-    )
-    qtbot.addWidget(wizard)
-    wizard.show()
-    wizard.next()
-    qtbot.wait(10)
-    wizard.native_page.select_language("en")
-    wizard.next()
-    qtbot.wait(10)
-    wizard.next()
-    qtbot.wait(10)
-    wizard.next()
-    qtbot.waitUntil(
-        lambda: wizard.bootstrap_page.is_bootstrap_error_visible(),
-        timeout=10000,
-    )
-    assert "network" in wizard.bootstrap_page.bootstrap_error_text().lower()
+    original = llm_config_page.native_llm_operational
+    llm_config_page.native_llm_operational = _not_ready
+    try:
+        wizard = OnboardingWizard(
+            data_root=data_root,
+            settings_store=store,
+            settings=settings,
+            system_info=FakeSystemInfo(16 * 1024**3),
+            model_store=_make_model_store(data_root, downloader=FakeModelDownloader()),
+        )
+        qtbot.addWidget(wizard)
+        wizard.show()
+        wizard.next()
+        qtbot.wait(10)
+        wizard.native_page.select_language("en")
+        wizard.next()
+        qtbot.wait(10)
+        wizard.llm_mode_page.select_native()
+        wizard.next()
+        qtbot.wait(10)
 
-    succeeding = FakeModelDownloader()
-    wizard.bootstrap_page.set_model_store(
-        _make_model_store(data_root, downloader=succeeding)
-    )
-    qtbot.mouseClick(wizard.bootstrap_page.retry_button(), Qt.MouseButton.LeftButton)
-    qtbot.waitUntil(
-        lambda: wizard.bootstrap_page.bootstrap_complete,
-        timeout=10000,
-    )
-
-    assert wizard.bootstrap_page.bootstrap_complete is True
-    assert not wizard.bootstrap_page.is_bootstrap_error_visible()
-
-
-def test_manual_import_skips_bootstrap_page(qtbot, tmp_path: Path) -> None:
-    config_dir = tmp_path / "config"
-    data_root = tmp_path / "library"
-    store = SettingsStore(config_dir=config_dir)
-    settings = Settings(data_root=data_root, onboarding_complete=False)
-    downloader = RecordingFakeDownloader()
-    embedding_src = tmp_path / "minilm-src"
-    embedding_src.mkdir()
-    (embedding_src / "config.json").write_text("{}", encoding="utf-8")
-    gemma_src = tmp_path / "gemma-src"
-    gemma_src.mkdir()
-    (gemma_src / "model.safetensors").write_text("x", encoding="utf-8")
-
-    wizard = OnboardingWizard(
-        data_root=data_root,
-        settings_store=store,
-        settings=settings,
-        system_info=FakeSystemInfo(16 * 1024**3),
-        model_store=_make_model_store(data_root, downloader=downloader),
-    )
-    qtbot.addWidget(wizard)
-    wizard.show()
-    wizard.next()
-    qtbot.wait(10)
-    wizard.native_page.select_language("en")
-    wizard.next()
-    qtbot.wait(10)
-    wizard.llm_mode_page.select_manual_import()
-    wizard.next()
-    qtbot.wait(10)
-    wizard.llm_page.select_manual_import(
-        embedding_dir=embedding_src,
-        gemma_dir=gemma_src,
-    )
-    assert wizard.llm_page.skips_bootstrap_page()
-    assert wizard.llm_page.nextId() == 5
-
-    wizard.next()
-    qtbot.wait(50)
-
-    assert wizard.currentPage() is wizard.target_page
-    assert not downloader.artifact_ids
-    model_store = wizard.bootstrap_page.model_store
-    assert model_store.is_installed(EMBEDDING_MINILM_ID)
-    assert model_store.is_installed(EMBEDDED_GEMMA_ID)
+        assert wizard.llm_page.validatePage() is False
+    finally:
+        llm_config_page.native_llm_operational = original
 
 
 def test_llm_page_persists_huggingface_token(qtbot, tmp_path: Path) -> None:

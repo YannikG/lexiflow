@@ -4,9 +4,15 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from lexiflow_core.jobs.handlers.cleanup_output import (
+    CleanupOutputError,
+    validate_cleanup_output,
+)
+from lexiflow_core.jobs.job_errors import user_facing_job_error
 from lexiflow_core.jobs.models import JobRecord, JobRequest, JobType
 from lexiflow_core.jobs.service import JobService
 from lexiflow_core.library.text_repository import TextRepository
+from lexiflow_core.llm.prompt_languages import prompt_language_label
 from lexiflow_core.llm.prompts import render_prompt
 from lexiflow_core.llm.protocol import LLMProvider
 
@@ -58,14 +64,20 @@ def handle_cleanup(
     record = repo.get_text(text_id)
     prompt = render_prompt(
         "cleanup",
-        native_language=record.native_language,
-        target_language=record.target_language,
+        native_language=prompt_language_label(record.native_language),
+        target_language=prompt_language_label(record.target_language),
         pasted_content=raw_paste,
     )
     try:
-        cleaned = llm.complete(prompt)
+        raw_cleaned = llm.complete(prompt)
     except Exception as exc:
-        job_service.fail(job.id, str(exc))
+        job_service.fail(job.id, user_facing_job_error(str(exc)))
+        return
+
+    try:
+        cleaned = validate_cleanup_output(raw_paste=raw_paste, cleaned=raw_cleaned)
+    except CleanupOutputError as exc:
+        job_service.fail(job.id, user_facing_job_error(str(exc)))
         return
 
     if route == SOURCE_ROUTE_NATIVE:

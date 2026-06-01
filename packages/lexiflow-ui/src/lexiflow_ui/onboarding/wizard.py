@@ -207,6 +207,10 @@ class OnboardingWizard(QWizard):
         return self._bootstrap
 
     @property
+    def data_root(self) -> Path:
+        return self._data_root
+
+    @property
     def target_page(self) -> TargetLanguagePage:
         return self._target
 

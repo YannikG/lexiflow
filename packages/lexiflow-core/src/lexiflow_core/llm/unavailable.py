@@ -11,6 +11,10 @@ class UnavailableLLM:
     def __init__(self, message: str) -> None:
         self._message = message
 
+    @property
+    def reason(self) -> str:
+        return self._message
+
     def complete(
         self, prompt: str, *, json_schema: dict[str, object] | None = None
     ) -> str:

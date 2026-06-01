@@ -40,7 +40,7 @@ def main(argv: list[str] | None = None) -> int:
         logger.info("worker consuming queue at %s", job_service.db_path)
         settings = SettingsStore().load()
         llm = resolve_llm(settings, data_root)
-        embedder = resolve_embedder(data_root)
+        embedder = resolve_embedder(settings)
         run_worker_loop(
             job_service,
             llm,

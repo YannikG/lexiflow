@@ -5,11 +5,13 @@ from __future__ import annotations
 from lexiflow_core.config.settings import Settings
 
 EMBEDDING_MINILM_ID = "embedding-minilm"
-EMBEDDED_GEMMA_ID = "embedded-gemma"
+NATIVE_LLM_ID = "native-llm"
+
+# Backward-compatible alias for tests and docs migrating off embedded-gemma.
+EMBEDDED_GEMMA_ID = NATIVE_LLM_ID
 
 
 def required_artifact_ids(settings: Settings) -> tuple[str, ...]:
-    """Return artifact IDs required before onboarding can complete."""
-    if settings.ollama_url:
-        return (EMBEDDING_MINILM_ID,)
-    return (EMBEDDING_MINILM_ID, EMBEDDED_GEMMA_ID)
+    """Return artifact IDs LexiFlow must download before onboarding completes."""
+    del settings
+    return ()

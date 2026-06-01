@@ -22,7 +22,7 @@ class _GatedLike(GatedRepoError):
 def test_gated_repo_error_maps_to_model_access_not_pin(tmp_path: Path) -> None:
     """GatedRepoError must map to ModelAccessError, not ModelPinError."""
     artifact = ModelArtifact(
-        id="embedded-gemma",
+        id="native-llm",
         repo="google/gemma-4-E2B-it",
         revision="905e84b50c4d2a365ebde34e685027578e6728db",
     )

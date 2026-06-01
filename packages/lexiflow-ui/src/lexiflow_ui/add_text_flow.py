@@ -16,20 +16,18 @@ from lexiflow_core.text_pipeline.language_detect import LangdetectLanguageDetect
 from PySide6.QtWidgets import QMessageBox, QWidget
 
 from lexiflow_ui.dialogs.add_text_dialog import AddTextFormData
-from lexiflow_ui.worker_supervisor import WorkerSupervisor
 
 
 def submit_add_text(
     *,
     data_root: Path,
     settings: Settings,
-    supervisor: WorkerSupervisor,
     form: AddTextFormData,
     parent: QWidget | None,
     ignore_duplicate: bool = False,
     confirmed_large_paste: bool = False,
 ) -> UUID | None:
-    """Submit add-text form data through the pipeline and spawn the worker."""
+    """Submit add-text form data through the pipeline."""
     native = settings.native_language
     target = settings.active_target_language
     if native is None or target is None:
@@ -63,7 +61,6 @@ def submit_add_text(
         return submit_add_text(
             data_root=data_root,
             settings=settings,
-            supervisor=supervisor,
             form=form,
             parent=parent,
             ignore_duplicate=True,
@@ -82,12 +79,10 @@ def submit_add_text(
         return submit_add_text(
             data_root=data_root,
             settings=settings,
-            supervisor=supervisor,
             form=form,
             parent=parent,
             ignore_duplicate=ignore_duplicate,
             confirmed_large_paste=True,
         )
 
-    supervisor.ensure_running()
     return text_id

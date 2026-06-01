@@ -10,19 +10,19 @@ from lexiflow_core.models.requirements import (
 )
 
 
-def test_required_artifact_ids_skip_gemma_when_ollama_configured() -> None:
+def test_required_artifact_ids_empty_for_ollama() -> None:
     settings = Settings(ollama_url="http://127.0.0.1:11434")
 
     required = required_artifact_ids(settings)
 
-    assert required == (EMBEDDING_MINILM_ID,)
+    assert required == ()
+    assert EMBEDDING_MINILM_ID not in required
     assert EMBEDDED_GEMMA_ID not in required
 
 
-def test_required_artifact_ids_include_gemma_for_embedded_path() -> None:
+def test_required_artifact_ids_empty_for_native_path() -> None:
     settings = Settings(ollama_url=None)
 
     required = required_artifact_ids(settings)
 
-    assert EMBEDDING_MINILM_ID in required
-    assert EMBEDDED_GEMMA_ID in required
+    assert required == ()

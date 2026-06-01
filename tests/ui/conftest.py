@@ -18,6 +18,25 @@ def restore_app_stylesheet() -> Iterator[None]:
 
 
 @pytest.fixture(autouse=True)
+def _native_runtime_ready(monkeypatch: pytest.MonkeyPatch) -> None:
+    def operational(settings):  # noqa: ANN001
+        return True, None
+
+    monkeypatch.setattr(
+        "lexiflow_core.llm.llama_server.native_llm_operational",
+        operational,
+    )
+    monkeypatch.setattr(
+        "lexiflow_ui.onboarding.model_bootstrap_page.native_llm_operational",
+        operational,
+    )
+    monkeypatch.setattr(
+        "lexiflow_ui.onboarding.llm_config_page.native_llm_operational",
+        operational,
+    )
+
+
+@pytest.fixture(autouse=True)
 def _non_blocking_unsaved_prompt(monkeypatch: pytest.MonkeyPatch) -> None:
     """Prevent modal unsaved-changes dialogs from blocking unattended test runs."""
     monkeypatch.setattr(
