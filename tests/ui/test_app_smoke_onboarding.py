@@ -21,9 +21,7 @@ def test_app_smoke_then_onboarding_rerun(
     qtbot, monkeypatch, tmp_path: Path, restore_app_stylesheet
 ) -> None:
     """app.quit() in smoke used to stall bootstrap threads in following tests."""
-    test_app_smoke.test_app_smoke(
-        qtbot, monkeypatch, tmp_path, restore_app_stylesheet
-    )
+    test_app_smoke.test_app_smoke(qtbot, monkeypatch, tmp_path, restore_app_stylesheet)
 
     config_dir = tmp_path / "config"
     data_root = tmp_path / "library"
