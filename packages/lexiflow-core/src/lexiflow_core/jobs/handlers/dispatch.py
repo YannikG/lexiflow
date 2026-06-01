@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from lexiflow_core.embeddings.protocol import Embedder
 from lexiflow_core.jobs.handlers.cleanup import handle_cleanup
+from lexiflow_core.jobs.handlers.embed import handle_embed
 from lexiflow_core.jobs.handlers.translate import handle_translate
 from lexiflow_core.jobs.models import JobRecord, JobType
 from lexiflow_core.jobs.service import JobService
@@ -19,6 +21,7 @@ def process_job(
     data_root: Path,
     job_service: JobService,
     llm: LLMProvider,
+    embedder: Embedder | None = None,
     index: LibraryIndex | None = None,
 ) -> None:
     """Run a single job through the appropriate handler."""
@@ -29,5 +32,17 @@ def process_job(
         return
     if job.job_type == JobType.TRANSLATE:
         handle_translate(job, llm=llm, repo=repo, job_service=job_service)
+        return
+    if job.job_type == JobType.EMBED:
+        if embedder is None:
+            job_service.fail(job.id, "embedder is not configured")
+            return
+        handle_embed(
+            job,
+            data_root=data_root,
+            embedder=embedder,
+            repo=repo,
+            job_service=job_service,
+        )
         return
     job_service.fail(job.id, f"unsupported job type: {job.job_type}")

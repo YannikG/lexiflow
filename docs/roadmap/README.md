@@ -25,6 +25,7 @@ flowchart TB
   P092[Phase 09-2 UI theme migration]
   P17[Phase 17 UI cleanup]
   P10[Phase 10 Embeddings and sqlite-vec]
+  P101[Phase 10-1 LLM worker wiring]
   P11[Phase 11 Simplify and new words]
   P12[Phase 12 Vocabulary]
   P13[Phase 13 Search and data management]
@@ -35,8 +36,10 @@ flowchart TB
   P05 --> P06 --> P07 --> P08 --> P09
   P09 --> P092
   P092 --> P17
+  P09 --> P10 --> P101
   P09 --> P10 --> P10b[Phase 10b Ollama embeddings]
   P17 --> P10
+  P101 --> P11
   P10b --> P11 --> P12 --> P13
   P13 --> P14 --> P15
   P15 --> P16[Phase 16 Issue migration cleanup]
@@ -59,6 +62,7 @@ flowchart TB
 | 09-2 | [phase-09-2-ui-theme-migration](phases/phase-09-2-ui-theme-migration/) | **UI theme** strategy, shell **UI theme migration** ([ADR 0006](../adr/0006-desktop-ui-theme-strategy.md)) |
 | 17 | [phase-17-ui-cleanup](phases/phase-17-ui-cleanup/) | **UI cleanup checklist**: sidebar tree, language switcher, shell alignment |
 | 10 | [phase-10-embeddings](phases/phase-10-embeddings/) | **Vector storage**, **embedding queue** (MiniLM baseline) |
+| 10-1 | [phase-10-1-llm-worker](phases/phase-10-1-llm-worker/) | **Worker LLM wiring** — Ollama + embedded Gemma; replaces dev `FakeLLM` stub |
 | 10b | [phase-10b-ollama-embeddings](phases/phase-10b-ollama-embeddings/) | **Ollama embedder**; skip MiniLM when Ollama configured ([ADR 0005](../adr/0005-ollama-embedding-provider-deferred.md)) |
 | 11 | [phase-11-simplify](phases/phase-11-simplify/) | **Simplify word mix**, **new word suggestions** |
 | 12 | [phase-12-vocabulary](phases/phase-12-vocabulary/) | **Vocabulary study**, export/import |
@@ -73,13 +77,15 @@ Create after phase 00 is on `main`, from [phase issue template](../../.github/IS
 
 Phase **09-2** is a **mid-roadmap insert**: one issue ([#27](https://github.com/YannikG/lexiflow/issues/27)), one PR, **blocked by** phase 09. Delivers **UI theme** ADR and migration spec. **Blocks** phase 17 only; phase 10 (embeddings) may proceed in parallel after phase 09.
 
+Phase **10-1** wires **LLM providers** into the worker (Ollama + embedded Gemma). Issue [#30](https://github.com/YannikG/lexiflow/issues/30); **blocked by** phase 10; **blocks** phase 11 together with phase 10b. Can run in parallel with phase 10b after phase 10 merges.
+
 Phase **17** is a **UI cleanup** track: one issue, one PR, checklist-driven. **Blocked by** phase **09-2** (themed baseline before tree/switcher work). Optional before phase 10 when the team prioritises shell alignment over embeddings (`P17 --> P10` in the diagram).
 
 Create labels **`phase`** and **`v1`** on GitHub before using the form (or add them manually per issue).
 
 Each issue:
 
-- **Title:** `Phase XX: <name>` (insert phases: `Phase 9-2: …`, `Phase 10b: …`)
+- **Title:** `Phase XX: <name>` (insert phases: `Phase 9-2: …`, `Phase 10-1: …`, `Phase 10b: …`)
 - **Body:** link to `docs/roadmap/phases/phase-XX-.../README.md` only
 - **Blocked by:** previous phase issue (phase 01 has no blocker; insert phases declare **Blocked by** / **Blocks** in their README)
 

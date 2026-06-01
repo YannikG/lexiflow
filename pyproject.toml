@@ -49,6 +49,10 @@ packages = ["lexiflow_core", "lexiflow_worker"]
 module = ["langdetect", "langdetect.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = ["sqlite_vec"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 qt_api = "pyside6"

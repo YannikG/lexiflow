@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+from lexiflow_core.embeddings.protocol import Embedder
 from lexiflow_core.jobs.handlers.dispatch import process_job
 from lexiflow_core.jobs.models import JobRecord, JobType
 from lexiflow_core.jobs.service import JobService
@@ -37,6 +38,7 @@ def run_worker_loop(
     job_service: JobService,
     llm: LLMProvider,
     *,
+    embedder: Embedder | None = None,
     data_root: Path | None = None,
 ) -> None:
     """Process pending jobs until the queue is empty."""
@@ -51,8 +53,14 @@ def run_worker_loop(
         try:
             if "prompt" in job.payload:
                 _process_legacy_prompt_job(job_service, llm, job)
-            elif job.job_type in (JobType.CLEANUP, JobType.TRANSLATE):
-                process_job(job, data_root=data_root, job_service=job_service, llm=llm)
+            elif job.job_type in (JobType.CLEANUP, JobType.TRANSLATE, JobType.EMBED):
+                process_job(
+                    job,
+                    data_root=data_root,
+                    job_service=job_service,
+                    llm=llm,
+                    embedder=embedder,
+                )
             else:
                 job_service.fail(job.id, f"unsupported job type: {job.job_type}")
         except Exception as exc:

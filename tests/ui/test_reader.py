@@ -7,6 +7,8 @@ from pathlib import Path
 import pytest
 from lexiflow_core.config.paths import variant_path
 from lexiflow_core.config.settings import Settings
+from lexiflow_core.jobs.models import JobType
+from lexiflow_core.jobs.service import JobService
 from lexiflow_core.library.index import LibraryIndex
 from lexiflow_core.library.library_coordinator import LibraryCoordinator
 from lexiflow_core.library.models import CreateTextRequest
@@ -361,6 +363,28 @@ def test_edit_save_updates_translated_variant(reader_window, qtbot) -> None:
     read_pane = window.reader.findChild(QTextBrowser, "reader_read_pane")
     assert read_pane is not None
     assert "Texto guardado." in read_pane.toPlainText()
+
+
+def test_edit_save_enqueues_embed_job_for_translated_tab(reader_window, qtbot) -> None:
+    window, data_root = reader_window
+    _click_sidebar_text(qtbot, window)
+
+    edit_button = window.reader.findChild(QPushButton, "reader_edit_button")
+    save_button = window.reader.findChild(QPushButton, "reader_save_button")
+    edit_pane = window.reader.findChild(QPlainTextEdit, "reader_edit_pane")
+    assert edit_button is not None and save_button is not None and edit_pane is not None
+
+    qtbot.mouseClick(edit_button, Qt.MouseButton.LeftButton)
+    edit_pane.setPlainText("# Traducción\n\nTexto re-embebido.")
+    qtbot.mouseClick(save_button, Qt.MouseButton.LeftButton)
+    qtbot.wait(50)
+
+    embed_jobs = [
+        job
+        for job in JobService(data_root).list_jobs()
+        if job.job_type == JobType.EMBED
+    ]
+    assert len(embed_jobs) == 1
 
 
 def test_edit_disabled_when_translated_variant_missing(qtbot, tmp_path) -> None:

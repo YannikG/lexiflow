@@ -174,7 +174,11 @@ class MainWindow(QMainWindow):
         texts_action_button = self._texts_view.action_button()
         if texts_action_button is not None:
             texts_action_button.clicked.connect(self._open_add_text_dialog)
-        self._reader = ReaderWidget(self._texts_stack)
+        self._reader = ReaderWidget(
+            self._texts_stack,
+            data_root=self._data_root,
+            supervisor=self._supervisor,
+        )
         self._reader.tab_changed.connect(self._on_reader_tab_changed)
         self._reader.text_saved.connect(self._refresh_texts_ui)
         self._texts_stack.addWidget(self._texts_view)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from lexiflow_core.jobs.embed_queue import enqueue_translated_text_embed
 from lexiflow_core.jobs.handlers.cleanup import (
     TRANSLATE_PHASE_ENSURE_NATIVE,
     TRANSLATE_PHASE_PLAIN,
@@ -86,4 +87,5 @@ def handle_translate(
         return
 
     repo.apply_translated_variant(text_id, translated)
+    enqueue_translated_text_embed(job_service, text_id)
     job_service.complete(job.id, {})

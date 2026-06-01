@@ -41,3 +41,13 @@ def bundled_migrations_dir() -> Path:
 def queue_migrations_dir() -> Path:
     """Return the packaged SQL migrations directory for the job queue database."""
     return bundled_migrations_dir() / "queue"
+
+
+def vocabulary_migrations_dir() -> Path:
+    """Return SQL migrations for per-language vocabulary databases."""
+    return bundled_migrations_dir() / "vocabulary"
+
+
+def text_vectors_migrations_dir() -> Path:
+    """Return SQL migrations for per-language text vector databases."""
+    return bundled_migrations_dir() / "text_vectors"

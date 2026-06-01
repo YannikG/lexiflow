@@ -24,6 +24,7 @@ def test_lexiflow_core_imports_without_cycles() -> None:
         schema_migrations,
         sql_script,
     )
+    from lexiflow_core.embeddings import Embedder, FakeEmbedder
     from lexiflow_core.jobs import JobService, ensure_job_queue, run_worker_loop
     from lexiflow_core.llm import FakeLLM, LLMProvider
 
@@ -47,6 +48,8 @@ def test_lexiflow_core_imports_without_cycles() -> None:
     assert JobService is not None
     assert run_worker_loop is not None
     assert FakeLLM is not None
+    assert FakeEmbedder is not None
+    assert Embedder is not None
     assert LLMProvider is not None
     assert models_pkg.load_models_lock is not None
     assert models_pkg.ModelStore is not None
