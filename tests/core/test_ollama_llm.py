@@ -6,6 +6,7 @@ import json
 import urllib.error
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
+
 import pytest
 from lexiflow_core.llm.ollama import OllamaError, OllamaLLM
 

@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
 import pytest
-import sys
-
 from lexiflow_core.llm.embedded_gemma import (
     EmbeddedGemmaLLM,
     _gemma_inference_env,
