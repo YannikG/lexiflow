@@ -45,7 +45,10 @@ class _DefaultOpener:
         return cast(HTTPResponse, urllib.request.urlopen(request, timeout=timeout))
 
 
-_LLAMA_SERVER_NAME = "llama-server"
+def _llama_server_executable_name() -> str:
+    return "llama-server.exe" if os.name == "nt" else "llama-server"
+
+
 # GUI apps on macOS often inherit a minimal PATH without Homebrew.
 _SUPPLEMENTARY_PATH_DIRS = ("/opt/homebrew/bin", "/usr/local/bin")
 
@@ -90,7 +93,7 @@ def llama_server_binary() -> str | None:
     if override:
         return _executable_path(Path(override))
     for directory in _path_directories():
-        resolved = _executable_path(Path(directory) / _LLAMA_SERVER_NAME)
+        resolved = _executable_path(Path(directory) / _llama_server_executable_name())
         if resolved is not None:
             return resolved
     return None

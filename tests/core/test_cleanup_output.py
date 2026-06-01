@@ -57,6 +57,15 @@ def test_validate_cleanup_output_rejects_empty_fence_wrapper() -> None:
         validate_cleanup_output(raw_paste=paste, cleaned="```markdown\n```")
 
 
+def test_validate_cleanup_output_accepts_single_newline_after_title() -> None:
+    paste = "Line one\n\nLine two"
+    cleaned = "# Article\nLine one\n\nLine two"
+
+    normalized = validate_cleanup_output(raw_paste=paste, cleaned=cleaned)
+
+    assert normalized == cleaned
+
+
 def test_validate_cleanup_output_accepts_structured_markdown() -> None:
     paste = "Line one\n\nLine two"
     cleaned = "# Article\n\nLine one\n\nLine two"

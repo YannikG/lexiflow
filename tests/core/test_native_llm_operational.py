@@ -156,3 +156,22 @@ def test_llama_server_binary_prefers_lexiflow_env_override(
     )
 
     assert llama_server_binary() == str(override)
+
+
+def test_llama_server_binary_uses_exe_name_on_windows(monkeypatch, tmp_path: Path) -> None:
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    fake_binary = bin_dir / "llama-server.exe"
+    fake_binary.write_text("")
+    fake_binary.chmod(0o755)
+    monkeypatch.setattr(
+        "lexiflow_core.llm.llama_server._llama_server_executable_name",
+        lambda: "llama-server.exe",
+    )
+    monkeypatch.delenv("LEXIFLOW_LLAMA_SERVER_BIN", raising=False)
+    monkeypatch.setattr(
+        "lexiflow_core.llm.llama_server._path_directories",
+        lambda: (str(bin_dir),),
+    )
+
+    assert llama_server_binary() == str(fake_binary)

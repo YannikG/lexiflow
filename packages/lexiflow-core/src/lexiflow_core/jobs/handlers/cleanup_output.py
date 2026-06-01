@@ -24,9 +24,10 @@ def validate_cleanup_output(*, raw_paste: str, cleaned: str) -> str:
         title = parse_document_title(normalized)
     except DocumentTitleError as exc:
         raise CleanupOutputError(str(exc)) from exc
-    body = normalized.split("\n\n", 1)
-    if len(body) < 2 or not body[1].strip():
+    parts = normalized.split("\n", 1)
+    if len(parts) < 2 or not parts[1].strip():
         raise CleanupOutputError("cleanup output body is empty")
-    if title.strip() == body[1].strip():
+    body_text = parts[1].strip()
+    if title.strip() == body_text:
         raise CleanupOutputError("cleanup output body is empty")
     return normalized

@@ -38,6 +38,18 @@ def test_validate_translate_output_strips_markdown_fence() -> None:
     assert normalized == "# Target\n\nbody"
 
 
+def test_validate_translate_output_accepts_single_newline_after_title() -> None:
+    source = "# Native\n\ncontent"
+    translated = "# Target\nbody text"
+
+    normalized = validate_translate_output(
+        source_markdown=source,
+        translated=translated,
+    )
+
+    assert normalized == translated
+
+
 def test_validate_translate_output_accepts_translated_markdown() -> None:
     source = "# Native\n\ncontent"
     translated = "# Target\n\nbody"
