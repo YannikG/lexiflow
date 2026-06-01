@@ -150,9 +150,7 @@ def test_simplify_button_enqueues_job(qtbot, tmp_path) -> None:
     assert jobs[0].payload["level"] == "A2"
 
 
-def test_simplify_level_picker_defaults_to_user_language_level(
-    qtbot, tmp_path
-) -> None:
+def test_simplify_level_picker_defaults_to_user_language_level(qtbot, tmp_path) -> None:
     data_root = tmp_path / "LexiFlow"
     LanguageStore(data_root).add_target("es", CEFRLevel.B1)
     _seed_reader_text(data_root)
@@ -223,8 +221,7 @@ def test_new_words_add_enqueues_vocabulary_embed_job(qtbot, tmp_path) -> None:
     embed_jobs = [
         job
         for job in JobService(data_root).list_jobs()
-        if job.job_type == JobType.EMBED
-        and job.payload.get("lemma") == "nadar"
+        if job.job_type == JobType.EMBED and job.payload.get("lemma") == "nadar"
     ]
     assert len(embed_jobs) == 1
     assert embed_jobs[0].payload["language_code"] == "es"
