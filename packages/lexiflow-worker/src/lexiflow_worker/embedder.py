@@ -22,10 +22,11 @@ def resolve_embedder(data_root: Path) -> Embedder:
 
             importlib.import_module("sentence_transformers")
             from lexiflow_core.embeddings.minilm import MiniLMEmbedder
-        except ImportError:
+        except Exception as exc:
             logger.warning(
-                "MiniLM artifact present but sentence_transformers missing; "
-                "using FakeEmbedder"
+                "MiniLM artifact present but embedder unavailable (%s); "
+                "using FakeEmbedder",
+                exc,
             )
             return FakeEmbedder()
         logger.info("using MiniLM embedder from %s", marker.parent)

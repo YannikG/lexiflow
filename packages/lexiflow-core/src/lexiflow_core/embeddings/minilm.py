@@ -15,11 +15,13 @@ class MiniLMEmbedder:
 
     def __init__(self, data_root: Path) -> None:
         self._data_root = data_root
+        self._model: Any | None = None
 
     def embed(self, text: str) -> list[float]:
-        sentence_transformers = importlib.import_module("sentence_transformers")
-        model_cls: Any = sentence_transformers.SentenceTransformer
-        model_dir = artifact_dir(self._data_root, EMBEDDING_MINILM_ID)
-        model = model_cls(str(model_dir))
-        vector = model.encode(text, normalize_embeddings=False)
+        if self._model is None:
+            sentence_transformers = importlib.import_module("sentence_transformers")
+            model_cls: Any = sentence_transformers.SentenceTransformer
+            model_dir = artifact_dir(self._data_root, EMBEDDING_MINILM_ID)
+            self._model = model_cls(str(model_dir))
+        vector = self._model.encode(text, normalize_embeddings=False)
         return [float(value) for value in vector.tolist()]

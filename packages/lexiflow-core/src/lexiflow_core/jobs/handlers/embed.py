@@ -37,7 +37,12 @@ def handle_embed(
 
     try:
         record = repo.get_text(text_id)
-        translated = repo.read_variant(text_id, "translated")
+        try:
+            translated = repo.read_variant(text_id, "translated")
+        except FileNotFoundError as exc:
+            raise ValueError(f"text {text_id} has no translated variant") from exc
+        if translated is None:
+            raise ValueError(f"text {text_id} has no translated variant")
         vector = embedder.embed(translated)
         store = (
             vector_store

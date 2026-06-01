@@ -103,3 +103,34 @@ def test_translate_completion_enqueues_embed_job(tmp_path: Path) -> None:
 
     store = VectorStore(data_root, "es")
     assert store.get_text_vector(record.id) is not None
+
+
+def test_embed_job_fails_when_translated_variant_missing(tmp_path: Path) -> None:
+    data_root = tmp_path / "LexiFlow"
+    coordinator, index = LibraryCoordinator.open(data_root)
+    del coordinator
+    repo = TextRepository(data_root, index)
+    record = repo.create_text(
+        CreateTextRequest(
+            title="Untitled",
+            group="News",
+            target_language="es",
+            native_language="en",
+            body="hola",
+        )
+    )
+    job_service = JobService(data_root)
+    job_service.enqueue(
+        JobRequest(job_type=JobType.EMBED, payload={"text_id": str(record.id)})
+    )
+
+    run_worker_loop(
+        job_service,
+        FakeLLM(response="unused"),
+        embedder=FakeEmbedder(),
+        data_root=data_root,
+    )
+
+    jobs = job_service.list_jobs()
+    assert jobs[0].status == JobStatus.FAILED
+    assert "no translated variant" in (jobs[0].error_message or "")

@@ -28,15 +28,15 @@ class VectorStore:
         connection = self._open_text_vectors_db()
         try:
             text_id_text = str(text_id)
-            connection.execute(
-                "DELETE FROM text_embeddings WHERE text_id = ?",
-                (text_id_text,),
-            )
-            connection.execute(
-                "INSERT INTO text_embeddings(text_id, embedding) VALUES (?, ?)",
-                (text_id_text, serialize_float32(vec)),
-            )
-            connection.commit()
+            with connection:
+                connection.execute(
+                    "DELETE FROM text_embeddings WHERE text_id = ?",
+                    (text_id_text,),
+                )
+                connection.execute(
+                    "INSERT INTO text_embeddings(text_id, embedding) VALUES (?, ?)",
+                    (text_id_text, serialize_float32(vec)),
+                )
         finally:
             connection.close()
 
@@ -64,15 +64,15 @@ class VectorStore:
         self._validate_dimensions(vec)
         connection = self._open_vocabulary_db()
         try:
-            connection.execute(
-                "DELETE FROM word_embeddings WHERE lemma = ?",
-                (lemma,),
-            )
-            connection.execute(
-                "INSERT INTO word_embeddings(lemma, embedding) VALUES (?, ?)",
-                (lemma, serialize_float32(vec)),
-            )
-            connection.commit()
+            with connection:
+                connection.execute(
+                    "DELETE FROM word_embeddings WHERE lemma = ?",
+                    (lemma,),
+                )
+                connection.execute(
+                    "INSERT INTO word_embeddings(lemma, embedding) VALUES (?, ?)",
+                    (lemma, serialize_float32(vec)),
+                )
         finally:
             connection.close()
 
