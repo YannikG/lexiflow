@@ -36,7 +36,7 @@ def test_generation_indicator_loading_model(tmp_path: Path) -> None:
     )
 
     assert indicator is not None
-    assert "gemma 4" in indicator.headline.lower()
+    assert "language model" in indicator.headline.lower()
     assert indicator.show_progress is True
     assert "hugging face" in indicator.detail.lower()
 
@@ -95,4 +95,4 @@ def test_format_background_status_reports_model_loading(tmp_path: Path) -> None:
 
     message = format_background_status(worker, llama)
 
-    assert "loading gemma 4" in message.lower()
+    assert "loading language model" in message.lower()

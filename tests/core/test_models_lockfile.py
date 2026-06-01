@@ -29,9 +29,7 @@ llama_hf_model = "ggml-org/gemma-4-E2B-it-GGUF:Q8_0"
 
     assert len(lock.artifacts) == 2
     assert lock.artifacts[1].id == "native-llm"
-    assert lock.artifacts[1].llama_hf_model == (
-        "ggml-org/gemma-4-E2B-it-GGUF:Q8_0"
-    )
+    assert lock.artifacts[1].llama_hf_model == ("ggml-org/gemma-4-E2B-it-GGUF:Q8_0")
 
 
 def test_bundled_models_lock_loads_two_artifacts() -> None:

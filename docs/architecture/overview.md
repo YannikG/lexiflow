@@ -9,10 +9,11 @@ flowchart LR
   subgraph ui [UI process - PySide6]
     MainWindow
     JobPanel
+    LlamaSrv[llama-server]
   end
   subgraph worker [Worker process]
     JobRunner
-    LLMSub[LLM subprocess]
+    HttpLLM[HTTP LLM client]
     Embed[MiniLM embed]
   end
   Queue[(queue.sqlite)]
@@ -20,12 +21,13 @@ flowchart LR
   ui -->|enqueue| Queue
   worker -->|consume| Queue
   ui -->|read/write| Index
-  JobRunner --> LLMSub
+  JobRunner --> HttpLLM
   JobRunner --> Embed
+  HttpLLM -.->|native path| LlamaSrv
   ui -.->|QLocalSocket| worker
 ```
 
-- **UI:** no llama.cpp / heavy ML imports.
+- **UI:** no torch/transformers; supervises `llama-server` on the native LLM path.
 - **Worker:** lazy spawn on first AI job; idle shutdown ~5 min.
 - **Single PyInstaller bundle:** same binary, different entry module (`lexiflow-ui` vs `lexiflow-worker`).
 
@@ -71,8 +73,8 @@ settings.toml          # global settings, including data_root pointer
 
 ## External dependencies
 
-- **Hugging Face:** Gemma 4 E2B, MiniLM, spaCy packs (`models.lock` pins revisions).
-- **Ollama (optional):** replaces embedded LLM only; embeddings always local.
+- **Hugging Face:** pinned native LLM GGUF (via llama-server), MiniLM, spaCy packs (`models.lock` pins revisions).
+- **Ollama (optional):** replaces native LLM only; embeddings load via `sentence-transformers` unless phase 10b adds Ollama embed.
 
 ## Testing strategy
 

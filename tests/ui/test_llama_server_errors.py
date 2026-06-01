@@ -14,7 +14,7 @@ def test_llama_server_startup_error_maps_hf_auth_failure() -> None:
     message = llama_server_startup_error(stderr)
 
     assert "hugging face access token" in message.lower()
-    assert "gemma 4" in message.lower()
+    assert "language model" in message.lower()
 
 
 def test_llama_server_startup_error_maps_missing_repo() -> None:
@@ -26,7 +26,7 @@ def test_llama_server_startup_error_maps_missing_repo() -> None:
     message = llama_server_startup_error(stderr)
 
     assert "not found" in message.lower()
-    assert "gemma 4" in message.lower()
+    assert "language model" in message.lower()
     assert "access token" not in message.lower()
 
 
@@ -39,7 +39,7 @@ def test_llama_server_startup_error_maps_invalid_model_spec() -> None:
     message = llama_server_startup_error(stderr)
 
     assert "invalid" in message.lower()
-    assert "gemma 4" in message.lower()
+    assert "language model" in message.lower()
     assert "access token" not in message.lower()
 
 
@@ -49,5 +49,5 @@ def test_llama_server_startup_error_maps_generic_hf_download_failure() -> None:
     message = llama_server_startup_error(stderr)
 
     assert "failed to download" in message.lower()
-    assert "gemma 4" in message.lower()
+    assert "language model" in message.lower()
     assert "access token required" not in message.lower()

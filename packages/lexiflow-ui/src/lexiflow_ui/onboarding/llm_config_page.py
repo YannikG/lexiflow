@@ -27,7 +27,7 @@ DEFAULT_OLLAMA_URL = "http://127.0.0.1:11434"
 HF_TOKEN_URL = "https://huggingface.co/settings/tokens"
 HF_HOME_URL = "https://huggingface.co"
 _LINE_EDIT_MIN_HEIGHT = 32
-TARGET_PAGE_ID = 5
+TARGET_PAGE_ID = 4
 
 
 def _line_edit(parent: QWidget, *, placeholder: str = "") -> QLineEdit:
@@ -80,7 +80,7 @@ class LlmConfigPage(QWizardPage):
                 "LexiFlow runs a pinned language model with llama-server. "
                 "Models load from Hugging Face when needed. "
                 "Install llama-server from llama.cpp before continuing.",
-                object_name="native_download_note",
+                object_name="native_llm_note",
             )
         )
         self._native_license_steps = _hint_label(
@@ -176,9 +176,6 @@ class LlmConfigPage(QWizardPage):
         if mode_page is not None:
             mode_page.select_native()
 
-    def select_embedded(self) -> None:
-        self.select_native()
-
     def select_ollama(self, url: str) -> None:
         mode_page = self._mode_page()
         if mode_page is not None:
@@ -199,9 +196,6 @@ class LlmConfigPage(QWizardPage):
 
     def uses_native(self) -> bool:
         return self._selected_mode() == LlmMode.NATIVE
-
-    def skips_bootstrap_page(self) -> bool:
-        return True
 
     def apply_to_settings(self, settings: Settings) -> Settings:
         token = self._hf_token.text().strip() or None

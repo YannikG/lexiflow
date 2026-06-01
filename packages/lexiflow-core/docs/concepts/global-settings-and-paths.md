@@ -26,7 +26,7 @@ Settings are read before opening the library so a **data root** override never c
 | `bootstrap` | `bootstrap_runtime(settings_store)` | Load settings, resolve data root, ensure layout |
 | `settings_store` | `SettingsStore` | Read/write `settings.toml` |
 | `settings` | `Settings` | Global settings data model |
-| `models.store` | `ModelStore` | Installed revision markers under `.app/models/` |
+| `models.store` | `ModelStore` | Optional cache markers under `.app/models/` (phase 14 maintenance UI; v1 onboarding does not download LLM weights here) |
 | `models.lockfile` | `load_models_lock()` | Shipped pin manifest for HF artifacts |
 
 Pure path formulas stay separate from filesystem mutation and from settings I/O.

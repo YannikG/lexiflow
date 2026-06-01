@@ -41,7 +41,7 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Local logging** — Rotating log files in the app data area. Settings: open logs folder, optional verbose debug mode (off by default). User may attach logs to GitHub issues manually; no automatic upload.
 
-**Network requirement** — First install requires network to complete **model bootstrap** unless the user already has a configured local Ollama instance with the LLM. After required artifacts are cached, the app runs fully offline for reading, vocabulary, translate, simplify, and embed. Adding a new target language offline is blocked until its spaCy pack can download.
+**Network requirement** — First install may require network for Hugging Face model weights (native llama-server or sentence-transformers embedder), spaCy language packs when adding a target language, and optional Ollama model pulls when using an Ollama endpoint. After weights are cached locally, the app runs fully offline for reading, vocabulary, translate, simplify, and embed.
 
 **Distribution** — GitHub Releases with CI-built artifacts. Open-source license: Apache 2.0. Product name: LexiFlow.
 
@@ -57,7 +57,7 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Release hygiene** — CI publishes checksums per artifact. README documents first-run model download, RAM requirements, and platform-specific install friction (Gatekeeper, SmartScreen).
 
-**System requirements** — **About dialog** lists minimum RAM and disk for embedded model and cached artifacts. Onboarding warns if RAM is below recommended; user may continue anyway.
+**System requirements** — **About dialog** lists minimum RAM and disk for the native LLM and cached artifacts. Onboarding warns if RAM is below recommended; user may continue anyway.
 
 **Code signing roadmap** — v1 ships unsigned on macOS and Windows. Notarization and Windows signing are post-v1 if needed.
 

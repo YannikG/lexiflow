@@ -203,10 +203,10 @@ class ReaderWidget(QWidget):
         banner_layout.addWidget(self._generation_progress)
         self._generation_banner.hide()
         read_layout.addWidget(self._generation_banner)
-        read_layout.addWidget(self._read_pane)
+        read_layout.addWidget(self._read_pane, stretch=1)
         self._new_words_panel = NewWordsPanel(read_page)
         self._new_words_panel.add_requested.connect(self._add_new_word)
-        read_layout.addWidget(self._new_words_panel)
+        read_layout.addWidget(self._new_words_panel, stretch=0)
 
         edit_page = QWidget(self)
         edit_layout = QVBoxLayout(edit_page)

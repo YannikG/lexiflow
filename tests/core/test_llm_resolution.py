@@ -15,7 +15,7 @@ from lexiflow_core.llm.unavailable import UnavailableLLM
 def test_resolve_llm_returns_ollama_when_url_set(tmp_path: Path) -> None:
     settings = Settings(ollama_url="http://127.0.0.1:11434/")
 
-    provider = resolve_llm(settings, tmp_path)
+    provider = resolve_llm(settings)
 
     assert isinstance(provider, OllamaLLM)
     assert provider.base_url == "http://127.0.0.1:11434"
@@ -24,7 +24,7 @@ def test_resolve_llm_returns_ollama_when_url_set(tmp_path: Path) -> None:
 def test_resolve_llm_returns_disabled_when_llm_off(tmp_path: Path) -> None:
     settings = Settings(llm_enabled=False, ollama_url="http://127.0.0.1:11434")
 
-    provider = resolve_llm(settings, tmp_path)
+    provider = resolve_llm(settings)
 
     assert isinstance(provider, DisabledLLM)
 
@@ -37,7 +37,7 @@ def test_resolve_llm_returns_llama_server_when_native_ready(
         lambda settings: (True, None),
     )
 
-    provider = resolve_llm(Settings(), tmp_path)
+    provider = resolve_llm(Settings())
 
     assert isinstance(provider, LlamaServerLLM)
 
@@ -50,7 +50,7 @@ def test_resolve_llm_returns_unavailable_when_runtime_missing(
         lambda settings: (False, "Install llama-server"),
     )
 
-    provider = resolve_llm(Settings(), tmp_path)
+    provider = resolve_llm(Settings())
 
     assert isinstance(provider, UnavailableLLM)
     assert "llama-server" in provider.reason.lower()
@@ -64,6 +64,6 @@ def test_resolve_llm_returns_unavailable_when_no_ollama_and_native_missing(
         lambda settings: (False, "Install llama-server"),
     )
 
-    provider = resolve_llm(Settings(), tmp_path)
+    provider = resolve_llm(Settings())
 
     assert isinstance(provider, UnavailableLLM)

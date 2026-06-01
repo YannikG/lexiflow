@@ -5,12 +5,10 @@ from __future__ import annotations
 from dataclasses import replace
 from pathlib import Path
 
+import pytest
 from lexiflow_core.config.settings import Settings
 from lexiflow_core.config.settings_store import SettingsStore
-from lexiflow_core.models.download import FakeModelDownloader
-from lexiflow_core.models.lockfile import load_models_lock
 from lexiflow_core.models.model_hints import native_llm_hub_page_url
-from lexiflow_core.models.store import ModelStore
 from lexiflow_ui.app import run
 from lexiflow_ui.main_window import MainWindow
 from lexiflow_ui.onboarding.wizard import OnboardingWizard, run_onboarding_if_needed
@@ -40,45 +38,6 @@ class FakeSystemInfo:
         return self._total_ram_bytes
 
 
-class RecordingFakeDownloader:
-    """Records each artifact id passed to download()."""
-
-    def __init__(self) -> None:
-        self.artifact_ids: list[str] = []
-
-    def download(
-        self,
-        artifact: object,
-        dest: Path,
-        *,
-        token: str | None,
-        on_progress: object = None,
-        on_log_line: object = None,
-    ) -> None:
-        from lexiflow_core.models.lockfile import ModelArtifact
-
-        assert isinstance(artifact, ModelArtifact)
-        del token
-        if on_log_line is not None:
-            on_log_line(f"Downloading {artifact.id}:  50%|████     | 1/2")
-        if on_progress is not None:
-            on_progress(0.5)
-            on_progress(1.0)
-        self.artifact_ids.append(artifact.id)
-        dest.mkdir(parents=True, exist_ok=True)
-        (dest / "revision.txt").write_text(artifact.revision, encoding="utf-8")
-
-
-def _make_model_store(
-    data_root: Path, *, downloader: FakeModelDownloader | RecordingFakeDownloader
-) -> ModelStore:
-    return ModelStore(
-        data_root,
-        lock=load_models_lock(),
-        downloader=downloader,
-    )
-
-
 def _advance_wizard_to_finish(
     wizard: OnboardingWizard,
     qtbot,
@@ -105,25 +64,6 @@ def _advance_wizard_to_finish(
     finish = wizard.button(QWizard.WizardButton.FinishButton)
     qtbot.mouseClick(finish, Qt.MouseButton.LeftButton)
     qtbot.wait(10)
-
-
-def _wizard_factory(model_store: ModelStore):
-    def factory(
-        *,
-        data_root: Path,
-        settings_store: SettingsStore,
-        settings: Settings,
-        system_info: FakeSystemInfo | None = None,
-    ) -> OnboardingWizard:
-        return OnboardingWizard(
-            data_root=data_root,
-            settings_store=settings_store,
-            settings=settings,
-            system_info=system_info,
-            model_store=model_store,
-        )
-
-    return factory
 
 
 def test_onboarding_flag_blocks_main_window(qtbot, monkeypatch, tmp_path: Path) -> None:
@@ -169,21 +109,18 @@ def test_re_run_onboarding_after_resetting_complete_flag(qtbot, tmp_path: Path) 
     data_root = tmp_path / "library"
     store = SettingsStore(config_dir=config_dir)
     settings = Settings(data_root=data_root, onboarding_complete=False)
-    model_store = _make_model_store(data_root, downloader=FakeModelDownloader())
 
     wizard = OnboardingWizard(
         data_root=data_root,
         settings_store=store,
         settings=settings,
         system_info=FakeSystemInfo(16 * 1024**3),
-        model_store=model_store,
     )
     qtbot.addWidget(wizard)
     wizard.show()
     _advance_wizard_to_finish(wizard, qtbot)
     assert store.load().onboarding_complete is True
 
-    wizard.bootstrap_page._stop_worker()
     wizard.close()
     qtbot.wait(50)
 
@@ -194,7 +131,6 @@ def test_re_run_onboarding_after_resetting_complete_flag(qtbot, tmp_path: Path) 
         settings_store=store,
         settings=store.load(),
         system_info=FakeSystemInfo(16 * 1024**3),
-        model_store=model_store,
     )
     qtbot.addWidget(wizard_again)
     wizard_again.show()
@@ -212,13 +148,11 @@ def test_completing_onboarding_sets_flag(qtbot, tmp_path: Path) -> None:
     store = SettingsStore(config_dir=config_dir)
     settings = Settings(data_root=data_root, onboarding_complete=False)
 
-    downloader = FakeModelDownloader()
     wizard = OnboardingWizard(
         data_root=data_root,
         settings_store=store,
         settings=settings,
         system_info=FakeSystemInfo(16 * 1024**3),
-        model_store=_make_model_store(data_root, downloader=downloader),
     )
     qtbot.addWidget(wizard)
     wizard.show()
@@ -226,7 +160,6 @@ def test_completing_onboarding_sets_flag(qtbot, tmp_path: Path) -> None:
 
     loaded = store.load()
     assert loaded.onboarding_complete is True
-    assert downloader.call_count == 0
     assert loaded.native_language == "en"
     assert loaded.active_target_language == "es"
 
@@ -271,7 +204,6 @@ def test_low_ram_warning_allows_wizard_finish(qtbot, tmp_path: Path) -> None:
         settings_store=store,
         settings=settings,
         system_info=FakeSystemInfo(4 * 1024**3),
-        model_store=_make_model_store(data_root, downloader=FakeModelDownloader()),
     )
     qtbot.addWidget(wizard)
     wizard.show()
@@ -314,7 +246,6 @@ def test_toolbar_shows_active_language_and_level(qtbot, tmp_path: Path) -> None:
         settings_store=store,
         settings=settings,
         system_info=FakeSystemInfo(16 * 1024**3),
-        model_store=_make_model_store(data_root, downloader=FakeModelDownloader()),
     )
     qtbot.addWidget(wizard)
     wizard.show()
@@ -347,19 +278,17 @@ def test_active_target_language_shows_fallback_for_invalid_iso(
     assert widget.label().text() == "Language: ru"
 
 
-def test_ollama_path_skips_bootstrap_and_completes(qtbot, tmp_path: Path) -> None:
-    """Ollama path goes straight to target language; no model downloads."""
+def test_ollama_path_goes_to_target_language(qtbot, tmp_path: Path) -> None:
+    """Ollama path goes straight to target language after LLM config."""
     config_dir = tmp_path / "config"
     data_root = tmp_path / "library"
     store = SettingsStore(config_dir=config_dir)
     settings = Settings(data_root=data_root, onboarding_complete=False)
-    downloader = RecordingFakeDownloader()
     wizard = OnboardingWizard(
         data_root=data_root,
         settings_store=store,
         settings=settings,
         system_info=FakeSystemInfo(16 * 1024**3),
-        model_store=_make_model_store(data_root, downloader=downloader),
     )
     qtbot.addWidget(wizard)
     wizard.show()
@@ -373,12 +302,11 @@ def test_ollama_path_skips_bootstrap_and_completes(qtbot, tmp_path: Path) -> Non
     qtbot.wait(10)
     wizard.llm_page.select_ollama("http://127.0.0.1:11434")
     assert wizard.llm_page.uses_ollama()
-    assert wizard.llm_page.nextId() == 5
+    assert wizard.llm_page.nextId() == 4
 
     wizard.next()
     qtbot.wait(50)
     assert wizard.currentPage() is wizard.target_page
-    assert downloader.artifact_ids == []
 
     wizard.target_page.select_language("es")
     wizard.target_page.select_level("A2")
@@ -391,18 +319,16 @@ def test_ollama_path_skips_bootstrap_and_completes(qtbot, tmp_path: Path) -> Non
     assert loaded.ollama_url == "http://127.0.0.1:11434"
 
 
-def test_native_path_skips_bootstrap_page(qtbot, tmp_path: Path) -> None:
+def test_native_path_goes_to_target_language(qtbot, tmp_path: Path) -> None:
     config_dir = tmp_path / "config"
     data_root = tmp_path / "library"
     store = SettingsStore(config_dir=config_dir)
     settings = Settings(data_root=data_root, onboarding_complete=False)
-    downloader = RecordingFakeDownloader()
     wizard = OnboardingWizard(
         data_root=data_root,
         settings_store=store,
         settings=settings,
         system_info=FakeSystemInfo(16 * 1024**3),
-        model_store=_make_model_store(data_root, downloader=downloader),
     )
     qtbot.addWidget(wizard)
     wizard.show()
@@ -411,67 +337,31 @@ def test_native_path_skips_bootstrap_page(qtbot, tmp_path: Path) -> None:
     wizard.native_page.select_language("en")
     wizard.next()
     qtbot.wait(10)
-    wizard.llm_mode_page.select_embedded()
+    wizard.llm_mode_page.select_native()
     wizard.next()
     qtbot.wait(10)
-    assert wizard.llm_page.nextId() == 5
+    assert wizard.llm_page.nextId() == 4
 
     wizard.next()
     qtbot.wait(50)
     assert wizard.currentPage() is wizard.target_page
-    assert downloader.artifact_ids == []
 
 
-def test_ollama_path_skips_bootstrap_page(qtbot, tmp_path: Path) -> None:
+def test_ollama_onboarding_completes(qtbot, tmp_path: Path) -> None:
     config_dir = tmp_path / "config"
     data_root = tmp_path / "library"
     store = SettingsStore(config_dir=config_dir)
     settings = Settings(data_root=data_root, onboarding_complete=False)
-    downloader = FakeModelDownloader()
     wizard = OnboardingWizard(
         data_root=data_root,
         settings_store=store,
         settings=settings,
         system_info=FakeSystemInfo(16 * 1024**3),
-        model_store=_make_model_store(data_root, downloader=downloader),
-    )
-    qtbot.addWidget(wizard)
-    wizard.show()
-    wizard.next()
-    qtbot.wait(10)
-    wizard.native_page.select_language("en")
-    wizard.next()
-    qtbot.wait(10)
-    wizard.llm_mode_page.select_ollama()
-    wizard.next()
-    qtbot.wait(10)
-    wizard.llm_page.select_ollama("http://127.0.0.1:11434")
-    assert wizard.llm_page.nextId() == 5
-    wizard.next()
-    qtbot.wait(50)
-
-    assert wizard.currentId() == 5
-    assert downloader.call_count == 0
-
-
-def test_ollama_onboarding_does_not_download_models(qtbot, tmp_path: Path) -> None:
-    config_dir = tmp_path / "config"
-    data_root = tmp_path / "library"
-    store = SettingsStore(config_dir=config_dir)
-    settings = Settings(data_root=data_root, onboarding_complete=False)
-    downloader = FakeModelDownloader()
-    wizard = OnboardingWizard(
-        data_root=data_root,
-        settings_store=store,
-        settings=settings,
-        system_info=FakeSystemInfo(16 * 1024**3),
-        model_store=_make_model_store(data_root, downloader=downloader),
     )
     qtbot.addWidget(wizard)
     wizard.show()
     _advance_wizard_to_finish(wizard, qtbot, use_ollama=True)
 
-    assert downloader.call_count == 0
     assert store.load().ollama_url == "http://127.0.0.1:11434"
 
 
@@ -485,7 +375,6 @@ def test_native_config_page_shows_model_guidance(qtbot, tmp_path: Path) -> None:
         settings_store=store,
         settings=settings,
         system_info=FakeSystemInfo(16 * 1024**3),
-        model_store=_make_model_store(data_root, downloader=FakeModelDownloader()),
     )
     qtbot.addWidget(wizard)
     wizard.show()
@@ -494,7 +383,7 @@ def test_native_config_page_shows_model_guidance(qtbot, tmp_path: Path) -> None:
     wizard.native_page.select_language("en")
     wizard.next()
     qtbot.wait(10)
-    wizard.llm_mode_page.select_embedded()
+    wizard.llm_mode_page.select_native()
     wizard.next()
     qtbot.wait(10)
 
@@ -504,41 +393,40 @@ def test_native_config_page_shows_model_guidance(qtbot, tmp_path: Path) -> None:
     assert "hugging face" in wizard.llm_page.subTitle().lower()
 
 
-def test_native_config_blocks_when_llama_server_missing(qtbot, tmp_path: Path) -> None:
+def test_native_config_blocks_when_llama_server_missing(
+    qtbot, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     config_dir = tmp_path / "config"
     data_root = tmp_path / "library"
     store = SettingsStore(config_dir=config_dir)
     settings = Settings(data_root=data_root, onboarding_complete=False)
 
-    def _not_ready(settings: Settings) -> tuple[bool, str | None]:
+    def _not_ready(_settings: Settings) -> tuple[bool, str | None]:
         return False, "Install llama-server from llama.cpp."
 
-    import lexiflow_ui.onboarding.llm_config_page as llm_config_page
+    monkeypatch.setattr(
+        "lexiflow_ui.onboarding.llm_config_page.native_llm_operational",
+        _not_ready,
+    )
 
-    original = llm_config_page.native_llm_operational
-    llm_config_page.native_llm_operational = _not_ready
-    try:
-        wizard = OnboardingWizard(
-            data_root=data_root,
-            settings_store=store,
-            settings=settings,
-            system_info=FakeSystemInfo(16 * 1024**3),
-            model_store=_make_model_store(data_root, downloader=FakeModelDownloader()),
-        )
-        qtbot.addWidget(wizard)
-        wizard.show()
-        wizard.next()
-        qtbot.wait(10)
-        wizard.native_page.select_language("en")
-        wizard.next()
-        qtbot.wait(10)
-        wizard.llm_mode_page.select_native()
-        wizard.next()
-        qtbot.wait(10)
+    wizard = OnboardingWizard(
+        data_root=data_root,
+        settings_store=store,
+        settings=settings,
+        system_info=FakeSystemInfo(16 * 1024**3),
+    )
+    qtbot.addWidget(wizard)
+    wizard.show()
+    wizard.next()
+    qtbot.wait(10)
+    wizard.native_page.select_language("en")
+    wizard.next()
+    qtbot.wait(10)
+    wizard.llm_mode_page.select_native()
+    wizard.next()
+    qtbot.wait(10)
 
-        assert wizard.llm_page.validatePage() is False
-    finally:
-        llm_config_page.native_llm_operational = original
+    assert wizard.llm_page.validatePage() is False
 
 
 def test_llm_page_persists_huggingface_token(qtbot, tmp_path: Path) -> None:
@@ -551,7 +439,6 @@ def test_llm_page_persists_huggingface_token(qtbot, tmp_path: Path) -> None:
         settings_store=store,
         settings=settings,
         system_info=FakeSystemInfo(16 * 1024**3),
-        model_store=_make_model_store(data_root, downloader=FakeModelDownloader()),
     )
     qtbot.addWidget(wizard)
     wizard.show()
@@ -560,7 +447,7 @@ def test_llm_page_persists_huggingface_token(qtbot, tmp_path: Path) -> None:
     wizard.native_page.select_language("en")
     wizard.next()
     qtbot.wait(10)
-    wizard.llm_mode_page.select_embedded()
+    wizard.llm_mode_page.select_native()
     wizard.next()
     qtbot.wait(10)
     wizard.llm_page.set_huggingface_token("hf_test_token")

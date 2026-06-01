@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from lexiflow_core.config.settings import Settings
 from lexiflow_core.models.requirements import (
-    EMBEDDED_GEMMA_ID,
     EMBEDDING_MINILM_ID,
+    NATIVE_LLM_ID,
     required_artifact_ids,
 )
 
@@ -17,7 +17,7 @@ def test_required_artifact_ids_empty_for_ollama() -> None:
 
     assert required == ()
     assert EMBEDDING_MINILM_ID not in required
-    assert EMBEDDED_GEMMA_ID not in required
+    assert NATIVE_LLM_ID not in required
 
 
 def test_required_artifact_ids_empty_for_native_path() -> None:

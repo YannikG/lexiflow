@@ -3,19 +3,19 @@
 from __future__ import annotations
 
 _HF_TOKEN_HINT = (
-    "Hugging Face access token required to download the pinned Gemma 4 model. "
+    "Hugging Face access token required to download the pinned language model. "
     "Add or verify your token in Settings (LLM) and restart LexiFlow."
 )
 _PINNED_MODEL_NOT_FOUND = (
-    "The pinned Gemma 4 model was not found on Hugging Face. "
+    "The pinned language model was not found on Hugging Face. "
     "Update LexiFlow to the latest version."
 )
 _INVALID_MODEL_SPEC = (
-    "The pinned Gemma 4 model spec is invalid for llama-server. "
+    "The pinned language model spec is invalid for llama-server. "
     "Update LexiFlow to the latest version."
 )
 _HF_DOWNLOAD_FAILED = (
-    "Failed to download the pinned Gemma 4 model from Hugging Face. "
+    "Failed to download the pinned language model from Hugging Face. "
     "Check your connection and Hugging Face access token in Settings (LLM)."
 )
 _LLAMA_START_FAILED = "llama-server failed to start. Check LexiFlow logs and try again."

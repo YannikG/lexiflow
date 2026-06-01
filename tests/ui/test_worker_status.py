@@ -19,7 +19,7 @@ def test_format_background_status_shows_loading_model(tmp_path) -> None:
 
     message = format_background_status(supervisor, llama)
 
-    assert "loading gemma 4" in message.lower()
+    assert "loading language model" in message.lower()
 
 
 def test_format_background_status_shows_startup_error(tmp_path) -> None:

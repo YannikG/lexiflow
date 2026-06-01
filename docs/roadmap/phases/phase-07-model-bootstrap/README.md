@@ -6,9 +6,9 @@
 ## Outcome
 
 - **Model bootstrap** downloads pinned models on first use with progress UI
-- **Model pinning** manifest defines exact revisions for embedded model, **embedding model**, spaCy packs
+- **Model pinning** manifest defines exact revisions for native LLM spec, **embedding model**, spaCy packs
 - Optional **Hugging Face token** in **settings**
-- **Onboarding LLM setup** completes embedding model; embedded path queues LLM unless **Ollama endpoint** configured
+- **Onboarding LLM setup** chooses native llama-server or Ollama; runtime libraries fetch weights on first use
 - **Model updates** check in settings compares installed vs pinned revision
 - **Bootstrap network retry** on failure during onboarding
 

@@ -34,10 +34,10 @@ def test_strip_llm_code_fence_leaves_partial_wrapper() -> None:
     assert strip_llm_code_fence(cleaned) == cleaned
 
 
-def test_strip_llm_code_fence_does_not_strip_empty_wrapper() -> None:
+def test_strip_llm_code_fence_strips_empty_wrapper() -> None:
     cleaned = "```markdown\n```"
 
-    assert strip_llm_code_fence(cleaned) == cleaned
+    assert strip_llm_code_fence(cleaned) == ""
 
 
 def test_validate_cleanup_output_rejects_empty() -> None:
@@ -49,6 +49,12 @@ def test_validate_cleanup_output_rejects_unchanged() -> None:
     paste = "messy paste without structure"
     with pytest.raises(CleanupOutputError, match="unchanged"):
         validate_cleanup_output(raw_paste=paste, cleaned=paste)
+
+
+def test_validate_cleanup_output_rejects_empty_fence_wrapper() -> None:
+    paste = "Line one\n\nLine two"
+    with pytest.raises(CleanupOutputError, match="empty"):
+        validate_cleanup_output(raw_paste=paste, cleaned="```markdown\n```")
 
 
 def test_validate_cleanup_output_accepts_structured_markdown() -> None:

@@ -16,6 +16,16 @@ def test_validate_translate_output_rejects_unchanged_source() -> None:
         validate_translate_output(source_markdown=source, translated=source)
 
 
+def test_validate_translate_output_rejects_fences_only() -> None:
+    source = "# Native\n\ncontent"
+
+    with pytest.raises(TranslateOutputError, match="empty"):
+        validate_translate_output(
+            source_markdown=source,
+            translated="```markdown\n```",
+        )
+
+
 def test_validate_translate_output_strips_markdown_fence() -> None:
     source = "# Native\n\ncontent"
     translated = "```markdown\n# Target\n\nbody\n```"

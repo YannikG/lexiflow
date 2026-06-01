@@ -6,7 +6,10 @@ from dataclasses import dataclass
 
 from lexiflow_core.jobs.models import JobStatus
 from lexiflow_core.jobs.service import JobService
-from lexiflow_core.library.reader_tabs import SIMPLIFIED_PREFIX, level_from_simplified_variant
+from lexiflow_core.library.reader_tabs import (
+    SIMPLIFIED_PREFIX,
+    level_from_simplified_variant,
+)
 
 from lexiflow_ui.llama_server_supervisor import LlamaServerState, LlamaServerSupervisor
 from lexiflow_ui.worker_supervisor import WorkerState, WorkerSupervisor
@@ -45,9 +48,9 @@ def generation_indicator(
     if llama_supervisor is not None:
         if llama_supervisor.state is LlamaServerState.LOADING:
             return GenerationIndicator(
-                headline="Loading Gemma 4 language model…",
+                headline="Loading language model…",
                 detail=(
-                    "llama-server is downloading and loading the pinned Gemma 4 model "
+                    "llama-server is downloading and loading the pinned model "
                     "from Hugging Face.\n\n"
                     "The first run can take several minutes depending on your "
                     "connection. The background worker starts automatically when the "
@@ -117,7 +120,7 @@ def format_background_status(
     pending = _pending_job_count(supervisor.data_root)
     if pending > 0 and llama_supervisor is not None:
         if llama_supervisor.state is LlamaServerState.LOADING:
-            return "Loading Gemma 4 language model (first run may take a few minutes)…"
+            return "Loading language model (first run may take a few minutes)…"
         if (
             llama_supervisor.state is LlamaServerState.OFFLINE
             and llama_supervisor.startup_error

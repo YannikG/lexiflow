@@ -19,5 +19,5 @@ def strip_llm_code_fence(text: str) -> str:
         return normalized
     stripped = body[:-3].rstrip()
     if not stripped:
-        return normalized
+        return ""
     return stripped

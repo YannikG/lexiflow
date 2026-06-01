@@ -29,7 +29,7 @@ Global **UI theme** must cover these without per-widget QSS:
 |------|---------|
 | Main window | `main_window.py` |
 | Sidebar | `sidebar.py`, `empty_state.py` |
-| Reader | `reader_widget.py` |
+| Reader | `reader_widget.py`, `widgets/new_words_panel.py` |
 | Dialogs | `dialogs/add_text_dialog.py`, onboarding pages under `onboarding/` |
 | Chrome | `widgets/worker_status.py`, `widgets/active_target_language.py` |
 
@@ -61,7 +61,7 @@ No exceptions today. If global QSS cannot style a widget (e.g. reader monospace 
 2. **No inline QSS in feature code** — Do not call `setStyleSheet` on widgets in feature modules. Exceptions require a comment linking to this doc and ADR-0006.
 3. **No Fluent component library in v1** — PySide6-Fluent-Widgets rejected (GPL vs Apache). Do not import `qfluentwidgets`.
 4. **New panels and overlays** — Build with standard Qt widgets (phase 11 **new words panel**, phase 13 **global search UI**, phase 14 **settings**) so they inherit **UI theme** automatically.
-5. **Reader typography** — **Markdown reader** body uses `editor.background` / `editor.foreground` tokens on reader panes; font size from **appearance** settings (phase 14).
+5. **Reader typography** — **Markdown reader** body uses `reader.background` / `editor.foreground` on read panes; scrollbars in the reader and **new words panel** use `reader.scrollbar*` tokens; font size from **appearance** settings (phase 14).
 
 ## Phase 14 (settings)
 

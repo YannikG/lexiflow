@@ -32,7 +32,7 @@ def test_worker_fails_legacy_job_when_llm_unavailable(
     job_service.enqueue(
         JobRequest(job_type=JobType.TRANSLATE, payload={"prompt": "hello"})
     )
-    llm = resolve_llm(Settings(), data_root)
+    llm = resolve_llm(Settings())
 
     run_worker_loop(job_service, llm, data_root=data_root)
 

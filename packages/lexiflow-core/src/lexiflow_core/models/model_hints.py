@@ -27,7 +27,3 @@ def native_llm_hub_page_url(lock: ModelsLock | None = None) -> str:
 
 def embedding_hub_page_url(lock: ModelsLock | None = None) -> str:
     return artifact_hub_page_url(EMBEDDING_MINILM_ID, lock)
-
-
-def gemma_hub_page_url(lock: ModelsLock | None = None) -> str:
-    return native_llm_hub_page_url(lock)

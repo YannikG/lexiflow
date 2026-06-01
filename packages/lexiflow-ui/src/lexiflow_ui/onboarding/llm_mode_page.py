@@ -46,9 +46,6 @@ class LlmModePage(QWizardPage):
     def select_native(self) -> None:
         self._native.setChecked(True)
 
-    def select_embedded(self) -> None:
-        self.select_native()
-
     def select_ollama(self) -> None:
         self._ollama.setChecked(True)
 
@@ -57,9 +54,6 @@ class LlmModePage(QWizardPage):
 
     def uses_native(self) -> bool:
         return self.selected_mode() == LlmMode.NATIVE
-
-    def skips_bootstrap_page(self) -> bool:
-        return True
 
     def nextId(self) -> int:  # noqa: N802
         return self.CONFIG_PAGE_ID

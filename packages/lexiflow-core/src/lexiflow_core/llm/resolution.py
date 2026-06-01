@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from lexiflow_core.config.settings import Settings
 from lexiflow_core.llm.disabled import DisabledLLM
 from lexiflow_core.llm.llama_server import (
@@ -15,7 +13,7 @@ from lexiflow_core.llm.protocol import LLMProvider
 from lexiflow_core.llm.unavailable import UnavailableLLM
 
 
-def resolve_llm(settings: Settings, data_root: Path) -> LLMProvider:
+def resolve_llm(settings: Settings) -> LLMProvider:
     """Select Ollama or native llama-server from settings."""
     if not settings.llm_enabled:
         return DisabledLLM()

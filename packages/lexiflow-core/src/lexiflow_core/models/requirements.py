@@ -1,4 +1,4 @@
-"""Policy for which model artifacts onboarding must install."""
+"""Constants for models.lock artifact IDs used at runtime."""
 
 from __future__ import annotations
 
@@ -7,11 +7,12 @@ from lexiflow_core.config.settings import Settings
 EMBEDDING_MINILM_ID = "embedding-minilm"
 NATIVE_LLM_ID = "native-llm"
 
-# Backward-compatible alias for tests and docs migrating off embedded-gemma.
-EMBEDDED_GEMMA_ID = NATIVE_LLM_ID
-
 
 def required_artifact_ids(settings: Settings) -> tuple[str, ...]:
-    """Return artifact IDs LexiFlow must download before onboarding completes."""
+    """Return artifact IDs that onboarding would require before completion.
+
+    v1 returns none: LLM and embedding weights load on first use via llama-server
+    and sentence-transformers. Phase 10b may skip MiniLM when Ollama embed is active.
+    """
     del settings
     return ()
