@@ -419,7 +419,8 @@ class ReaderWidget(QWidget):
         if self._data_root is not None:
             jobs = JobService(self._data_root).list_jobs()
             pending = pending_simplified_variants(jobs, text_id=self._record.id)
-        self._simplified_variants = tuple(dict.fromkeys(tuple(on_disk) + tuple(pending)))
+        merged = tuple(on_disk) + tuple(pending)
+        self._simplified_variants = tuple(dict.fromkeys(merged))
 
     def _configure_simplified_tabs(self) -> None:
         self._simplified_tab.hide()

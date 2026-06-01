@@ -158,7 +158,7 @@ def test_llama_server_binary_prefers_lexiflow_env_override(
     assert llama_server_binary() == str(override)
 
 
-def test_llama_server_binary_uses_exe_name_on_windows(monkeypatch, tmp_path: Path) -> None:
+def test_llama_server_binary_resolves_windows_exe(monkeypatch, tmp_path: Path) -> None:
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     fake_binary = bin_dir / "llama-server.exe"
