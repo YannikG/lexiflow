@@ -11,10 +11,13 @@ from lexiflow_core.models.model_hints import gemma_hub_page_url
 from lexiflow_core.models.requirements import required_artifact_ids
 from lexiflow_core.models.store import ModelStore, ModelStoreError
 from PySide6.QtCore import QThread, Slot
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
+    QPlainTextEdit,
     QProgressBar,
     QPushButton,
     QVBoxLayout,
@@ -54,6 +57,17 @@ class ModelBootstrapPage(QWizardPage):
         self._progress = QProgressBar(self)
         self._progress.setObjectName("bootstrap_progress")
         self._progress.setRange(0, 100)
+        self._console = QPlainTextEdit(self)
+        self._console.setObjectName("bootstrap_console")
+        self._console.setReadOnly(True)
+        self._console.setMaximumHeight(120)
+        self._console.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
+        console_font = QFont("Menlo")
+        if not console_font.exactMatch():
+            console_font = QFont("Courier New")
+        console_font.setStyleHint(QFont.StyleHint.Monospace)
+        self._console.setFont(console_font)
+        self._console.hide()
         self._open_gemma = QPushButton("Open Gemma on Hugging Face", self)
         self._open_gemma.setObjectName("bootstrap_open_gemma_button")
         self._open_gemma.hide()
@@ -62,15 +76,21 @@ class ModelBootstrapPage(QWizardPage):
         self._retry.setObjectName("bootstrap_retry_button")
         self._retry.hide()
         self._retry.clicked.connect(self._on_retry)
+        self._redownload = QPushButton("Re-download models", self)
+        self._redownload.setObjectName("bootstrap_redownload_button")
+        self._redownload.hide()
+        self._redownload.clicked.connect(self._on_redownload)
         self._action_row = QHBoxLayout()
         self._action_row.setSpacing(8)
         self._action_row.addWidget(self._open_gemma)
         self._action_row.addWidget(self._retry)
+        self._action_row.addWidget(self._redownload)
         self._action_row.addStretch()
 
         layout = QVBoxLayout(self)
         layout.addWidget(self._status)
         layout.addWidget(self._progress)
+        layout.addWidget(self._console)
         layout.addWidget(self._error)
         layout.addLayout(self._action_row)
         layout.addStretch()
@@ -100,6 +120,9 @@ class ModelBootstrapPage(QWizardPage):
     def open_gemma_button(self) -> QPushButton:
         return self._open_gemma
 
+    def redownload_button(self) -> QPushButton:
+        return self._redownload
+
     def initializePage(self) -> None:  # noqa: N802
         self._show_preparing_ui()
         app = QApplication.instance()
@@ -115,6 +138,21 @@ class ModelBootstrapPage(QWizardPage):
         self._show_preparing_ui()
         self._begin_bootstrap()
 
+    def _on_redownload(self) -> None:
+        answer = QMessageBox.question(
+            self,
+            "Re-download models?",
+            "This deletes cached models and downloads them again. "
+            "Large models may take a long time.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        self._hide_access_actions()
+        self._show_preparing_ui()
+        self._begin_bootstrap(force_redownload=True)
+
     def _on_open_gemma_hub(self) -> None:
         open_url(gemma_hub_page_url())
 
@@ -122,6 +160,7 @@ class ModelBootstrapPage(QWizardPage):
         self._error.hide()
         self._open_gemma.hide()
         self._retry.hide()
+        self._redownload.hide()
 
     def _show_preparing_ui(self) -> None:
         self._bootstrap_complete = False
@@ -129,9 +168,11 @@ class ModelBootstrapPage(QWizardPage):
         self._status.setText("Preparing download…")
         self._progress.setRange(0, 0)
         self._progress.setValue(0)
+        self._console.clear()
+        self._console.hide()
         self.completeChanged.emit()
 
-    def _begin_bootstrap(self) -> None:
+    def _begin_bootstrap(self, *, force_redownload: bool = False) -> None:
         from lexiflow_ui.onboarding.wizard import OnboardingWizard
 
         wizard = self.wizard()
@@ -145,6 +186,7 @@ class ModelBootstrapPage(QWizardPage):
             self._progress.setRange(0, 100)
             self._progress.setValue(100)
             self._status.setText("All required models are ready.")
+            self._redownload.show()
             self.completeChanged.emit()
             return
 
@@ -152,24 +194,32 @@ class ModelBootstrapPage(QWizardPage):
         all_installed = all(
             self._model_store.is_installed(artifact_id) for artifact_id in artifact_ids
         )
-        if all_installed:
+        if all_installed and not force_redownload:
             self._bootstrap_complete = True
             self._progress.setRange(0, 100)
             self._progress.setValue(100)
             self._status.setText("All required models are ready.")
+            self._redownload.show()
             self.completeChanged.emit()
             return
 
         self._status.setText("Downloading required models…")
         self._progress.setRange(0, 0)
+        self._console.clear()
+        self._console.show()
         self.completeChanged.emit()
 
         self._stop_worker()
         self._thread = QThread()
-        self._worker = ModelBootstrapWorker(self._model_store, artifact_ids)
+        self._worker = ModelBootstrapWorker(
+            self._model_store,
+            artifact_ids,
+            force_redownload=force_redownload,
+        )
         self._worker.moveToThread(self._thread)
         self._thread.started.connect(self._worker.run)
         self._worker.progress_changed.connect(self._on_progress_changed)
+        self._worker.log_line_changed.connect(self._on_log_line_changed)
         self._worker.succeeded.connect(self._on_bootstrap_succeeded)
         self._worker.failed.connect(self._on_bootstrap_failed)
         self._worker.succeeded.connect(self._thread.quit)
@@ -184,12 +234,35 @@ class ModelBootstrapPage(QWizardPage):
         self._progress.setValue(percent)
         self._status.setText(message)
 
+    @Slot(str)
+    def _on_log_line_changed(self, line: str) -> None:
+        line = line.replace("\r", "").strip()
+        if not line:
+            return
+        if not self._console.isVisible():
+            self._console.show()
+        text = self._console.toPlainText()
+        lines = text.split("\n") if text else []
+        live_prefixes = ("Downloading", "Fetching")
+        if lines and any(line.startswith(prefix) for prefix in live_prefixes):
+            if any(lines[-1].startswith(prefix) for prefix in live_prefixes):
+                lines[-1] = line
+            else:
+                lines.append(line)
+        else:
+            lines.append(line)
+        self._console.setPlainText("\n".join(lines[-50:]))
+        scrollbar = self._console.verticalScrollBar()
+        scrollbar.setValue(scrollbar.maximum())
+
     @Slot()
     def _on_bootstrap_succeeded(self) -> None:
         self._bootstrap_complete = True
         self._progress.setRange(0, 100)
         self._progress.setValue(100)
         self._status.setText("All required models are ready.")
+        self._console.hide()
+        self._redownload.show()
         self.completeChanged.emit()
 
     @Slot(object)

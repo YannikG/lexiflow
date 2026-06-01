@@ -70,10 +70,23 @@ class ModelStore:
             return False
         return installed == artifact.revision
 
+    def remove_installed(self, artifact_id: str) -> None:
+        """Delete a cached artifact so a later ensure_installed will re-download."""
+        self._artifact(artifact_id)
+        dest = artifact_dir(self._data_root, artifact_id)
+        if not dest.exists():
+            return
+        try:
+            shutil.rmtree(dest)
+        except OSError as exc:
+            raise ModelStoreError(f"failed to remove {artifact_id}") from exc
+
     def ensure_installed(
         self,
         artifact_id: str,
         on_progress: Callable[[float], None],
+        *,
+        on_log_line: Callable[[str], None] | None = None,
     ) -> Path:
         """Download and install an artifact when the pinned revision is missing."""
         if self.is_installed(artifact_id):
@@ -88,6 +101,7 @@ class ModelStore:
                 dest,
                 token=self._huggingface_token,
                 on_progress=on_progress,
+                on_log_line=on_log_line,
             )
         except (NetworkError, ModelAccessError, ModelPinError):
             raise

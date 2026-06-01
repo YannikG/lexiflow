@@ -20,6 +20,7 @@ from lexiflow_core.models.download import (
     ModelPinError,
     NetworkError,
 )
+from lexiflow_core.models.hub_progress import reporting_tqdm_factory
 from lexiflow_core.models.lockfile import ModelArtifact
 
 
@@ -33,17 +34,35 @@ class HuggingFaceModelDownloader:
         *,
         token: str | None,
         on_progress: Callable[[float], None] | None = None,
+        on_log_line: Callable[[str], None] | None = None,
     ) -> None:
         dest.mkdir(parents=True, exist_ok=True)
-        if on_progress is not None:
-            on_progress(0.0)
-        try:
-            snapshot_download(
-                repo_id=artifact.repo,
-                revision=artifact.revision,
-                local_dir=dest,
-                token=token,
+        tqdm_class: type[Any] | None = None
+        if on_progress is not None or on_log_line is not None:
+            tqdm_class = reporting_tqdm_factory(
+                on_fraction=on_progress,
+                on_log_line=on_log_line,
             )
+            if on_progress is not None:
+                on_progress(0.0)
+        try:
+            if artifact.allow_patterns:
+                snapshot_download(
+                    repo_id=artifact.repo,
+                    revision=artifact.revision,
+                    local_dir=dest,
+                    token=token,
+                    allow_patterns=list(artifact.allow_patterns),
+                    tqdm_class=tqdm_class,
+                )
+            else:
+                snapshot_download(
+                    repo_id=artifact.repo,
+                    revision=artifact.revision,
+                    local_dir=dest,
+                    token=token,
+                    tqdm_class=tqdm_class,
+                )
         except GatedRepoError as exc:
             raise ModelAccessError(str(exc)) from exc
         except (RevisionNotFoundError, RepositoryNotFoundError) as exc:

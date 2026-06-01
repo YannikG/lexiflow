@@ -2,15 +2,21 @@
 
 from __future__ import annotations
 
+import json
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
+from threading import Thread
 
 from lexiflow_core.config.paths import meta_path, variant_path
+from lexiflow_core.embeddings.fake import FakeEmbedder
+from lexiflow_core.jobs.models import JobStatus, JobType
 from lexiflow_core.jobs.runner import run_worker_loop
 from lexiflow_core.jobs.service import JobService
 from lexiflow_core.library.library_coordinator import LibraryCoordinator
 from lexiflow_core.library.text_metadata import load_text_metadata
 from lexiflow_core.library.text_repository import TextRepository
 from lexiflow_core.llm.fake import FakeLLM
+from lexiflow_core.llm.ollama import OllamaLLM
 from lexiflow_core.text_pipeline import InputTab, TextDraft, TextPipeline
 
 
@@ -44,3 +50,67 @@ def test_worker_runs_cleanup_then_translate(tmp_path: Path) -> None:
     assert translated.startswith("# Titulo")
     metadata = load_text_metadata(meta_path(folder))
     assert metadata.title == "Titulo"
+
+
+def test_worker_staged_generation_with_ollama_llm(tmp_path: Path) -> None:
+    responses = ["# Native Title\n\nnative body", "# Titulo\n\ncuerpo"]
+    response_index = {"i": 0}
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self) -> None:
+            body = responses[response_index["i"]]
+            response_index["i"] += 1
+            payload = json.dumps({"response": body}).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+
+        def log_message(self, format: str, *args: object) -> None:
+            del format, args
+
+    server = HTTPServer(("127.0.0.1", 0), Handler)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    host, port = server.server_address
+    base_url = f"http://{host}:{port}"
+
+    data_root = tmp_path / "LexiFlow"
+    coordinator, index = LibraryCoordinator.open(data_root)
+    del coordinator
+    jobs = JobService(data_root)
+    pipeline = TextPipeline(data_root, index=index, job_service=jobs)
+    text_id = pipeline.submit_new_text(
+        TextDraft(
+            title="Raw article",
+            group="News",
+            pasted_content="raw article",
+            input_tab=InputTab.NATIVE,
+            native_language="en",
+            target_language="es",
+        )
+    )
+    try:
+        llm = OllamaLLM(base_url=base_url)
+        run_worker_loop(
+            jobs,
+            llm,
+            embedder=FakeEmbedder(),
+            data_root=data_root,
+        )
+    finally:
+        server.shutdown()
+        thread.join(timeout=5)
+
+    repo = TextRepository(data_root, index)
+    record = repo.get_text(text_id)
+    folder = Path(record.folder)
+    translated = variant_path(folder, "translated").read_text(encoding="utf-8")
+    assert translated.startswith("# Titulo")
+    metadata = load_text_metadata(meta_path(folder))
+    assert metadata.title == "Titulo"
+    listed = jobs.list_jobs()
+    embed_jobs = [j for j in listed if j.job_type == JobType.EMBED]
+    assert len(embed_jobs) == 1
+    assert embed_jobs[0].status == JobStatus.COMPLETED

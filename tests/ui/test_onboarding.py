@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import replace
 from pathlib import Path
 
+import pytest
 from lexiflow_core.config.settings import Settings
 from lexiflow_core.config.settings_store import SettingsStore
 from lexiflow_core.models.download import (
@@ -20,7 +21,7 @@ from lexiflow_ui.app import run
 from lexiflow_ui.main_window import MainWindow
 from lexiflow_ui.onboarding.wizard import OnboardingWizard, run_onboarding_if_needed
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import QApplication, QWizard
+from PySide6.QtWidgets import QApplication, QMessageBox, QPlainTextEdit, QWizard
 
 
 class _SmokeInstanceGuard:
@@ -58,11 +59,17 @@ class RecordingFakeDownloader:
         *,
         token: str | None,
         on_progress: object = None,
+        on_log_line: object = None,
     ) -> None:
         from lexiflow_core.models.lockfile import ModelArtifact
 
         assert isinstance(artifact, ModelArtifact)
-        del token, on_progress
+        del token
+        if on_log_line is not None:
+            on_log_line(f"Downloading {artifact.id}:  50%|████     | 1/2")
+        if on_progress is not None:
+            on_progress(0.5)
+            on_progress(1.0)
         self.artifact_ids.append(artifact.id)
         dest.mkdir(parents=True, exist_ok=True)
         (dest / "revision.txt").write_text(artifact.revision, encoding="utf-8")
@@ -394,6 +401,10 @@ def test_ollama_downloads_minilm_on_bootstrap_not_gemma(qtbot, tmp_path: Path) -
     assert downloader.artifact_ids == [EMBEDDING_MINILM_ID]
     assert EMBEDDED_GEMMA_ID not in downloader.artifact_ids
 
+    console = wizard.bootstrap_page.findChild(QPlainTextEdit, "bootstrap_console")
+    assert console is not None
+    assert "Downloading" in console.toPlainText()
+
     wizard.next()
     qtbot.wait(50)
     assert wizard.currentPage() is wizard.target_page
@@ -543,6 +554,90 @@ def test_embedded_scenario_shows_download_models_page(qtbot, tmp_path: Path) -> 
     assert wizard.bootstrap_page.bootstrap_complete is True
     assert EMBEDDING_MINILM_ID in downloader.artifact_ids
     assert EMBEDDED_GEMMA_ID in downloader.artifact_ids
+
+
+def _wizard_on_bootstrap_with_cached_embedded_models(
+    qtbot,
+    tmp_path: Path,
+    *,
+    downloader: FakeModelDownloader,
+) -> OnboardingWizard:
+    """Embedded HF path always visits bootstrap; pre-install required artifacts."""
+    config_dir = tmp_path / "config"
+    data_root = tmp_path / "library"
+    store = SettingsStore(config_dir=config_dir)
+    settings = Settings(data_root=data_root, onboarding_complete=False)
+    model_store = _make_model_store(data_root, downloader=downloader)
+    for artifact_id in (EMBEDDING_MINILM_ID, EMBEDDED_GEMMA_ID):
+        model_store.ensure_installed(artifact_id, on_progress=lambda _v: None)
+    wizard = OnboardingWizard(
+        data_root=data_root,
+        settings_store=store,
+        settings=settings,
+        system_info=FakeSystemInfo(16 * 1024**3),
+        model_store=model_store,
+    )
+    qtbot.addWidget(wizard)
+    wizard.show()
+    wizard.next()
+    qtbot.wait(10)
+    wizard.native_page.select_language("en")
+    wizard.next()
+    qtbot.wait(10)
+    wizard.llm_mode_page.select_embedded()
+    wizard.next()
+    qtbot.wait(10)
+    wizard.next()
+    qtbot.waitUntil(
+        lambda: wizard.currentPage() is wizard.bootstrap_page,
+        timeout=10000,
+    )
+    qtbot.waitUntil(
+        lambda: wizard.bootstrap_page.bootstrap_complete,
+        timeout=10000,
+    )
+    return wizard
+
+
+def test_bootstrap_shows_redownload_when_models_cached(qtbot, tmp_path: Path) -> None:
+    wizard = _wizard_on_bootstrap_with_cached_embedded_models(
+        qtbot,
+        tmp_path,
+        downloader=FakeModelDownloader(),
+    )
+
+    assert wizard.bootstrap_page.redownload_button().isVisible()
+
+
+def test_bootstrap_redownload_forces_second_download(
+    qtbot, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    downloader = FakeModelDownloader()
+    wizard = _wizard_on_bootstrap_with_cached_embedded_models(
+        qtbot,
+        tmp_path,
+        downloader=downloader,
+    )
+    calls_before = downloader.call_count
+
+    monkeypatch.setattr(
+        QMessageBox,
+        "question",
+        lambda *args, **kwargs: QMessageBox.StandardButton.Yes,
+    )
+    qtbot.mouseClick(
+        wizard.bootstrap_page.redownload_button(),
+        Qt.MouseButton.LeftButton,
+    )
+    qtbot.waitUntil(
+        lambda: wizard.bootstrap_page.bootstrap_complete,
+        timeout=10000,
+    )
+
+    assert downloader.call_count > calls_before
+    store = wizard.bootstrap_page.model_store
+    assert store.is_installed(EMBEDDING_MINILM_ID)
+    assert store.is_installed(EMBEDDED_GEMMA_ID)
 
 
 def test_ollama_path_skips_bootstrap_page(qtbot, tmp_path: Path) -> None:

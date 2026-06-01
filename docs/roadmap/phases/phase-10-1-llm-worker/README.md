@@ -21,7 +21,7 @@ Without 10-1, only pytest with injected fakes exercises the LLM job path end-to-
 
 - **`resolve_llm(settings, data_root) -> LLMProvider`** selects provider from **global settings** (same rules as **Provider mode** in glossary).
 - **`OllamaLLM`** — HTTP client for translate/cleanup/simplify when **Ollama endpoint** is set.
-- **`EmbeddedGemmaLLM`** — loads pinned **embedded model** from local cache; inference in an **llama.cpp subprocess** inside the worker ([ADR 0003](../../../adr/0003-job-execution-architecture.md)).
+- **`EmbeddedGemmaLLM`** — loads pinned **embedded model** (`google/gemma-4-E2B-it`) from local cache; inference in an **isolated Python subprocess** (`transformers` + `torch` in `lexiflow_core.llm.gemma_inference`) inside the worker ([ADR 0003](../../../adr/0003-job-execution-architecture.md)).
 - **`lexiflow_worker.main`** loads settings from `data_root`, calls `resolve_llm`, passes result to `run_worker_loop` (no hardcoded `FakeLLM()` in production entry).
 - Add-text → cleanup → translate completes in the **desktop app** (Ollama or embedded path per onboarding choice).
 - CI unchanged: tests inject `FakeLLM` / HTTP fakes at protocol boundaries; no real Gemma download in PR CI.
@@ -104,12 +104,12 @@ def resolve_llm(settings: Settings, data_root: Path) -> LLMProvider: ...
 
 - **Ollama path:** Ollama running; add text → translated variant appears; embed job completes (phase 10 worker embedder).
 - **Embedded path:** Gemma cached from onboarding; same flow without Ollama URL.
-- Optional: subprocess crash isolation smoke (kill llama child → worker reports failed job, UI stays up).
+- Optional: subprocess crash isolation smoke (kill Gemma inference child → worker reports failed job, UI stays up).
 
 ## PR checklist
 
 - [ ] `lexiflow_worker.main` no longer hardcodes `FakeLLM()` for production
-- [ ] Semble/context7 used for Ollama HTTP API and llama.cpp integration (or subprocess contract)
+- [ ] Semble/context7 used for Ollama HTTP API and Gemma subprocess inference contract
 - [ ] Concept doc `packages/lexiflow-core/docs/concepts/llm-providers.md`
 - [ ] No llama.cpp / heavy ML imports in **lexiflow-ui**
 - [ ] Phase 11 issue **blocked by** includes 10-1 ([#30](https://github.com/YannikG/lexiflow/issues/30)) and 10b when issue created

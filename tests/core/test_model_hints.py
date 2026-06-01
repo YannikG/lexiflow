@@ -16,9 +16,9 @@ def test_artifact_hub_page_url() -> None:
     )
     assert (
         artifact_hub_page_url(EMBEDDED_GEMMA_ID)
-        == "https://huggingface.co/google/gemma-2-2b-it"
+        == "https://huggingface.co/google/gemma-4-E2B-it"
     )
 
 
-def test_gemma_hub_page_url() -> None:
+def test_gemma_hub_page_url_matches_embedded_artifact() -> None:
     assert gemma_hub_page_url() == artifact_hub_page_url(EMBEDDED_GEMMA_ID)

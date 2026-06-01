@@ -7,8 +7,12 @@ from pathlib import Path
 import pytest
 from lexiflow_core.models.download import FakeModelDownloader, ModelAccessError
 from lexiflow_core.models.lockfile import load_models_lock
-from lexiflow_core.models.paths import artifact_revision_path, models_cache_dir
-from lexiflow_core.models.store import ModelStore
+from lexiflow_core.models.paths import (
+    artifact_dir,
+    artifact_revision_path,
+    models_cache_dir,
+)
+from lexiflow_core.models.store import ModelStore, ModelStoreError
 
 
 def test_ensure_installed_writes_revision_marker(tmp_path: Path) -> None:
@@ -79,7 +83,7 @@ revision = "newer-revision-sha"
 
 [[artifacts]]
 id = "embedded-gemma"
-repo = "google/gemma-2-2b-it"
+repo = "google/gemma-4-E2B-it"
 revision = "gemma-pinned-sha"
 """.strip(),
         encoding="utf-8",
@@ -147,3 +151,98 @@ revision = "abc"
 
     with pytest.raises(ModelAccessError):
         store.ensure_installed("embedding-minilm", on_progress=lambda *_: None)
+
+
+def test_remove_installed_deletes_artifact_directory(tmp_path: Path) -> None:
+    data_root = tmp_path / "library"
+    lock_path = tmp_path / "models.lock"
+    lock_path.write_text(
+        """
+[[artifacts]]
+id = "embedding-minilm"
+repo = "sentence-transformers/all-MiniLM-L6-v2"
+revision = "abc"
+""".strip(),
+        encoding="utf-8",
+    )
+    store = ModelStore(
+        data_root=data_root,
+        lock=load_models_lock(lock_path),
+        downloader=FakeModelDownloader(),
+    )
+    store.ensure_installed("embedding-minilm", on_progress=lambda *_: None)
+    install_dir = artifact_dir(data_root, "embedding-minilm")
+    assert install_dir.is_dir()
+
+    store.remove_installed("embedding-minilm")
+
+    assert not install_dir.exists()
+    assert not store.is_installed("embedding-minilm")
+
+
+def test_remove_installed_is_noop_when_artifact_missing(tmp_path: Path) -> None:
+    data_root = tmp_path / "library"
+    lock_path = tmp_path / "models.lock"
+    lock_path.write_text(
+        """
+[[artifacts]]
+id = "embedding-minilm"
+repo = "sentence-transformers/all-MiniLM-L6-v2"
+revision = "abc"
+""".strip(),
+        encoding="utf-8",
+    )
+    store = ModelStore(
+        data_root=data_root,
+        lock=load_models_lock(lock_path),
+        downloader=FakeModelDownloader(),
+    )
+
+    store.remove_installed("embedding-minilm")
+
+
+def test_ensure_installed_redownloads_after_remove(tmp_path: Path) -> None:
+    data_root = tmp_path / "library"
+    lock_path = tmp_path / "models.lock"
+    lock_path.write_text(
+        """
+[[artifacts]]
+id = "embedding-minilm"
+repo = "sentence-transformers/all-MiniLM-L6-v2"
+revision = "abc"
+""".strip(),
+        encoding="utf-8",
+    )
+    downloader = FakeModelDownloader()
+    store = ModelStore(
+        data_root=data_root,
+        lock=load_models_lock(lock_path),
+        downloader=downloader,
+    )
+    store.ensure_installed("embedding-minilm", on_progress=lambda *_: None)
+    store.remove_installed("embedding-minilm")
+
+    store.ensure_installed("embedding-minilm", on_progress=lambda *_: None)
+
+    assert downloader.call_count == 2
+
+
+def test_remove_installed_unknown_artifact_raises(tmp_path: Path) -> None:
+    lock_path = tmp_path / "models.lock"
+    lock_path.write_text(
+        """
+[[artifacts]]
+id = "embedding-minilm"
+repo = "sentence-transformers/all-MiniLM-L6-v2"
+revision = "abc"
+""".strip(),
+        encoding="utf-8",
+    )
+    store = ModelStore(
+        data_root=tmp_path / "library",
+        lock=load_models_lock(lock_path),
+        downloader=FakeModelDownloader(),
+    )
+
+    with pytest.raises(ModelStoreError, match="unknown artifact"):
+        store.remove_installed("missing-artifact")
