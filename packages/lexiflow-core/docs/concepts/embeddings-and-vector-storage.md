@@ -37,7 +37,7 @@ Native and simplified edits do not enqueue embed jobs in v1.
 - `FakeEmbedder` — deterministic vectors for tests and manual worker runs
 - `MiniLMEmbedder` — real MiniLM from the local model cache (manual verification; not CI)
 - `VectorStore` — upsert/query text and word vectors; `search_similar_words` for simplify **word mix**
-- `VocabularyStore` — minimal entries CRUD for simplify and new-word add (Study/Browse in phase 12)
+- `VocabularyStore` — entries CRUD, Study/Browse, export/import (see [vocabulary.md](vocabulary.md))
 - `enqueue_translated_text_embed` / `enqueue_vocabulary_word_embed` — commands to queue embed jobs
 
 ## Testing

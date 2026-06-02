@@ -20,7 +20,7 @@ _SHELL_MODULE_PATHS = (
     "widgets/sidebar.py",
     "widgets/empty_state.py",
     "widgets/reader_widget.py",
-    "widgets/new_words_panel.py",
+    "widgets/word_panel.py",
     "dialogs/add_text_dialog.py",
     "widgets/worker_status.py",
     "widgets/active_target_language.py",
@@ -102,7 +102,7 @@ def test_reader_scrollbar_tokens_in_stylesheet(
     apply_app_theme(app, theme=theme)  # type: ignore[arg-type]
 
     stylesheet = app.styleSheet().lower()
-    assert "new_words_scroll" in stylesheet
+    assert "word_panel_new_table" in stylesheet
     assert "reader.scrollbarthumb" not in stylesheet
     assert scrollbar_thumb in stylesheet
 

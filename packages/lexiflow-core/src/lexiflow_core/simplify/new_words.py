@@ -39,3 +39,12 @@ def visible_stored_suggestions(
 ) -> tuple[NewWordSuggestion, ...]:
     """Return sidecar suggestions that are not already in vocabulary."""
     return tuple(item for item in stored if item.lemma not in existing_lemmas)
+
+
+def learned_lemmas_from_stored(
+    stored: tuple[NewWordSuggestion, ...],
+    *,
+    lemmas_in_vocabulary: set[str],
+) -> tuple[str, ...]:
+    """Return lemmas from stored suggestions that are already in vocabulary."""
+    return tuple(item.lemma for item in stored if item.lemma in lemmas_in_vocabulary)

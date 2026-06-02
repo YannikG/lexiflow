@@ -36,17 +36,22 @@ from lexiflow_ui.reader_flow import (
     persist_last_viewed_tab,
     resolve_initial_tab,
 )
+from lexiflow_ui.remove_target_language_flow import offer_remove_target_language
 from lexiflow_ui.unsaved_changes import DirtyEditor, confirm_leave_dirty_editors
 from lexiflow_ui.widgets.active_target_language import ActiveTargetLanguageWidget
 from lexiflow_ui.widgets.empty_state import EmptyStateWidget
 from lexiflow_ui.widgets.reader_widget import ReaderWidget
 from lexiflow_ui.widgets.sidebar import SidebarWidget
+from lexiflow_ui.widgets.study_widget import StudyWidget
+from lexiflow_ui.widgets.vocabulary_widget import VocabularyWidget
 from lexiflow_ui.widgets.worker_status import WorkerStatusBar
 from lexiflow_ui.worker_supervisor import WorkerSupervisor
 
-NavigationMode = Literal["texts", "vocabulary"]
+NavigationMode = Literal["texts", "vocabulary", "study"]
 
-_LLM_JOB_TYPES = frozenset({JobType.CLEANUP, JobType.TRANSLATE, JobType.SIMPLIFY})
+_LLM_JOB_TYPES = frozenset(
+    {JobType.CLEANUP, JobType.TRANSLATE, JobType.SIMPLIFY, JobType.LEMMA}
+)
 
 DEFAULT_WINDOW_WIDTH = 1200
 DEFAULT_WINDOW_HEIGHT = 800
@@ -124,6 +129,10 @@ class MainWindow(QMainWindow):
         return self._reader
 
     @property
+    def study(self) -> StudyWidget:
+        return self._study
+
+    @property
     def data_root(self) -> Path:
         return self._data_root
 
@@ -153,6 +162,9 @@ class MainWindow(QMainWindow):
         self._add_text_menu_action.setShortcut(QKeySequence.StandardKey.New)
         self._add_text_menu_action.triggered.connect(self._open_add_text_dialog)
         file_menu.addAction(self._add_text_menu_action)
+        self._remove_language_action = QAction("Remove target language…", self)
+        self._remove_language_action.triggered.connect(self._remove_target_language)
+        file_menu.addAction(self._remove_language_action)
 
     def _build_toolbar(self) -> None:
         toolbar = QToolBar("Main", self)
@@ -170,7 +182,11 @@ class MainWindow(QMainWindow):
             toolbar.addSeparator()
         group = QActionGroup(self)
         group.setExclusive(True)
-        for mode, label in (("texts", "Texts"), ("vocabulary", "Vocabulary")):
+        for mode, label in (
+            ("texts", "Texts"),
+            ("vocabulary", "Vocabulary"),
+            ("study", "Study"),
+        ):
             action = QAction(label, self)
             action.setCheckable(True)
             action.triggered.connect(
@@ -213,13 +229,23 @@ class MainWindow(QMainWindow):
         self._texts_stack.addWidget(self._texts_view)
         self._texts_stack.addWidget(self._reader)
         self._content_stack = QStackedWidget(container)
-        self._vocabulary_view = EmptyStateWidget(
-            title="No vocabulary yet",
-            message="Words you save while reading will appear here.",
+        self._vocabulary = VocabularyWidget(
+            data_root=self._data_root,
+            settings=self._settings,
+            supervisor=self._supervisor,
             parent=self._content_stack,
         )
+        self._vocabulary.vocabulary_changed.connect(self._on_vocabulary_changed)
+        self._study = StudyWidget(
+            data_root=self._data_root,
+            settings=self._settings,
+            parent=self._content_stack,
+        )
+        self._study.vocabulary_changed.connect(self._on_vocabulary_changed)
+        self._reader.vocabulary_changed.connect(self._on_vocabulary_changed)
         self._content_stack.addWidget(self._texts_stack)
-        self._content_stack.addWidget(self._vocabulary_view)
+        self._content_stack.addWidget(self._vocabulary)
+        self._content_stack.addWidget(self._study)
         layout.addWidget(self._sidebar)
         layout.addWidget(self._content_stack, stretch=1)
         self.setCentralWidget(container)
@@ -425,9 +451,45 @@ class MainWindow(QMainWindow):
         action = self._navigation_actions[mode]
         action.setChecked(True)
         self._sidebar.setVisible(mode == "texts")
-        self._content_stack.setCurrentWidget(
-            self._texts_stack if mode == "texts" else self._vocabulary_view
+        mode_widget = {
+            "texts": self._texts_stack,
+            "vocabulary": self._vocabulary,
+            "study": self._study,
+        }[mode]
+        self._content_stack.setCurrentWidget(mode_widget)
+        if mode == "vocabulary":
+            self._vocabulary.refresh()
+        elif mode == "study":
+            self._study.refresh()
+
+    def _on_vocabulary_changed(self) -> None:
+        self._vocabulary.refresh()
+        self._study.refresh()
+
+    def _remove_target_language(self) -> None:
+        iso = self._settings.active_target_language
+        if iso is None:
+            QMessageBox.information(
+                self,
+                "Remove target language",
+                "No active target language is configured.",
+            )
+            return
+        from lexiflow_core.config.settings_store import SettingsStore
+
+        updated = offer_remove_target_language(
+            self,
+            data_root=self._data_root,
+            language_code=iso,
+            settings=self._settings,
+            settings_store=SettingsStore(),
         )
+        if updated is None:
+            return
+        self._settings = updated
+        self._refresh_texts_ui()
+        self._vocabulary.refresh()
+        self._study.refresh()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         if not self._confirm_leave_editing_surfaces():

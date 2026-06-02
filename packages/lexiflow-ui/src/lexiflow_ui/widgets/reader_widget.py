@@ -29,7 +29,10 @@ from lexiflow_core.library.reader_tabs import (
     simplified_variant_name,
 )
 from lexiflow_core.library.text_repository import TextRepository
-from lexiflow_core.simplify.new_words import visible_stored_suggestions
+from lexiflow_core.simplify.new_words import (
+    learned_lemmas_from_stored,
+    visible_stored_suggestions,
+)
 from lexiflow_core.simplify.suggestions_store import load_suggestions
 from lexiflow_core.vocabulary.models import NewWordSuggestion
 from lexiflow_core.vocabulary.store import VocabularyStore, VocabularyStoreError
@@ -58,6 +61,7 @@ from PySide6.QtWidgets import (
 from lexiflow_ui.delete_text_flow import confirm_delete_text, delete_text_to_trash
 from lexiflow_ui.generation_status import generation_indicator
 from lexiflow_ui.llama_server_supervisor import LlamaServerSupervisor
+from lexiflow_ui.reader_add_word import can_add_word_from_tab, open_highlight_add_dialog
 from lexiflow_ui.reader_flow import markdown_for_reader_pane, variant_reader_state
 from lexiflow_ui.simplify_flow import (
     confirm_simplify_without_translated,
@@ -68,7 +72,7 @@ from lexiflow_ui.unsaved_changes import (
     confirm_leave_dirty_editor,
     fields_differ_from_snapshot,
 )
-from lexiflow_ui.widgets.new_words_panel import NewWordsPanel
+from lexiflow_ui.widgets.word_panel import WordPanel
 from lexiflow_ui.worker_supervisor import WorkerSupervisor
 
 
@@ -84,6 +88,7 @@ class ReaderWidget(QWidget):
     text_saved = Signal()
     text_deleted = Signal()
     simplify_submitted = Signal()
+    vocabulary_changed = Signal()
 
     def __init__(
         self,
@@ -178,6 +183,8 @@ class ReaderWidget(QWidget):
         self._read_pane = QTextBrowser(self)
         self._read_pane.setObjectName("reader_read_pane")
         self._read_pane.setOpenExternalLinks(True)
+        self._read_pane.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self._read_pane.customContextMenuRequested.connect(self._show_read_context_menu)
         self._edit_pane = QPlainTextEdit(self)
         self._edit_pane.setObjectName("reader_edit_pane")
         self._preview_pane = QTextBrowser(self)
@@ -204,9 +211,9 @@ class ReaderWidget(QWidget):
         self._generation_banner.hide()
         read_layout.addWidget(self._generation_banner)
         read_layout.addWidget(self._read_pane, stretch=1)
-        self._new_words_panel = NewWordsPanel(read_page)
-        self._new_words_panel.add_requested.connect(self._add_new_word)
-        read_layout.addWidget(self._new_words_panel, stretch=0)
+        self._word_panel = WordPanel(read_page)
+        self._word_panel.add_requested.connect(self._add_new_word)
+        read_layout.addWidget(self._word_panel, stretch=0)
 
         edit_page = QWidget(self)
         edit_layout = QVBoxLayout(edit_page)
@@ -328,7 +335,7 @@ class ReaderWidget(QWidget):
             message = status_message or "This variant is not available yet."
             self._show_status_overlay(message)
             self._edit_button.setEnabled(False)
-            self._refresh_new_words_panel()
+            self._refresh_word_panel()
             self.tab_changed.emit(tab_id)
             return
         self._hide_generation_banner()
@@ -337,7 +344,7 @@ class ReaderWidget(QWidget):
         rendered = markdown_for_reader_pane(markdown, document_title=None)
         self._read_pane.setMarkdown(rendered)
         self._sync_simplify_level_picker()
-        self._refresh_new_words_panel()
+        self._refresh_word_panel()
         self.tab_changed.emit(tab_id)
 
     def reload_from_disk(
@@ -637,34 +644,79 @@ class ReaderWidget(QWidget):
         self._show_read_mode()
         self.text_deleted.emit()
 
-    def _refresh_new_words_panel(self) -> None:
+    def _refresh_word_panel(self) -> None:
         if self._record is None or not self._active_tab.startswith(SIMPLIFIED_PREFIX):
-            self._new_words_panel.set_suggestions(())
+            self._word_panel.clear()
             return
-        suggestions = self._visible_suggestions(self._active_tab)
-        self._new_words_panel.set_suggestions(suggestions)
-
-    def _visible_suggestions(self, variant_name: str) -> tuple[NewWordSuggestion, ...]:
-        if self._record is None or self._data_root is None:
-            return ()
         folder = Path(self._record.folder)
-        stored = load_suggestions(folder, variant_name)
+        stored = load_suggestions(folder, self._active_tab)
         if not stored:
-            return ()
+            self._word_panel.clear()
+            return
+        if self._data_root is None:
+            self._word_panel.clear()
+            return
         store = VocabularyStore(self._data_root, self._record.target_language)
         existing = {entry.lemma for entry in store.list_for_simplify()}
-        return visible_stored_suggestions(stored, existing_lemmas=existing)
+        new_words = visible_stored_suggestions(stored, existing_lemmas=existing)
+        learned_lemmas = learned_lemmas_from_stored(
+            stored,
+            lemmas_in_vocabulary=existing,
+        )
+        learned_words = tuple(
+            entry for lemma in learned_lemmas if (entry := store.get(lemma)) is not None
+        )
+        self._word_panel.set_content(
+            new_words=new_words,
+            learned_words=learned_words,
+        )
+
+    def _show_read_context_menu(self, position: object) -> None:
+        if self._record is None or not can_add_word_from_tab(self._active_tab):
+            return
+        from PySide6.QtCore import QPoint
+
+        if not isinstance(position, QPoint):
+            return
+        menu = QMenu(self)
+        add_action = menu.addAction("Add word")
+        chosen = menu.exec(self._read_pane.mapToGlobal(position))
+        if chosen is not add_action:
+            return
+        self.request_add_word_from_selection()
+
+    def request_add_word_from_selection(self) -> bool:
+        """Add the current reader selection to vocabulary."""
+        return self._highlight_add_word()
+
+    def _highlight_add_word(self) -> bool:
+        if (
+            self._record is None
+            or self._data_root is None
+            or self._settings is None
+            or self._settings.native_language is None
+        ):
+            return False
+        surface_form = self._read_pane.textCursor().selectedText().strip()
+        saved = open_highlight_add_dialog(
+            self,
+            data_root=self._data_root,
+            record=self._record,
+            tab_id=self._active_tab,
+            surface_form=surface_form,
+            native_language=self._settings.native_language,
+            supervisor=self._supervisor,
+        )
+        if saved:
+            self.vocabulary_changed.emit()
+        return saved
 
     def _add_new_word(self, suggestion: NewWordSuggestion) -> None:
         if self._record is None or self._data_root is None or self._supervisor is None:
             return
-        tab_level = level_from_simplified_variant(self._active_tab)
         store = VocabularyStore(self._data_root, self._record.target_language)
         try:
-            store.add_from_suggestion(
-                suggestion,
-                level_when_learned=tab_level,
-            )
+            store.add_from_suggestion(suggestion)
         except VocabularyStoreError as error:
             QMessageBox.warning(self, "Add word", str(error))
             return
@@ -674,4 +726,5 @@ class ReaderWidget(QWidget):
             lemma=suggestion.lemma,
         )
         self._supervisor.ensure_running()
-        self._refresh_new_words_panel()
+        self._refresh_word_panel()
+        self.vocabulary_changed.emit()

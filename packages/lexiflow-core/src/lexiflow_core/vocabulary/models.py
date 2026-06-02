@@ -16,6 +16,13 @@ class DifficultyRating(StrEnum):
     EASY = "easy"
 
 
+class VocabularySort(StrEnum):
+    RECENT = "recent"
+    ALPHABETICAL = "alphabetical"
+    LEVEL = "level"
+    DIFFICULTY = "difficulty"
+
+
 @dataclass(frozen=True)
 class VocabularyEntry:
     lemma: str

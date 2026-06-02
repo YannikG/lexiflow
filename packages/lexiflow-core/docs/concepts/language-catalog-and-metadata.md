@@ -43,4 +43,8 @@ CEFR level is not encoded in folder paths. **Level** on groups or texts is forbi
 
 Adding a target language from onboarding enqueues `JobType.DOWNLOAD_SPACY` with payload `{"iso": "<code>"}`. The worker handler is wired in a later phase; persistence is established in phase 06.
 
+## Remove target language (phase 12)
+
+`lexiflow_core.languages.remove_target.remove_target_language` deletes `{data_root}/{iso}/` and clears `active_target_language` in global settings when it matches. The UI may offer **Vocabulary export** first via `remove_target_language_flow.py`.
+
 See [common-language.md](../../../../common-language.md): **Language catalog**, **Language metadata**, **User language level**, **spaCy language packs**.

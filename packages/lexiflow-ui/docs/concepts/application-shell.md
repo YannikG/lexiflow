@@ -41,6 +41,16 @@ The **Application shell** is LexiFlow's main window frame: toolbar, **sidebar**,
 - **Theme** from **global settings** applied before the main window (system / light / dark)
 - Shell widgets from phases 05–09 migrate off default Fusion chrome; no inline `setStyleSheet` in feature modules
 
+## Phase 12 (vocabulary)
+
+- **Vocabulary** mode shows `VocabularyWidget` (browse table, search, export/import)
+- **Study** mode shows `StudyWidget` (flashcard deck)
+- Sidebar hidden in Vocabulary mode
+- File → **Remove target language** with optional export-first flow
+- Reader **Add word** on translated/simplified tabs
+
+See [vocabulary-study.md](vocabulary-study.md).
+
 ## Deferred (later phases)
 
 - ~~Sidebar group/text tree~~ → [phase 17 UI cleanup](../../../../docs/roadmap/phases/phase-17-ui-cleanup/README.md)

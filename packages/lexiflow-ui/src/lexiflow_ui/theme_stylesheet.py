@@ -275,23 +275,45 @@ QPlainTextEdit#reader_edit_pane {{
   selection-color: {color("editor.foreground")};
 }}
 
-QWidget#new_words_panel {{
+QWidget#word_panel {{
   background-color: {color("reader.panelBackground")};
   border-top: 1px solid {color("reader.border")};
 }}
 
-QScrollArea#new_words_scroll {{
+QWidget#vocabulary_study_card_face {{
   background-color: {color("reader.panelBackground")};
-  border: none;
+  border: 1px solid {color("reader.border")};
+  border-radius: 8px;
 }}
 
-QWidget#new_words_rows {{
+QWidget#vocabulary_study_card_face QLabel {{
+  background: transparent;
+}}
+
+QLabel#vocabulary_study_card_text {{
+  font-size: 32px;
+  font-weight: 500;
+  background: transparent;
+}}
+
+QLabel#vocabulary_study_explanation {{
+  font-size: 15px;
+  color: {color("descriptionForeground")};
+  padding-top: 12px;
+  background: transparent;
+}}
+
+QTableWidget#word_panel_new_table,
+QTableWidget#word_panel_learned_table {{
   background-color: {color("reader.panelBackground")};
+  border: none;
+  gridline-color: {color("reader.border")};
 }}
 
 QTextBrowser#reader_read_pane QScrollBar:vertical,
 QTextBrowser#reader_edit_preview_pane QScrollBar:vertical,
-QScrollArea#new_words_scroll QScrollBar:vertical {{
+QTableWidget#word_panel_new_table QScrollBar:vertical,
+QTableWidget#word_panel_learned_table QScrollBar:vertical {{
   background: {color("reader.scrollbarBackground")};
   width: 10px;
   margin: 0;
@@ -299,7 +321,8 @@ QScrollArea#new_words_scroll QScrollBar:vertical {{
 
 QTextBrowser#reader_read_pane QScrollBar::handle:vertical,
 QTextBrowser#reader_edit_preview_pane QScrollBar::handle:vertical,
-QScrollArea#new_words_scroll QScrollBar::handle:vertical {{
+QTableWidget#word_panel_new_table QScrollBar::handle:vertical,
+QTableWidget#word_panel_learned_table QScrollBar::handle:vertical {{
   background: {color("reader.scrollbarThumb")};
   min-height: 24px;
   border-radius: 4px;
@@ -307,13 +330,15 @@ QScrollArea#new_words_scroll QScrollBar::handle:vertical {{
 
 QTextBrowser#reader_read_pane QScrollBar::handle:vertical:hover,
 QTextBrowser#reader_edit_preview_pane QScrollBar::handle:vertical:hover,
-QScrollArea#new_words_scroll QScrollBar::handle:vertical:hover {{
+QTableWidget#word_panel_new_table QScrollBar::handle:vertical:hover,
+QTableWidget#word_panel_learned_table QScrollBar::handle:vertical:hover {{
   background: {color("reader.scrollbarThumbHover")};
 }}
 
 QTextBrowser#reader_read_pane QScrollBar:horizontal,
 QTextBrowser#reader_edit_preview_pane QScrollBar:horizontal,
-QScrollArea#new_words_scroll QScrollBar:horizontal {{
+QTableWidget#word_panel_new_table QScrollBar:horizontal,
+QTableWidget#word_panel_learned_table QScrollBar:horizontal {{
   background: {color("reader.scrollbarBackground")};
   height: 10px;
   margin: 0;
@@ -321,7 +346,8 @@ QScrollArea#new_words_scroll QScrollBar:horizontal {{
 
 QTextBrowser#reader_read_pane QScrollBar::handle:horizontal,
 QTextBrowser#reader_edit_preview_pane QScrollBar::handle:horizontal,
-QScrollArea#new_words_scroll QScrollBar::handle:horizontal {{
+QTableWidget#word_panel_new_table QScrollBar::handle:horizontal,
+QTableWidget#word_panel_learned_table QScrollBar::handle:horizontal {{
   background: {color("reader.scrollbarThumb")};
   min-width: 24px;
   border-radius: 4px;
@@ -329,7 +355,8 @@ QScrollArea#new_words_scroll QScrollBar::handle:horizontal {{
 
 QTextBrowser#reader_read_pane QScrollBar::handle:horizontal:hover,
 QTextBrowser#reader_edit_preview_pane QScrollBar::handle:horizontal:hover,
-QScrollArea#new_words_scroll QScrollBar::handle:horizontal:hover {{
+QTableWidget#word_panel_new_table QScrollBar::handle:horizontal:hover,
+QTableWidget#word_panel_learned_table QScrollBar::handle:horizontal:hover {{
   background: {color("reader.scrollbarThumbHover")};
 }}
 
@@ -341,10 +368,14 @@ QTextBrowser#reader_edit_preview_pane QScrollBar::add-line,
 QTextBrowser#reader_edit_preview_pane QScrollBar::sub-line,
 QTextBrowser#reader_edit_preview_pane QScrollBar::add-page,
 QTextBrowser#reader_edit_preview_pane QScrollBar::sub-page,
-QScrollArea#new_words_scroll QScrollBar::add-line,
-QScrollArea#new_words_scroll QScrollBar::sub-line,
-QScrollArea#new_words_scroll QScrollBar::add-page,
-QScrollArea#new_words_scroll QScrollBar::sub-page {{
+QTableWidget#word_panel_new_table QScrollBar::add-line,
+QTableWidget#word_panel_new_table QScrollBar::sub-line,
+QTableWidget#word_panel_new_table QScrollBar::add-page,
+QTableWidget#word_panel_new_table QScrollBar::sub-page,
+QTableWidget#word_panel_learned_table QScrollBar::add-line,
+QTableWidget#word_panel_learned_table QScrollBar::sub-line,
+QTableWidget#word_panel_learned_table QScrollBar::add-page,
+QTableWidget#word_panel_learned_table QScrollBar::sub-page {{
   background: none;
   border: none;
 }}
