@@ -13,7 +13,6 @@ from lexiflow_core.config.settings import Settings
 from lexiflow_core.config.settings_store import SettingsStore
 from lexiflow_core.jobs.models import JobRequest, JobType
 from lexiflow_core.jobs.service import JobService
-from lexiflow_core.languages.models import CEFRLevel
 from lexiflow_core.languages.store import LanguageStore
 
 
@@ -34,13 +33,12 @@ def _discard_new_target(data_root: Path, iso: str) -> None:
         lang_root.rmdir()
 
 
-def add_target_with_spacy_download(data_root: Path, iso: str, level: CEFRLevel) -> None:
+def add_target_with_spacy_download(data_root: Path, iso: str) -> None:
     """Add a target language and enqueue its spaCy pack download."""
     store = LanguageStore(data_root)
-    if iso in store.list_targets():
-        store.set_user_level(iso, level)
+    if store.has_target(iso):
         return
-    store.add_target(iso, level)
+    store.add_target(iso)
     try:
         JobService(data_root).enqueue(
             JobRequest(
@@ -60,10 +58,9 @@ def complete_language_onboarding(
     settings: Settings,
     native_language: str,
     target_language: str,
-    level: CEFRLevel,
 ) -> Settings:
     """Apply first-run language setup and persist global settings."""
-    add_target_with_spacy_download(data_root, target_language, level)
+    add_target_with_spacy_download(data_root, target_language)
     updated = Settings(
         data_root=settings.data_root,
         native_language=native_language,

@@ -25,7 +25,6 @@ from PySide6.QtWidgets import (
     QPushButton,
     QStackedWidget,
     QTextBrowser,
-    QToolButton,
 )
 
 
@@ -178,7 +177,7 @@ def test_reopen_restores_last_viewed_tab(reader_window, qtbot) -> None:
     assert reopened.reader.active_tab_id == NATIVE_TAB
 
 
-def test_single_simplified_variant_shows_flat_tab_label(
+def test_single_simplified_variant_shows_level_tab(
     reader_window, qtbot, tmp_path
 ) -> None:
     window, data_root = reader_window
@@ -191,15 +190,15 @@ def test_single_simplified_variant_shows_flat_tab_label(
 
     _click_sidebar_text(qtbot, window)
 
-    simplified_tab = window.reader.findChild(QPushButton, "reader_tab_simplified")
-    menu = window.reader.findChild(QToolButton, "reader_simplified_menu")
+    simplified_tab = window.reader.findChild(QPushButton, "reader_tab_simplified_a2")
     assert simplified_tab is not None
     assert simplified_tab.isVisible()
-    assert "A2" in simplified_tab.text()
-    assert menu is None or not menu.isVisible()
+    assert simplified_tab.text() == "A2"
 
 
-def test_multiple_simplified_variants_show_dropdown_menu(reader_window, qtbot) -> None:
+def test_multiple_simplified_variants_show_separate_level_tabs(
+    reader_window, qtbot
+) -> None:
     window, data_root = reader_window
     record = LibraryIndex(data_root).list_by_lang("es")[0]
     folder = Path(record.folder)
@@ -214,10 +213,10 @@ def test_multiple_simplified_variants_show_dropdown_menu(reader_window, qtbot) -
 
     _click_sidebar_text(qtbot, window)
 
-    menu = window.reader.simplified_menu()
-    assert menu.isVisible()
-    assert menu.menu() is not None
-    assert len(menu.menu().actions()) == 2
+    tab_a2 = window.reader.findChild(QPushButton, "reader_tab_simplified_a2")
+    tab_b1 = window.reader.findChild(QPushButton, "reader_tab_simplified_b1")
+    assert tab_a2 is not None and tab_a2.isVisible()
+    assert tab_b1 is not None and tab_b1.isVisible()
 
 
 def test_edit_mode_updates_preview_before_save(reader_window, qtbot) -> None:

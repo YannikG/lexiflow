@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
 from lexiflow_ui.add_text_flow import submit_add_text
 from lexiflow_ui.ai_worker_startup import ensure_ai_workers_running
 from lexiflow_ui.dialogs.add_text_dialog import open_add_text_dialog
+from lexiflow_ui.dialogs.jobs_panel_dialog import open_jobs_panel
 from lexiflow_ui.dialogs.trash_dialog import open_trash_dialog
 from lexiflow_ui.find_in_texts_flow import find_in_texts
 from lexiflow_ui.library_options_flow import (
@@ -46,6 +47,8 @@ from lexiflow_ui.reader_flow import (
     resolve_initial_tab,
 )
 from lexiflow_ui.remove_target_language_flow import offer_remove_target_language
+from lexiflow_ui.shutdown_flow import confirm_application_quit
+from lexiflow_ui.switch_language_flow import open_switch_language_dialog
 from lexiflow_ui.unsaved_changes import DirtyEditor, confirm_leave_dirty_editors
 from lexiflow_ui.widgets.active_target_language import ActiveTargetLanguageWidget
 from lexiflow_ui.widgets.empty_state import EmptyStateWidget
@@ -99,13 +102,17 @@ class MainWindow(QMainWindow):
         self._status_bar = WorkerStatusBar(
             supervisor,
             llama_supervisor,
-            self,
+            data_root=self._data_root,
+            on_open_jobs=self._open_jobs_panel,
+            parent=self,
         )
         self.setStatusBar(self._status_bar)
         if self._llama_supervisor is not None:
             self._llama_supervisor.state_changed.connect(
                 self._on_infrastructure_state_changed
             )
+        self._supervisor.crashed.connect(self._on_worker_crashed)
+        self._supervisor.state_changed.connect(self._status_bar.refresh)
         self._open_text_id: UUID | None = None
         self._seen_completed_job_ids: set[UUID] = set()
         self._seen_failed_job_ids: set[UUID] = set()
@@ -184,9 +191,23 @@ class MainWindow(QMainWindow):
         vocabulary_menu.addAction(self._remove_language_action)
 
         library_menu = self.menuBar().addMenu("&Library")
+        self._switch_language_action = QAction("Switch language…", self)
+        self._switch_language_action.triggered.connect(
+            self._open_switch_language_dialog
+        )
+        library_menu.addAction(self._switch_language_action)
+        library_menu.addSeparator()
         self._trash_action = QAction("Trash…", self)
         self._trash_action.triggered.connect(self._open_trash_dialog)
         library_menu.addAction(self._trash_action)
+
+        settings_menu = self.menuBar().addMenu("&Settings")
+        self._settings_action = QAction("Settings…", self)
+        self._settings_action.triggered.connect(self._open_settings_dialog)
+        settings_menu.addAction(self._settings_action)
+        self._about_action = QAction("About LexiFlow…", self)
+        self._about_action.triggered.connect(self._open_about_dialog)
+        settings_menu.addAction(self._about_action)
 
         options_menu = self.menuBar().addMenu("&Options")
         self._export_library_action = QAction("Export library…", self)
@@ -325,6 +346,9 @@ class MainWindow(QMainWindow):
             self._data_root, self._settings.active_target_language
         )
         self._sidebar.set_texts(titles)
+        title_ids = {record.id for record in titles}
+        if self._open_text_id is not None and self._open_text_id not in title_ids:
+            self._close_open_text()
         if titles:
             self._texts_view.set_content(
                 title="Texts in your library",
@@ -335,14 +359,23 @@ class MainWindow(QMainWindow):
                 self._sidebar.select_text(self._open_text_id)
                 self._texts_stack.setCurrentWidget(self._reader)
             else:
-                self._texts_stack.setCurrentWidget(self._texts_view)
+                self._show_texts_placeholder()
         else:
             self._texts_view.set_content(
                 title="No texts yet",
                 message="Add a text to start reading and building vocabulary.",
                 show_action=True,
             )
+            self._close_open_text()
+            self._show_texts_placeholder()
         self._update_add_text_enabled()
+
+    def _close_open_text(self) -> None:
+        self._open_text_id = None
+        self._reader.close_open_text()
+
+    def _show_texts_placeholder(self) -> None:
+        self._texts_stack.setCurrentWidget(self._texts_view)
 
     def _dirty_editors(self) -> tuple[DirtyEditor, ...]:
         return (self._reader,)
@@ -435,6 +468,71 @@ class MainWindow(QMainWindow):
             ),
         )
 
+    def _open_settings_dialog(self) -> None:
+        from lexiflow_core.config.settings_store import SettingsStore
+        from PySide6.QtWidgets import QApplication
+
+        from lexiflow_ui.dialogs.settings_dialog import open_settings_dialog
+
+        app = QApplication.instance()
+        open_settings_dialog(
+            self,
+            app=app,
+            settings=self._settings,
+            settings_store=SettingsStore(),
+            data_root=self._data_root,
+            on_saved=self._on_settings_saved,
+        )
+
+    def _apply_settings_to_shell(self, settings: Settings) -> None:
+        self._settings = settings
+        if self._active_target_language is not None:
+            self._active_target_language.refresh(
+                settings=settings,
+                data_root=self._data_root,
+            )
+        self._vocabulary.apply_settings(settings)
+        self._study.apply_settings(settings)
+
+    def _on_settings_saved(self, settings: Settings) -> None:
+        self._apply_settings_to_shell(settings)
+        self._reader.reload_font_from_settings(settings)
+
+    def _open_about_dialog(self) -> None:
+        import lexiflow_core
+
+        from lexiflow_ui.onboarding.system_info import SystemInfo
+
+        info = SystemInfo()
+        gib = info.total_ram_bytes() / (1024**3)
+        QMessageBox.information(
+            self,
+            "About LexiFlow",
+            f"LexiFlow {lexiflow_core.__version__}\n\n"
+            f"Recommended RAM: 8 GiB or more\n"
+            f"Detected RAM: {gib:.1f} GiB\n\n"
+            "Apache 2.0 — local-first language learning.",
+        )
+
+    def _open_switch_language_dialog(self) -> None:
+        from lexiflow_core.config.settings_store import SettingsStore
+
+        open_switch_language_dialog(
+            self,
+            data_root=self._data_root,
+            settings=self._settings,
+            settings_store=SettingsStore(),
+            on_switched=self._on_active_language_changed,
+        )
+
+    def _on_active_language_changed(self, settings: Settings) -> None:
+        self._apply_settings_to_shell(settings)
+        self._seen_completed_job_ids.clear()
+        self._seen_failed_job_ids.clear()
+        self._close_open_text()
+        self._refresh_texts_ui()
+        self._show_navigation_mode("texts")
+
     def _open_trash_dialog(self) -> None:
         open_trash_dialog(
             self,
@@ -477,9 +575,8 @@ class MainWindow(QMainWindow):
         persist_last_viewed_tab(self._library_index, self._open_text_id, tab_id)
 
     def _on_reader_text_deleted(self) -> None:
-        self._open_text_id = None
+        self._close_open_text()
         self._refresh_texts_ui()
-        self._texts_stack.setCurrentWidget(self._texts_view)
 
     def _open_add_text_dialog(self) -> None:
         if not self._can_add_text():
@@ -555,6 +652,7 @@ class MainWindow(QMainWindow):
     def _poll_background_jobs(self) -> None:
         job_service = JobService(self._data_root)
         self._ensure_background_workers(job_service)
+        self._supervisor.note_queue_activity()
         if self._open_text_id is None:
             return
         open_text = str(self._open_text_id)
@@ -643,17 +741,36 @@ class MainWindow(QMainWindow):
         )
         if updated is None:
             return
-        self._settings = updated
+        self._apply_settings_to_shell(updated)
         self._refresh_texts_ui()
-        self._vocabulary.refresh()
-        self._study.refresh()
+
+    def _on_worker_crashed(self, exit_code: int) -> None:
+        answer = QMessageBox.question(
+            self,
+            "Worker stopped",
+            f"The background worker exited unexpectedly (code {exit_code}).\n\n"
+            "Restart the worker to resume pending jobs?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+        if answer == QMessageBox.StandardButton.Yes:
+            self._supervisor.ensure_running()
+
+    def _open_jobs_panel(self) -> None:
+        open_jobs_panel(self, data_root=self._data_root)
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         if not self._confirm_leave_editing_surfaces():
             event.ignore()
             return
         self._job_poll_timer.stop()
-        if self._llama_supervisor is not None:
-            self._llama_supervisor.shutdown(wait=True)
-        self._supervisor.shutdown(wait=True)
+        job_service = JobService(self._data_root)
+        if not confirm_application_quit(
+            self,
+            job_service=job_service,
+            worker_supervisor=self._supervisor,
+            llama_supervisor=self._llama_supervisor,
+        ):
+            event.ignore()
+            return
         super().closeEvent(event)

@@ -89,6 +89,19 @@ class LibraryCoordinator:
         self._index.upsert_text(record)
         return record
 
+    def remove_simplified_variant(self, text_id: UUID, variant_name: str) -> TextRecord:
+        indexed = self._index.get_by_id(text_id)
+        if indexed is None:
+            raise TextNotFoundError(f"text not found: {text_id}")
+        folder = Path(indexed.folder)
+        record = self._texts.remove_simplified_variant(folder, variant_name)
+        last_viewed = indexed.last_viewed_tab
+        if last_viewed == variant_name:
+            self._index.set_last_viewed_tab(text_id, "translated")
+            last_viewed = "translated"
+        self._index.upsert_text(record)
+        return replace(record, last_viewed_tab=last_viewed)
+
     def apply_simplified_variant(
         self,
         text_id: UUID,

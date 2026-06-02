@@ -21,6 +21,7 @@ from lexiflow_core.library.document_title import (
     parse_document_title,
 )
 from lexiflow_core.library.models import CreateTextRequest, TextRecord
+from lexiflow_core.library.simplified_variant import apply_simplified_variant_removal
 from lexiflow_core.library.slug import TextSlugError, make_text_slug
 from lexiflow_core.library.text_metadata import (
     TextMetadata,
@@ -165,6 +166,12 @@ class TextStorage:
             text_slug=text_folder.name,
             folder=str(text_folder),
         )
+
+    def remove_simplified_variant(
+        self, text_folder: Path, variant_name: str
+    ) -> TextRecord:
+        """Delete a simplified variant and its suggestions sidecar."""
+        return apply_simplified_variant_removal(text_folder, variant_name)
 
     def apply_simplified_variant(
         self,

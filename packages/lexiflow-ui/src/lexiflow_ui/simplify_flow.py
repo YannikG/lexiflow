@@ -7,17 +7,15 @@ from uuid import UUID
 
 from lexiflow_core.jobs.service import JobService
 from lexiflow_core.jobs.simplify_queue import enqueue_simplify
+from lexiflow_core.languages.defaults import DEFAULT_SIMPLIFY_LEVEL
 from lexiflow_core.languages.models import CEFRLevel
-from lexiflow_core.languages.store import LanguageStore, LanguageStoreError
 from PySide6.QtWidgets import QMessageBox, QWidget
 
 
 def default_simplify_level(data_root: Path, target_language: str) -> CEFRLevel:
-    """Return user language level or A2 when metadata is missing."""
-    try:
-        return LanguageStore(data_root).get_user_level(target_language)
-    except LanguageStoreError:
-        return CEFRLevel.A2
+    """Return the default simplify level for the level picker."""
+    del data_root, target_language
+    return DEFAULT_SIMPLIFY_LEVEL
 
 
 def submit_simplify(

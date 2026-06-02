@@ -10,7 +10,6 @@ from lexiflow_core.config.settings import Settings
 from lexiflow_core.config.settings_store import SettingsStore
 from lexiflow_core.jobs.models import JobType
 from lexiflow_core.jobs.service import JobService
-from lexiflow_core.languages.models import CEFRLevel
 from lexiflow_core.languages.setup import (
     LanguageSetupError,
     add_target_with_spacy_download,
@@ -23,7 +22,7 @@ from lexiflow_core.languages.store import LanguageStore
 def test_add_target_with_spacy_download_enqueues_job(tmp_path: Path) -> None:
     data_root = tmp_path / "library"
 
-    add_target_with_spacy_download(data_root, "es", CEFRLevel.A2)
+    add_target_with_spacy_download(data_root, "es")
 
     jobs = JobService(data_root).list_jobs()
     assert len(jobs) == 1
@@ -43,10 +42,19 @@ def test_add_target_with_spacy_download_rolls_back_on_enqueue_failure(
     monkeypatch.setattr(JobService, "enqueue", fail_enqueue)
 
     with pytest.raises(LanguageSetupError, match="failed to enqueue"):
-        add_target_with_spacy_download(data_root, "es", CEFRLevel.A2)
+        add_target_with_spacy_download(data_root, "es")
 
     assert LanguageStore(data_root).list_targets() == []
     assert not language_json_path(data_root, "es").exists()
+
+
+def test_add_target_with_spacy_download_skips_duplicate(tmp_path: Path) -> None:
+    data_root = tmp_path / "library"
+    add_target_with_spacy_download(data_root, "es")
+
+    add_target_with_spacy_download(data_root, "es")
+
+    assert len(JobService(data_root).list_jobs()) == 1
 
 
 def test_complete_language_onboarding_persists_settings(tmp_path: Path) -> None:
@@ -61,7 +69,6 @@ def test_complete_language_onboarding_persists_settings(tmp_path: Path) -> None:
         settings=settings,
         native_language="en",
         target_language="es",
-        level=CEFRLevel.A2,
     )
 
     loaded = store.load()
@@ -100,7 +107,6 @@ def test_onboarding_rerun_with_existing_target(tmp_path: Path) -> None:
         settings=settings,
         native_language="en",
         target_language="uk",
-        level=CEFRLevel.A2,
     )
     finalize_onboarding(settings_store=store, settings=store.load())
     assert store.load().onboarding_complete is True
@@ -122,7 +128,6 @@ def test_onboarding_rerun_with_existing_target(tmp_path: Path) -> None:
         settings=reset,
         native_language="en",
         target_language="uk",
-        level=CEFRLevel.B1,
     )
     final = finalize_onboarding(settings_store=store, settings=updated)
 
@@ -131,7 +136,6 @@ def test_onboarding_rerun_with_existing_target(tmp_path: Path) -> None:
     assert loaded.onboarding_complete is True
     assert loaded.native_language == "en"
     assert loaded.active_target_language == "uk"
-    assert LanguageStore(data_root).get_user_level("uk") == CEFRLevel.B1
     assert len(JobService(data_root).list_jobs()) == 1
 
 
@@ -155,7 +159,6 @@ def test_complete_language_onboarding_rolls_back_on_settings_save_failure(
             settings=settings,
             native_language="en",
             target_language="es",
-            level=CEFRLevel.A2,
         )
 
     assert LanguageStore(data_root).list_targets() == []

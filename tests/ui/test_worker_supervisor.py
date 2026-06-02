@@ -50,6 +50,21 @@ def test_ensure_running_respawns_after_process_exits(tmp_path: Path) -> None:
     assert len(FakeProcess.instances) == 2
 
 
+def test_idle_timeout_shuts_down_worker(tmp_path: Path) -> None:
+    FakeProcess.instances.clear()
+    FakeProcess.shutdown_calls.clear()
+    supervisor = WorkerSupervisor(
+        data_root=tmp_path,
+        executable=sys.executable,
+        process_factory=FakeProcess,
+        idle_timeout_ms=1,
+    )
+    supervisor.ensure_running()
+    supervisor._on_idle_timeout()
+
+    assert supervisor.state is WorkerState.OFFLINE
+
+
 def test_shutdown_waits_for_worker(tmp_path: Path) -> None:
     FakeProcess.instances.clear()
     FakeProcess.shutdown_calls.clear()
@@ -65,7 +80,9 @@ def test_shutdown_waits_for_worker(tmp_path: Path) -> None:
     assert supervisor.state is WorkerState.OFFLINE
 
 
-def test_main_window_close_shuts_down_supervisor(qtbot, tmp_path: Path) -> None:
+def test_main_window_close_shuts_down_supervisor_when_queue_empty(
+    qtbot, tmp_path: Path
+) -> None:
     FakeProcess.instances.clear()
     FakeProcess.shutdown_calls.clear()
     supervisor = WorkerSupervisor(

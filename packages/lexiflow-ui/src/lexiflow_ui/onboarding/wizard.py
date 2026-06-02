@@ -7,13 +7,11 @@ from pathlib import Path
 
 from lexiflow_core.config.settings import Settings
 from lexiflow_core.config.settings_store import SettingsStore
-from lexiflow_core.languages.models import CEFRLevel
 from lexiflow_core.languages.setup import (
     complete_language_onboarding,
     finalize_onboarding,
 )
 from PySide6.QtWidgets import (
-    QComboBox,
     QLabel,
     QVBoxLayout,
     QWizard,
@@ -79,34 +77,17 @@ class TargetLanguagePage(QWizardPage):
     def __init__(self, parent: QWizardPage | None = None) -> None:
         super().__init__(parent)
         self.setTitle("Target language")
-        self.setSubTitle(
-            "Choose the language you want to learn and your current level."
-        )
+        self.setSubTitle("Choose the language you want to learn.")
         self._picker = CatalogPickerWidget(self)
         self._picker.setObjectName("target_language_picker")
-        self._level = QComboBox(self)
-        self._level.setObjectName("target_level_combo")
-        for level in CEFRLevel:
-            self._level.addItem(level.value, level)
         layout = QVBoxLayout(self)
         layout.addWidget(self._picker)
-        layout.addWidget(QLabel("Your current level", self))
-        layout.addWidget(self._level)
 
     def select_language(self, iso: str) -> None:
         self._picker.set_selected_iso(iso)
 
-    def select_level(self, level: str) -> None:
-        self._level.setCurrentText(level)
-
     def selected_language(self) -> str | None:
         return self._picker.selected_iso()
-
-    def selected_level(self) -> CEFRLevel:
-        value = self._level.currentData()
-        if isinstance(value, CEFRLevel):
-            return value
-        return CEFRLevel(self._level.currentText())
 
     def validatePage(self) -> bool:  # noqa: N802
         target_iso = self.selected_language()
@@ -203,7 +184,6 @@ class OnboardingWizard(QWizard):
             settings=self._settings,
             native_language=native_iso,
             target_language=target_iso,
-            level=self._target.selected_level(),
         )
         self._settings = finalize_onboarding(
             settings_store=self._settings_store,

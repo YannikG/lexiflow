@@ -7,49 +7,43 @@ from pathlib import Path
 
 import pytest
 from lexiflow_core.config.paths import language_json_path
-from lexiflow_core.languages.models import CEFRLevel
 from lexiflow_core.languages.store import LanguageStore, LanguageStoreError
 
 
-def test_add_target_writes_language_json(tmp_path: Path) -> None:
+def test_add_target_writes_minimal_language_json(tmp_path: Path) -> None:
     store = LanguageStore(tmp_path)
 
-    store.add_target("es", CEFRLevel.A2)
+    store.add_target("es")
 
     path = language_json_path(tmp_path, "es")
     assert path.is_file()
     payload = json.loads(path.read_text(encoding="utf-8"))
-    assert payload["user_level"] == "A2"
-    assert store.get_user_level("es") == CEFRLevel.A2
+    assert payload == {"version": 1}
     assert store.list_targets() == ["es"]
+    assert store.has_target("es")
 
 
 def test_add_target_rejects_unknown_language(tmp_path: Path) -> None:
     store = LanguageStore(tmp_path)
 
     with pytest.raises(LanguageStoreError, match="unknown language"):
-        store.add_target("ru", CEFRLevel.A1)
-
-
-def test_set_user_level_updates_existing_target(tmp_path: Path) -> None:
-    store = LanguageStore(tmp_path)
-    store.add_target("es", CEFRLevel.A2)
-
-    store.set_user_level("es", CEFRLevel.B1)
-
-    assert store.get_user_level("es") == CEFRLevel.B1
-
-
-def test_set_user_level_requires_existing_target(tmp_path: Path) -> None:
-    store = LanguageStore(tmp_path)
-
-    with pytest.raises(LanguageStoreError, match="not found"):
-        store.set_user_level("es", CEFRLevel.A1)
+        store.add_target("ru")
 
 
 def test_add_target_rejects_duplicate(tmp_path: Path) -> None:
     store = LanguageStore(tmp_path)
-    store.add_target("es", CEFRLevel.A2)
+    store.add_target("es")
 
     with pytest.raises(LanguageStoreError, match="already exists"):
-        store.add_target("es", CEFRLevel.B1)
+        store.add_target("es")
+
+
+def test_list_targets_ignores_legacy_user_level_metadata(tmp_path: Path) -> None:
+    store = LanguageStore(tmp_path)
+    lang_dir = tmp_path / "es"
+    lang_dir.mkdir()
+    path = language_json_path(tmp_path, "es")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text('{"user_level": "B1"}\n', encoding="utf-8")
+
+    assert store.list_targets() == ["es"]

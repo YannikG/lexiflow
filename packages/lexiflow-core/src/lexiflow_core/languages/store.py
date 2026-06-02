@@ -1,4 +1,4 @@
-"""Persist target languages and user language levels."""
+"""Persist target languages on disk."""
 
 from __future__ import annotations
 
@@ -12,7 +12,6 @@ from lexiflow_core.languages.language_metadata import (
     load_language_metadata,
     save_language_metadata,
 )
-from lexiflow_core.languages.models import CEFRLevel
 
 
 class LanguageStoreError(Exception):
@@ -23,8 +22,8 @@ class LanguageStore:
     def __init__(self, data_root: Path) -> None:
         self._data_root = data_root
 
-    def add_target(self, iso: str, level: CEFRLevel) -> None:
-        """Register a target language and persist its user language level."""
+    def add_target(self, iso: str) -> None:
+        """Register a target language folder and metadata marker."""
         try:
             get_language(iso)
         except KeyError as exc:
@@ -33,22 +32,10 @@ class LanguageStore:
         if metadata_path.is_file():
             raise LanguageStoreError(f"target language already exists: {iso}")
         language_data_dir(self._data_root, iso).mkdir(parents=True, exist_ok=True)
-        save_language_metadata(metadata_path, LanguageMetadata(user_level=level))
+        save_language_metadata(metadata_path, LanguageMetadata())
 
-    def set_user_level(self, iso: str, level: CEFRLevel) -> None:
-        """Update the user language level for an existing target."""
-        metadata_path = language_json_path(self._data_root, iso)
-        if not metadata_path.is_file():
-            raise LanguageStoreError(f"target language not found: {iso}")
-        save_language_metadata(metadata_path, LanguageMetadata(user_level=level))
-
-    def get_user_level(self, iso: str) -> CEFRLevel:
-        try:
-            return load_language_metadata(
-                language_json_path(self._data_root, iso)
-            ).user_level
-        except LanguageMetadataError as exc:
-            raise LanguageStoreError(f"target language not found: {iso}") from exc
+    def has_target(self, iso: str) -> bool:
+        return iso in self.list_targets()
 
     def list_targets(self) -> list[str]:
         if not self._data_root.is_dir():
@@ -59,5 +46,9 @@ class LanguageStore:
                 continue
             metadata_path = language_json_path(self._data_root, entry.name)
             if metadata_path.is_file():
+                try:
+                    load_language_metadata(metadata_path)
+                except LanguageMetadataError:
+                    continue
                 targets.append(entry.name)
         return targets

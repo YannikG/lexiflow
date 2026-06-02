@@ -101,6 +101,56 @@ class JobStore:
         ).fetchall()
         return [_row_to_record(row) for row in rows]
 
+    def list_queue_jobs(self, limit: int = 50) -> list[JobRecord]:
+        """Return pending and running jobs for the jobs panel."""
+        rows = self._connection.execute(
+            """
+            SELECT * FROM jobs
+            WHERE status IN (?, ?)
+            ORDER BY
+                CASE status
+                    WHEN ? THEN 0
+                    WHEN ? THEN 1
+                END,
+                created_at ASC
+            LIMIT ?
+            """,
+            (
+                JobStatus.PENDING.value,
+                JobStatus.RUNNING.value,
+                JobStatus.RUNNING.value,
+                JobStatus.PENDING.value,
+                limit,
+            ),
+        ).fetchall()
+        return [_row_to_record(row) for row in rows]
+
+    def list_failed_jobs(self, limit: int = 20) -> list[JobRecord]:
+        """Return failed jobs for the jobs panel."""
+        rows = self._connection.execute(
+            """
+            SELECT * FROM jobs
+            WHERE status = ?
+            ORDER BY updated_at DESC, created_at DESC
+            LIMIT ?
+            """,
+            (JobStatus.FAILED.value, limit),
+        ).fetchall()
+        return [_row_to_record(row) for row in rows]
+
+    def list_completed_jobs(self, limit: int = _COMPLETED_RETENTION) -> list[JobRecord]:
+        """Return recently completed jobs for the jobs panel."""
+        rows = self._connection.execute(
+            """
+            SELECT * FROM jobs
+            WHERE status = ?
+            ORDER BY completed_at DESC, created_at DESC
+            LIMIT ?
+            """,
+            (JobStatus.COMPLETED.value, limit),
+        ).fetchall()
+        return [_row_to_record(row) for row in rows]
+
     def claim_next_pending(self) -> JobRecord | None:
         self._connection.execute("BEGIN IMMEDIATE")
         try:

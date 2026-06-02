@@ -6,8 +6,8 @@ from pathlib import Path
 
 from lexiflow_core.jobs.lemma_queue import enqueue_lemma_job
 from lexiflow_core.jobs.service import JobService
+from lexiflow_core.languages.defaults import DEFAULT_LEVEL_WHEN_LEARNED
 from lexiflow_core.languages.models import CEFRLevel
-from lexiflow_core.languages.store import LanguageStore, LanguageStoreError
 from lexiflow_core.vocabulary.lemma_form import parse_word_category
 from lexiflow_core.vocabulary.lemma_resolution import resolve_lemma_with_spacy
 from lexiflow_core.vocabulary.models import VocabularyEntry, WordCategory
@@ -29,10 +29,8 @@ from lexiflow_ui.worker_supervisor import WorkerSupervisor
 
 
 def default_level_for_language(data_root: Path, language_code: str) -> CEFRLevel:
-    try:
-        return LanguageStore(data_root).get_user_level(language_code)
-    except LanguageStoreError:
-        return CEFRLevel.A1
+    del data_root, language_code
+    return DEFAULT_LEVEL_WHEN_LEARNED
 
 
 def resolve_lemma_suggestions(

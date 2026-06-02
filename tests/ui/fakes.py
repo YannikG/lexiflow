@@ -40,3 +40,6 @@ class FakeProcess:
         if self.started:
             return QProcess.ProcessState.Running
         return QProcess.ProcessState.NotRunning
+
+    def exitCode(self) -> int:
+        return 0

@@ -19,7 +19,6 @@ from lexiflow_ui.worker_supervisor import WorkerSupervisor
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication,
-    QComboBox,
     QLabel,
     QLineEdit,
     QPushButton,
@@ -181,7 +180,6 @@ def test_themed_add_text_dialog_tab_switch_selects_target(
     dialog = AddTextDialog(
         data_root=tmp_path / "LexiFlow",
         target_language="es",
-        groups=["News"],
     )
     qtbot.addWidget(dialog)
     dialog.show()
@@ -199,10 +197,8 @@ def test_themed_add_text_dialog_tab_switch_selects_target(
     assert target_tab.isChecked()
     assert not native_tab.isChecked()
 
-    group = dialog.findChild(QComboBox, "add_text_group")
     title = dialog.findChild(QLineEdit, "add_text_title")
-    assert group is not None and title is not None
-    group.setCurrentText("News")
+    assert title is not None
     title.setText("My title")
     dialog.paste_edit().setPlainText("Hola")
     data = dialog.form_data()

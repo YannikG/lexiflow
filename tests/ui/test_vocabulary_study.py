@@ -16,7 +16,7 @@ from tests.ui.test_simplify_reader import _open_reader_window_without_worker
 
 
 def _seed_language(data_root: Path) -> None:
-    LanguageStore(data_root).add_target("es", CEFRLevel.A2)
+    LanguageStore(data_root).add_target("es")
 
 
 def _open_vocabulary_window(qtbot, data_root: Path) -> MainWindow:

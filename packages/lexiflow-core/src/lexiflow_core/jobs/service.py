@@ -37,6 +37,18 @@ class JobService:
         with self._store() as store:
             return store.list_jobs(limit=limit)
 
+    def list_queue_jobs(self, limit: int = 50) -> list[JobRecord]:
+        with self._store() as store:
+            return store.list_queue_jobs(limit=limit)
+
+    def list_failed_jobs(self, limit: int = 20) -> list[JobRecord]:
+        with self._store() as store:
+            return store.list_failed_jobs(limit=limit)
+
+    def list_completed_jobs(self, limit: int = 20) -> list[JobRecord]:
+        with self._store() as store:
+            return store.list_completed_jobs(limit=limit)
+
     def get(self, job_id: JobId) -> JobRecord | None:
         with self._store() as store:
             return store.get(job_id)

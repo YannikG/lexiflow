@@ -28,7 +28,7 @@ def test_add_from_simplified_tab_uses_form_level_not_active_tab(
     data_root = tmp_path / "LexiFlow"
     repo = _seed_reader_text(data_root)
     try:
-        LanguageStore(data_root).add_target("es", CEFRLevel.A2)
+        LanguageStore(data_root).add_target("es")
     except Exception:
         pass
     index = LibraryIndex(data_root)
@@ -73,7 +73,7 @@ def test_add_from_simplified_tab_sets_level_when_learned(qtbot, tmp_path: Path) 
     data_root = tmp_path / "LexiFlow"
     repo = _seed_reader_text(data_root)
     try:
-        LanguageStore(data_root).add_target("es", CEFRLevel.A2)
+        LanguageStore(data_root).add_target("es")
     except Exception:
         pass
     index = LibraryIndex(data_root)
@@ -117,7 +117,7 @@ def test_add_from_simplified_tab_sets_level_when_learned(qtbot, tmp_path: Path) 
 def test_add_from_translated_tab_uses_user_level(qtbot, tmp_path: Path) -> None:
     data_root = tmp_path / "LexiFlow"
     repo = _seed_reader_text(data_root)
-    LanguageStore(data_root).add_target("es", CEFRLevel.A2)
+    LanguageStore(data_root).add_target("es")
     index = LibraryIndex(data_root)
     titles = index.list_by_lang("es")
     assert titles

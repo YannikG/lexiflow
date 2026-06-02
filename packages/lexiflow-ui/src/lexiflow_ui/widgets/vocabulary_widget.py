@@ -114,6 +114,11 @@ class VocabularyWidget(QWidget):
 
         self.refresh()
 
+    def apply_settings(self, settings: Settings) -> None:
+        """Update active target language and reload the browse list."""
+        self._settings = settings
+        self.refresh()
+
     def refresh(self) -> None:
         language = self._settings.active_target_language
         if language is None:

@@ -14,3 +14,10 @@ def test_load_cleanup_prompt_is_non_empty() -> None:
 def test_load_missing_prompt_raises() -> None:
     with pytest.raises(PromptNotFoundError, match="nonexistent"):
         load_prompt("nonexistent")
+
+
+def test_simplify_prompt_requires_prose_not_bullet_summary() -> None:
+    content = load_prompt("simplify").lower()
+    assert "not a summary" in content
+    assert "bullet" in content
+    assert "paragraph" in content

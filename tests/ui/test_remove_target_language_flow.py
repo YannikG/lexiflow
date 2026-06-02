@@ -18,7 +18,7 @@ def test_remove_target_offers_export_before_wipe(
     qtbot, tmp_path: Path, monkeypatch
 ) -> None:
     data_root = tmp_path / "LexiFlow"
-    LanguageStore(data_root).add_target("es", CEFRLevel.A2)
+    LanguageStore(data_root).add_target("es")
     VocabularyStore(data_root, "es").add_entry(
         lemma="correr",
         translation="to run",
@@ -71,7 +71,7 @@ def test_remove_target_exports_when_requested(
     qtbot, tmp_path: Path, monkeypatch
 ) -> None:
     data_root = tmp_path / "LexiFlow"
-    LanguageStore(data_root).add_target("es", CEFRLevel.A2)
+    LanguageStore(data_root).add_target("es")
     VocabularyStore(data_root, "es").add_entry(
         lemma="correr",
         translation="to run",
@@ -126,7 +126,7 @@ def test_remove_target_aborts_when_export_dialog_cancelled(
     qtbot, tmp_path: Path, monkeypatch
 ) -> None:
     data_root = tmp_path / "LexiFlow"
-    LanguageStore(data_root).add_target("es", CEFRLevel.A2)
+    LanguageStore(data_root).add_target("es")
     config_dir = tmp_path / "config"
     settings_store = SettingsStore(config_dir)
     settings = Settings(
