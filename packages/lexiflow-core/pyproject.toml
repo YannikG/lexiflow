@@ -19,8 +19,5 @@ packages = ["src/lexiflow_core"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "src/lexiflow_core/migrations" = "lexiflow_core/migrations"
-"src/lexiflow_core/migrations/queue" = "lexiflow_core/migrations/queue"
-"src/lexiflow_core/migrations/vocabulary" = "lexiflow_core/migrations/vocabulary"
-"src/lexiflow_core/migrations/text_vectors" = "lexiflow_core/migrations/text_vectors"
 "src/lexiflow_core/models/models.lock" = "lexiflow_core/models/models.lock"
 "src/lexiflow_core/llm/prompts" = "lexiflow_core/llm/prompts"
