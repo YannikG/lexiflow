@@ -9,6 +9,7 @@ from lexiflow_core.languages.models import CEFRLevel
 from lexiflow_core.languages.store import LanguageStore
 from lexiflow_core.library.index import LibraryIndex
 from lexiflow_core.library.reader_tabs import TRANSLATED_TAB, simplified_variant_name
+from lexiflow_core.vocabulary.models import WordCategory
 from lexiflow_core.vocabulary.store import VocabularyStore
 from lexiflow_ui.dialogs.add_word_dialog import AddWordForm
 from lexiflow_ui.reader_add_word import persist_reader_add
@@ -48,7 +49,7 @@ def test_add_from_simplified_tab_uses_form_level_not_active_tab(
         translation="sophisticated",
         explanation="",
         level_when_learned=CEFRLevel.B2,
-        surface_form="sofisticado",
+        word_category=WordCategory.ADJECTIVE,
     )
     assert (
         persist_reader_add(
@@ -93,7 +94,7 @@ def test_add_from_simplified_tab_sets_level_when_learned(qtbot, tmp_path: Path) 
         translation="to swim",
         explanation="",
         level_when_learned=CEFRLevel.B1,
-        surface_form="nadar",
+        word_category=WordCategory.VERB,
     )
     assert (
         persist_reader_add(
@@ -130,7 +131,7 @@ def test_add_from_translated_tab_uses_user_level(qtbot, tmp_path: Path) -> None:
         translation="to swim",
         explanation="",
         level_when_learned=CEFRLevel.A2,
-        surface_form="nadar",
+        word_category=WordCategory.VERB,
     )
     assert (
         persist_reader_add(

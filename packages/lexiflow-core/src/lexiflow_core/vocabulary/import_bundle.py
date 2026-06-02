@@ -134,7 +134,8 @@ def _merge_databases(
         rows = source.execute(
             """
             SELECT lemma, translation, explanation, level_when_learned,
-                   difficulty_rating, surface_form, created_at, updated_at
+                   difficulty_rating, word_category, surface_form,
+                   created_at, updated_at
             FROM vocabulary_entries
             ORDER BY lemma
             """
@@ -162,8 +163,9 @@ def _merge_databases(
                     """
                     INSERT INTO vocabulary_entries(
                         lemma, translation, explanation, level_when_learned,
-                        difficulty_rating, surface_form, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        difficulty_rating, word_category, surface_form,
+                        created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     row,
                 )

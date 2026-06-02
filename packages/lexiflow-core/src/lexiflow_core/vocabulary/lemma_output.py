@@ -6,6 +6,9 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
+from lexiflow_core.vocabulary.lemma_form import normalize_lemma, parse_word_category
+from lexiflow_core.vocabulary.models import WordCategory
+
 
 class LemmaOutputError(Exception):
     """Raised when lemma LLM output is invalid."""
@@ -16,6 +19,7 @@ class LemmaInferenceResult:
     lemma: str
     translation: str
     explanation: str
+    word_category: WordCategory
 
 
 def lemma_json_schema() -> dict[str, object]:
@@ -25,12 +29,13 @@ def lemma_json_schema() -> dict[str, object]:
             "lemma": {"type": "string"},
             "translation": {"type": "string"},
             "explanation": {"type": "string"},
+            "category": {"type": "string"},
         },
-        "required": ["lemma", "translation", "explanation"],
+        "required": ["lemma", "translation", "explanation", "category"],
     }
 
 
-def parse_lemma_output(raw: str) -> LemmaInferenceResult:
+def parse_lemma_output(raw: str, *, language_code: str) -> LemmaInferenceResult:
     try:
         parsed: Any = json.loads(raw)
     except json.JSONDecodeError as exc:
@@ -40,14 +45,23 @@ def parse_lemma_output(raw: str) -> LemmaInferenceResult:
     lemma = parsed.get("lemma")
     translation = parsed.get("translation")
     explanation = parsed.get("explanation")
+    category = parse_word_category(parsed.get("category"))
     if not isinstance(lemma, str) or not lemma.strip():
         raise LemmaOutputError("lemma must be a non-empty string")
     if not isinstance(translation, str) or not translation.strip():
         raise LemmaOutputError("translation must be a non-empty string")
     if not isinstance(explanation, str):
         raise LemmaOutputError("explanation must be a string")
+    normalized = normalize_lemma(
+        lemma,
+        language_code=language_code,
+        category=category,
+    )
+    if not normalized:
+        raise LemmaOutputError("lemma must be a non-empty string")
     return LemmaInferenceResult(
-        lemma=lemma.strip().lower(),
+        lemma=normalized,
         translation=translation.strip(),
         explanation=explanation.strip(),
+        word_category=category,
     )

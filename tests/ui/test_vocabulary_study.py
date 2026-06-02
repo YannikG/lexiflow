@@ -150,7 +150,7 @@ def test_browse_table_shows_explanation_column(qtbot, tmp_path: Path) -> None:
 
     grid = window.findChild(QTableWidget, "vocabulary_browse_grid")
     assert grid is not None
-    assert grid.columnCount() == 5
-    assert grid.horizontalHeaderItem(2).text() == "Explanation"
-    assert grid.item(0, 2) is not None
-    assert grid.item(0, 2).text() == "Movement at speed on foot."
+    assert grid.columnCount() == 6
+    assert grid.horizontalHeaderItem(3).text() == "Explanation"
+    assert grid.item(0, 3) is not None
+    assert grid.item(0, 3).text() == "Movement at speed on foot."

@@ -138,6 +138,61 @@ def test_list_entries_sorts_by_recent(tmp_path: Path) -> None:
     assert lemmas == ["second", "first"]
 
 
+def test_update_entry_can_rename_lemma(tmp_path: Path) -> None:
+    data_root = tmp_path / "LexiFlow"
+    store = VocabularyStore(data_root, "es")
+    store.add_entry(
+        lemma="correr",
+        translation="to run",
+        level_when_learned=CEFRLevel.A2,
+    )
+
+    updated = store.update_entry("correr", new_lemma="trotar", translation="to jog")
+
+    assert updated.lemma == "trotar"
+    assert store.has_lemma("trotar")
+    assert not store.has_lemma("correr")
+
+
+def test_update_entry_rejects_duplicate_lemma_on_rename(tmp_path: Path) -> None:
+    data_root = tmp_path / "LexiFlow"
+    store = VocabularyStore(data_root, "es")
+    store.add_entry(
+        lemma="correr",
+        translation="to run",
+        level_when_learned=CEFRLevel.A2,
+    )
+    store.add_entry(
+        lemma="nadar",
+        translation="to swim",
+        level_when_learned=CEFRLevel.A2,
+    )
+
+    with pytest.raises(VocabularyStoreError, match="duplicate lemma"):
+        store.update_entry("correr", new_lemma="nadar")
+
+
+def test_update_entry_rename_removes_old_word_embedding(tmp_path: Path) -> None:
+    from lexiflow_core.embeddings.fake import FakeEmbedder
+    from lexiflow_core.vectors.store import VectorStore
+
+    data_root = tmp_path / "LexiFlow"
+    store = VocabularyStore(data_root, "es")
+    store.add_entry(
+        lemma="correr",
+        translation="to run",
+        level_when_learned=CEFRLevel.A2,
+    )
+    vectors = VectorStore(data_root, "es")
+    embedder = FakeEmbedder()
+    vectors.upsert_word_vector("correr", embedder.embed("correr"))
+    assert vectors.search_similar_words(embedder.embed("correr"), limit=1)
+
+    store.update_entry("correr", new_lemma="trotar", translation="to jog")
+
+    assert not vectors.search_similar_words(embedder.embed("correr"), limit=1)
+
+
 def test_promote_fluency_steps_difficulty(tmp_path: Path) -> None:
     data_root = tmp_path / "LexiFlow"
     store = VocabularyStore(data_root, "es")

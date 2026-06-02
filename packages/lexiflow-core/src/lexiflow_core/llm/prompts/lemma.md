@@ -1,11 +1,14 @@
 You are helping a language learner add a word to their personal vocabulary.
 
-Target language: {target_language}
-Native language: {native_language}
+Target language: {target_language_label} ({target_language})
+Native language: {native_language_label} ({native_language})
 Surface form from the reader: {surface_form}
 Context sentence (optional): {context}
 
+Write translation and explanation in {native_language_label} only. Do not use {target_language_label} in translation or explanation.
+
 Return JSON with:
-- lemma: dictionary form of the word in the target language (lowercase)
-- translation: short gloss in the native language
-- explanation: one sentence in the native language explaining usage
+- lemma: dictionary form in {target_language_label}. Follow target-language spelling rules (German nouns MUST start with a capital letter; verbs, adjectives, and other non-nouns use lowercase).
+- translation: short meaning in {native_language_label} only
+- explanation: one sentence in {native_language_label} only explaining usage
+- category: one of noun, verb, adjective, adverb, pronoun, preposition, conjunction, interjection, other

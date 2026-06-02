@@ -29,6 +29,7 @@ def test_lemma_job_returns_structured_result(tmp_path: Path) -> None:
                     "lemma": "correr",
                     "translation": "to run",
                     "explanation": "Movement at speed.",
+                    "category": "verb",
                 }
             )
         ]
@@ -44,3 +45,4 @@ def test_lemma_job_returns_structured_result(tmp_path: Path) -> None:
     assert job.result is not None
     assert job.result["lemma"] == "correr"
     assert job.result["translation"] == "to run"
+    assert job.result["category"] == "verb"

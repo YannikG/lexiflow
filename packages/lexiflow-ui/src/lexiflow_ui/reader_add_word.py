@@ -100,7 +100,7 @@ def persist_reader_add(
             translation=form.translation,
             explanation=form.explanation,
             level_when_learned=form.level_when_learned,
-            surface_form=form.surface_form,
+            word_category=form.word_category,
         )
     except VocabularyStoreError as error:
         QMessageBox.warning(parent, "Add word", str(error))

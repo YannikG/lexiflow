@@ -18,7 +18,7 @@ from lexiflow_core.library.reader_tabs import TRANSLATED_TAB
 from lexiflow_core.library.text_repository import TextRepository
 from lexiflow_core.llm.fake import FakeLLM
 from lexiflow_core.simplify.suggestions_store import save_suggestions
-from lexiflow_core.vocabulary.models import NewWordSuggestion
+from lexiflow_core.vocabulary.models import NewWordSuggestion, WordCategory
 from lexiflow_core.vocabulary.store import VocabularyStore
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -72,7 +72,13 @@ def _valid_simplify_json(*, title: str = "Simple", body: str = "Texto simple.") 
             "title": title,
             "body": body,
             "new_words": [
-                {"lemma": "nadar", "gloss": "to swim", "level": "A2"},
+                {
+                    "lemma": "nadar",
+                    "gloss": "to swim",
+                    "explanation": "Move through water using limbs.",
+                    "level": "A2",
+                    "category": "verb",
+                },
             ],
         }
     )
@@ -110,6 +116,7 @@ def _seed_simplified_with_suggestions(data_root: Path) -> None:
                 lemma="nadar",
                 gloss="to swim",
                 suggested_level=CEFRLevel.A2,
+                word_category=WordCategory.VERB,
             ),
         ),
     )
@@ -142,7 +149,12 @@ def test_word_panel_learned_tab_shows_vocabulary_entries(qtbot, tmp_path) -> Non
     data_root = tmp_path / "LexiFlow"
     _seed_simplified_with_suggestions(data_root)
     VocabularyStore(data_root, "es").add_from_suggestion(
-        NewWordSuggestion(lemma="nadar", gloss="to swim", suggested_level=CEFRLevel.A2),
+        NewWordSuggestion(
+            lemma="nadar",
+            gloss="to swim",
+            suggested_level=CEFRLevel.A2,
+            word_category=WordCategory.VERB,
+        ),
     )
     window = _open_reader_window(qtbot, data_root)
     _click_sidebar_text(qtbot, window)
@@ -163,6 +175,69 @@ def test_word_panel_learned_tab_shows_vocabulary_entries(qtbot, tmp_path) -> Non
     assert learned_table.rowCount() == 1
     assert learned_table.item(0, 0) is not None
     assert learned_table.item(0, 0).text() == "nadar"
+
+
+def test_word_panel_learned_tab_shows_manually_added_word_in_text(
+    qtbot, tmp_path
+) -> None:
+    data_root = tmp_path / "LexiFlow"
+    _seed_simplified_with_suggestions(data_root)
+    VocabularyStore(data_root, "es").add_entry(
+        lemma="simple",
+        translation="simple",
+        explanation="",
+        level_when_learned=CEFRLevel.A2,
+        word_category=WordCategory.ADJECTIVE,
+    )
+    window = _open_reader_window(qtbot, data_root)
+    _click_sidebar_text(qtbot, window)
+
+    simplified_tab = window.reader.findChild(QPushButton, "reader_tab_simplified")
+    assert simplified_tab is not None
+    qtbot.mouseClick(simplified_tab, Qt.MouseButton.LeftButton)
+    qtbot.wait(50)
+
+    panel = window.reader.findChild(QWidget, "word_panel")
+    assert panel is not None
+    new_table = panel.findChild(QTableWidget, "word_panel_new_table")
+    learned_table = panel.findChild(QTableWidget, "word_panel_learned_table")
+    assert new_table is not None and learned_table is not None
+    assert new_table.rowCount() == 1
+    assert new_table.item(0, 0) is not None
+    assert new_table.item(0, 0).text() == "nadar"
+    assert learned_table.rowCount() == 1
+    assert learned_table.item(0, 0) is not None
+    assert learned_table.item(0, 0).text() == "simple"
+
+
+def test_word_panel_learned_tab_refreshes_after_vocabulary_changed(
+    qtbot, tmp_path
+) -> None:
+    data_root = tmp_path / "LexiFlow"
+    _seed_simplified_with_suggestions(data_root)
+    window = _open_reader_window(qtbot, data_root)
+    _click_sidebar_text(qtbot, window)
+
+    simplified_tab = window.reader.findChild(QPushButton, "reader_tab_simplified")
+    assert simplified_tab is not None
+    qtbot.mouseClick(simplified_tab, Qt.MouseButton.LeftButton)
+    qtbot.wait(50)
+
+    VocabularyStore(data_root, "es").add_entry(
+        lemma="simple",
+        translation="simple",
+        explanation="",
+        level_when_learned=CEFRLevel.A2,
+        word_category=WordCategory.ADJECTIVE,
+    )
+    window.reader.vocabulary_changed.emit()
+    qtbot.wait(50)
+
+    learned_table = window.reader.findChild(QTableWidget, "word_panel_learned_table")
+    assert learned_table is not None
+    assert learned_table.rowCount() == 1
+    assert learned_table.item(0, 0) is not None
+    assert learned_table.item(0, 0).text() == "simple"
 
 
 def test_simplify_button_enqueues_job(qtbot, tmp_path) -> None:
@@ -233,6 +308,7 @@ def _seed_simplified_a2_with_b2_suggestion(data_root: Path) -> None:
                 lemma="sofisticado",
                 gloss="sophisticated",
                 suggested_level=CEFRLevel.B2,
+                word_category=WordCategory.ADJECTIVE,
             ),
         ),
     )
@@ -254,8 +330,8 @@ def test_word_panel_add_uses_suggestion_level_not_active_tab(qtbot, tmp_path) ->
     assert panel is not None
     table = panel.findChild(QTableWidget, "word_panel_new_table")
     assert table is not None
-    assert table.item(0, 2) is not None
-    assert table.item(0, 2).text() == "B2"
+    assert table.item(0, 3) is not None
+    assert table.item(0, 3).text() == "B2"
 
     add_button = window.reader.findChild(QPushButton, "word_panel_add_button")
     assert add_button is not None

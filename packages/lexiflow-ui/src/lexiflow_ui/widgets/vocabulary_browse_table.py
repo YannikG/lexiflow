@@ -15,6 +15,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from lexiflow_ui.dialogs.word_detail_dialog import open_vocabulary_entry_detail
+from lexiflow_ui.word_category_labels import word_category_label
+
 _DIFFICULTY_LABELS = {
     DifficultyRating.HARD: "Hard",
     DifficultyRating.WELL: "Well",
@@ -63,20 +66,22 @@ class VocabularyBrowseTable(QWidget):
             QSizePolicy.Policy.Expanding,
             QSizePolicy.Policy.Expanding,
         )
-        self._table.setColumnCount(5)
+        self._table.setColumnCount(6)
         self._table.setHorizontalHeaderLabels(
-            ["Lemma", "Translation", "Explanation", "Level", "Difficulty"]
+            ["Lemma", "Category", "Translation", "Explanation", "Level", "Difficulty"]
         )
         header = self._table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self._table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self._table.customContextMenuRequested.connect(self._show_context_menu)
+        self._table.cellDoubleClicked.connect(self._on_cell_double_clicked)
         layout.addWidget(self._table, stretch=1)
 
     def set_entries(self, entries: tuple[VocabularyEntry, ...]) -> None:
@@ -84,10 +89,13 @@ class VocabularyBrowseTable(QWidget):
         self._table.setRowCount(len(entries))
         for row, entry in enumerate(entries):
             self._table.setItem(row, 0, QTableWidgetItem(entry.lemma))
-            self._table.setItem(row, 1, QTableWidgetItem(entry.translation))
-            self._table.setItem(row, 2, QTableWidgetItem(entry.explanation))
             self._table.setItem(
-                row, 3, QTableWidgetItem(entry.level_when_learned.value)
+                row, 1, QTableWidgetItem(word_category_label(entry.word_category))
+            )
+            self._table.setItem(row, 2, QTableWidgetItem(entry.translation))
+            self._table.setItem(row, 3, QTableWidgetItem(entry.explanation))
+            self._table.setItem(
+                row, 4, QTableWidgetItem(entry.level_when_learned.value)
             )
             combo = QComboBox(self._table)
             combo.setObjectName("vocabulary_browse_difficulty_combo")
@@ -103,7 +111,7 @@ class VocabularyBrowseTable(QWidget):
                     lemma, widget
                 )
             )
-            self._table.setCellWidget(row, 4, combo)
+            self._table.setCellWidget(row, 5, combo)
 
     def _entry_at_position(self, position: QPoint) -> VocabularyEntry | None:
         index = self._table.indexAt(position)
@@ -113,6 +121,11 @@ class VocabularyBrowseTable(QWidget):
         if row < 0 or row >= len(self._entries):
             return None
         return self._entries[row]
+
+    def _on_cell_double_clicked(self, row: int, _column: int) -> None:
+        if row < 0 or row >= len(self._entries):
+            return
+        open_vocabulary_entry_detail(self._entries[row], parent=self)
 
     def _show_context_menu(self, position: QPoint) -> None:
         entry = self._entry_at_position(position)

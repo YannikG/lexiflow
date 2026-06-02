@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
 from pathlib import Path
 
 from lexiflow_core.config.settings import Settings
@@ -32,7 +31,6 @@ from lexiflow_ui.add_word_flow import (
     default_level_for_language,
     prompt_add_word,
     prompt_edit_word,
-    resolve_lemma_suggestions,
 )
 from lexiflow_ui.dialogs.add_word_dialog import AddWordForm
 from lexiflow_ui.widgets.empty_state import EmptyStateWidget
@@ -170,24 +168,24 @@ class VocabularyWidget(QWidget):
         if form is None:
             return
         try:
-            store.update_entry(
+            updated = store.update_entry(
                 lemma,
+                new_lemma=form.lemma,
                 translation=form.translation,
                 explanation=form.explanation,
                 level_when_learned=form.level_when_learned,
-                surface_form=form.surface_form,
+                word_category=form.word_category,
                 difficulty_rating=form.difficulty_rating,
-                clear_surface_form=form.surface_form is None,
             )
         except VocabularyStoreError as error:
             QMessageBox.warning(self, "Edit word", str(error))
             return
-        if form.translation != entry.translation:
+        if updated.lemma != entry.lemma or updated.translation != entry.translation:
             job_service = JobService(self._data_root)
             enqueue_vocabulary_word_embed(
                 job_service,
                 language_code=language,
-                lemma=lemma,
+                lemma=updated.lemma,
             )
             if self._supervisor is not None:
                 self._supervisor.ensure_running()
@@ -218,28 +216,12 @@ class VocabularyWidget(QWidget):
 
     def _manual_add_word(self) -> None:
         language = self._settings.active_target_language
-        native = self._settings.native_language
-        if language is None or native is None:
+        if language is None:
             return
         default_level = default_level_for_language(self._data_root, language)
         form = prompt_add_word(self, default_level=default_level)
         if form is None:
             return
-        surface = (form.surface_form or "").strip()
-        if surface:
-            suggestions = resolve_lemma_suggestions(
-                self._data_root,
-                language_code=language,
-                surface_form=surface,
-                native_language=native,
-                supervisor=self._supervisor,
-            )
-            if suggestions.lemma and not form.lemma.strip():
-                form = replace(form, lemma=suggestions.lemma)
-            if suggestions.translation and not form.translation.strip():
-                form = replace(form, translation=suggestions.translation)
-            if suggestions.explanation and not form.explanation.strip():
-                form = replace(form, explanation=suggestions.explanation)
         self._persist_add_form(form)
 
     def _persist_add_form(self, form: AddWordForm) -> None:
@@ -253,7 +235,7 @@ class VocabularyWidget(QWidget):
                 translation=form.translation,
                 explanation=form.explanation,
                 level_when_learned=form.level_when_learned,
-                surface_form=form.surface_form,
+                word_category=form.word_category,
             )
         except VocabularyStoreError as error:
             QMessageBox.warning(self, "Add word", str(error))

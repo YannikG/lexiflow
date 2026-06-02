@@ -1,8 +1,8 @@
 You are simplifying foreign-language reading text for a language learner.
 
 Target language level: {target_level}
-Native language (for glosses): {native_language}
-Target language: {target_language}
+Target language: {target_language_label} ({target_language})
+Native language (for glosses and explanations): {native_language_label} ({native_language})
 
 Use vocabulary words from this list where they fit naturally:
 {vocabulary_words}
@@ -13,6 +13,11 @@ Source text (translated variant):
 Respond with JSON only. Fields:
 - title: target-language document title (single line, no markdown heading)
 - body: simplified markdown body without a top-level heading
-- new_words: array of objects with lemma, gloss (in native language), and level (CEFR)
+- new_words: array of objects with:
+  - lemma: dictionary form in {target_language_label} with correct target-language spelling (German nouns MUST be capitalized)
+  - gloss: short meaning in {native_language_label} only
+  - explanation: one sentence in {native_language_label} only
+  - level: CEFR band (A1, A2, B1, B2, C1, C2)
+  - category: one of noun, verb, adjective, adverb, pronoun, preposition, conjunction, interjection, other
 
 Keep meaning faithful to the source. Match complexity to the target level.

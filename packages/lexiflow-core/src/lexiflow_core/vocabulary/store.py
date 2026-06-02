@@ -14,11 +14,13 @@ from lexiflow_core.languages.models import CEFRLevel
 from lexiflow_core.vectors.setup import ensure_vocabulary_db
 from lexiflow_core.vectors.sqlite_vec import load_sqlite_vec
 from lexiflow_core.vocabulary.fluency import next_difficulty
+from lexiflow_core.vocabulary.lemma_form import normalize_lemma, parse_word_category
 from lexiflow_core.vocabulary.models import (
     DifficultyRating,
     NewWordSuggestion,
     VocabularyEntry,
     VocabularySort,
+    WordCategory,
 )
 
 
@@ -35,6 +37,7 @@ class DeletedVocabularyEntry:
     explanation: str
     level_when_learned: str
     difficulty_rating: str
+    word_category: str
     surface_form: str | None
     created_at: str
     updated_at: str
@@ -67,7 +70,7 @@ _SORT_ORDER: dict[VocabularySort, str] = {
 
 _SELECT_COLUMNS = """
     lemma, translation, explanation, level_when_learned,
-    difficulty_rating, surface_form
+    difficulty_rating, word_category, surface_form
 """
 
 
@@ -84,26 +87,12 @@ class VocabularyStore:
 
     def has_lemma(self, lemma: str) -> bool:
         """Return whether a lemma already exists in vocabulary."""
-        normalized = self._normalize_lemma(lemma)
-        if not normalized:
-            return False
-        connection = self._connect_read()
-        if connection is None:
-            return False
-        try:
-            row = self._fetch_one(
-                connection,
-                "SELECT 1 FROM vocabulary_entries WHERE lemma = ?",
-                (normalized,),
-            )
-        finally:
-            connection.close()
-        return row is not None
+        return self._resolve_lemma(lemma) is not None
 
     def get(self, lemma: str) -> VocabularyEntry | None:
         """Return one vocabulary entry by lemma."""
-        normalized = self._normalize_lemma(lemma)
-        if not normalized:
+        resolved = self._resolve_lemma(lemma)
+        if resolved is None:
             return None
         connection = self._connect_read()
         if connection is None:
@@ -112,7 +101,7 @@ class VocabularyStore:
             row = self._fetch_one(
                 connection,
                 f"SELECT {_SELECT_COLUMNS} FROM vocabulary_entries WHERE lemma = ?",
-                (normalized,),
+                (resolved,),
             )
         finally:
             connection.close()
@@ -154,7 +143,11 @@ class VocabularyStore:
         level_when_learned: CEFRLevel | None = None,
     ) -> VocabularyEntry:
         """Add a vocabulary entry from a new-word suggestion."""
-        lemma = suggestion.lemma.strip().lower()
+        lemma = normalize_lemma(
+            suggestion.lemma,
+            language_code=self._language_code,
+            category=suggestion.word_category,
+        )
         if not lemma:
             raise VocabularyStoreError("lemma must not be empty")
         learned_level = (
@@ -165,8 +158,9 @@ class VocabularyStore:
         return self.add_entry(
             lemma=lemma,
             translation=suggestion.gloss.strip(),
-            explanation="",
+            explanation=suggestion.explanation.strip(),
             level_when_learned=learned_level,
+            word_category=suggestion.word_category,
             surface_form=None,
         )
 
@@ -178,10 +172,15 @@ class VocabularyStore:
         explanation: str = "",
         level_when_learned: CEFRLevel,
         difficulty_rating: DifficultyRating = DifficultyRating.HARD,
+        word_category: WordCategory = WordCategory.OTHER,
         surface_form: str | None = None,
     ) -> VocabularyEntry:
         """Insert a new vocabulary entry."""
-        normalized = self._normalize_lemma(lemma)
+        normalized = normalize_lemma(
+            lemma,
+            language_code=self._language_code,
+            category=word_category,
+        )
         if not normalized:
             raise VocabularyStoreError("lemma must not be empty")
         if not translation.strip():
@@ -196,6 +195,7 @@ class VocabularyStore:
             explanation=explanation.strip(),
             level_when_learned=level_when_learned,
             difficulty_rating=difficulty_rating,
+            word_category=word_category,
             surface_form=surface_form.strip() if surface_form else None,
         )
         connection = connect_sqlite(self._db_path())
@@ -205,8 +205,9 @@ class VocabularyStore:
                     """
                     INSERT INTO vocabulary_entries(
                         lemma, translation, explanation, level_when_learned,
-                        difficulty_rating, surface_form, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        difficulty_rating, word_category, surface_form,
+                        created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         entry.lemma,
@@ -214,6 +215,7 @@ class VocabularyStore:
                         entry.explanation,
                         entry.level_when_learned.value,
                         entry.difficulty_rating.value,
+                        entry.word_category.value,
                         entry.surface_form,
                         now,
                         now,
@@ -227,10 +229,12 @@ class VocabularyStore:
         self,
         lemma: str,
         *,
+        new_lemma: str | None = None,
         translation: str | None = None,
         explanation: str | None = None,
         level_when_learned: CEFRLevel | None = None,
         difficulty_rating: DifficultyRating | None = None,
+        word_category: WordCategory | None = None,
         surface_form: str | None = None,
         clear_surface_form: bool = False,
     ) -> VocabularyEntry:
@@ -238,8 +242,23 @@ class VocabularyStore:
         existing = self.get(lemma)
         if existing is None:
             raise VocabularyStoreError(f"lemma not found: {lemma}")
+        category = (
+            word_category if word_category is not None else existing.word_category
+        )
+        resolved_lemma = existing.lemma
+        if new_lemma is not None:
+            normalized = normalize_lemma(
+                new_lemma,
+                language_code=self._language_code,
+                category=category,
+            )
+            if not normalized:
+                raise VocabularyStoreError("lemma must not be empty")
+            if normalized != existing.lemma and self.has_lemma(normalized):
+                raise VocabularyStoreError(f"duplicate lemma: {normalized}")
+            resolved_lemma = normalized
         updated = VocabularyEntry(
-            lemma=existing.lemma,
+            lemma=resolved_lemma,
             translation=(
                 translation.strip() if translation is not None else existing.translation
             ),
@@ -255,6 +274,9 @@ class VocabularyStore:
                 difficulty_rating
                 if difficulty_rating is not None
                 else existing.difficulty_rating
+            ),
+            word_category=(
+                word_category if word_category is not None else existing.word_category
             ),
             surface_form=(
                 None
@@ -273,18 +295,24 @@ class VocabularyStore:
         connection = connect_sqlite(self._db_path())
         try:
             with connection:
+                if resolved_lemma != existing.lemma:
+                    self._delete_word_embedding(connection, existing.lemma)
                 connection.execute(
                     """
                     UPDATE vocabulary_entries
-                    SET translation = ?, explanation = ?, level_when_learned = ?,
-                        difficulty_rating = ?, surface_form = ?, updated_at = ?
+                    SET lemma = ?, translation = ?, explanation = ?,
+                        level_when_learned = ?,
+                        difficulty_rating = ?, word_category = ?, surface_form = ?,
+                        updated_at = ?
                     WHERE lemma = ?
                     """,
                     (
+                        updated.lemma,
                         updated.translation,
                         updated.explanation,
                         updated.level_when_learned.value,
                         updated.difficulty_rating.value,
+                        updated.word_category.value,
                         updated.surface_form,
                         now,
                         existing.lemma,
@@ -310,9 +338,9 @@ class VocabularyStore:
 
     def delete_entry(self, lemma: str) -> DeletedVocabularyEntry:
         """Remove a vocabulary entry and return a snapshot for undo."""
-        normalized = self._normalize_lemma(lemma)
-        if not normalized:
-            raise VocabularyStoreError("lemma must not be empty")
+        resolved = self._resolve_lemma(lemma)
+        if resolved is None:
+            raise VocabularyStoreError(f"lemma not found: {lemma}")
         connection = self._connect_read()
         if connection is None:
             raise VocabularyStoreError(f"lemma not found: {lemma}")
@@ -321,10 +349,11 @@ class VocabularyStore:
                 connection,
                 """
                 SELECT lemma, translation, explanation, level_when_learned,
-                       difficulty_rating, surface_form, created_at, updated_at
+                       difficulty_rating, word_category, surface_form,
+                       created_at, updated_at
                 FROM vocabulary_entries WHERE lemma = ?
                 """,
-                (normalized,),
+                (resolved,),
             )
         finally:
             connection.close()
@@ -336,18 +365,19 @@ class VocabularyStore:
             explanation=str(row[2]),
             level_when_learned=str(row[3]),
             difficulty_rating=str(row[4]),
-            surface_form=str(row[5]) if row[5] is not None else None,
-            created_at=str(row[6]),
-            updated_at=str(row[7]),
+            word_category=str(row[5]),
+            surface_form=str(row[6]) if row[6] is not None else None,
+            created_at=str(row[7]),
+            updated_at=str(row[8]),
         )
         connection = connect_sqlite(self._db_path())
         try:
             with connection:
                 connection.execute(
                     "DELETE FROM vocabulary_entries WHERE lemma = ?",
-                    (normalized,),
+                    (resolved,),
                 )
-                self._delete_word_embedding(connection, normalized)
+                self._delete_word_embedding(connection, resolved)
         finally:
             connection.close()
         return snapshot
@@ -374,8 +404,9 @@ class VocabularyStore:
                     """
                     INSERT INTO vocabulary_entries(
                         lemma, translation, explanation, level_when_learned,
-                        difficulty_rating, surface_form, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        difficulty_rating, word_category, surface_form,
+                        created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         snapshot.lemma,
@@ -383,6 +414,7 @@ class VocabularyStore:
                         snapshot.explanation,
                         snapshot.level_when_learned,
                         snapshot.difficulty_rating,
+                        snapshot.word_category,
                         snapshot.surface_form,
                         snapshot.created_at,
                         snapshot.updated_at,
@@ -395,8 +427,31 @@ class VocabularyStore:
             raise VocabularyStoreError(f"failed to restore lemma: {snapshot.lemma}")
         return entry
 
-    def _normalize_lemma(self, lemma: str) -> str:
-        return lemma.strip().lower()
+    def _resolve_lemma(self, lemma: str) -> str | None:
+        candidate = lemma.strip()
+        if not candidate:
+            return None
+        connection = self._connect_read()
+        if connection is None:
+            return None
+        try:
+            row = self._fetch_one(
+                connection,
+                "SELECT lemma FROM vocabulary_entries WHERE lemma = ?",
+                (candidate,),
+            )
+            if row is not None:
+                return str(row[0])
+            row = self._fetch_one(
+                connection,
+                "SELECT lemma FROM vocabulary_entries WHERE lemma COLLATE NOCASE = ?",
+                (candidate,),
+            )
+        finally:
+            connection.close()
+        if row is None:
+            return None
+        return str(row[0])
 
     def _db_path(self) -> Path:
         return vocabulary_db_path(self._data_root, self._language_code)
@@ -446,6 +501,7 @@ class VocabularyStore:
             explanation,
             level_when_learned,
             difficulty_rating,
+            word_category,
             surface_form,
         ) = row
         return VocabularyEntry(
@@ -454,5 +510,6 @@ class VocabularyStore:
             explanation=str(explanation),
             level_when_learned=CEFRLevel(str(level_when_learned)),
             difficulty_rating=DifficultyRating(str(difficulty_rating)),
+            word_category=parse_word_category(word_category),
             surface_form=str(surface_form) if surface_form is not None else None,
         )

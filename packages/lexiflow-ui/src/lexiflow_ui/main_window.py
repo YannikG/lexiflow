@@ -465,6 +465,7 @@ class MainWindow(QMainWindow):
     def _on_vocabulary_changed(self) -> None:
         self._vocabulary.refresh()
         self._study.refresh()
+        self._reader.refresh_word_panel()
 
     def _remove_target_language(self) -> None:
         iso = self._settings.active_target_language

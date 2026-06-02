@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from lexiflow_core.jobs.models import JobRecord
 from lexiflow_core.jobs.service import JobService
+from lexiflow_core.llm.prompt_languages import prompt_language_label
 from lexiflow_core.llm.prompts import render_prompt
 from lexiflow_core.llm.protocol import LLMProvider
 from lexiflow_core.vocabulary.lemma_output import (
@@ -50,13 +51,15 @@ def handle_lemma(
     prompt = render_prompt(
         "lemma",
         target_language=target_language,
+        target_language_label=prompt_language_label(target_language),
         native_language=native_language,
+        native_language_label=prompt_language_label(native_language),
         surface_form=surface_form,
         context=context or "(none)",
     )
     try:
         raw_output = llm.complete(prompt, json_schema=lemma_json_schema())
-        parsed = parse_lemma_output(raw_output)
+        parsed = parse_lemma_output(raw_output, language_code=target_language)
     except LemmaOutputError as exc:
         job_service.fail(job.id, str(exc))
         return
@@ -70,5 +73,6 @@ def handle_lemma(
             "lemma": parsed.lemma,
             "translation": parsed.translation,
             "explanation": parsed.explanation,
+            "category": parsed.word_category.value,
         },
     )

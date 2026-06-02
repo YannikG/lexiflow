@@ -30,11 +30,11 @@ from lexiflow_core.library.reader_tabs import (
 )
 from lexiflow_core.library.text_repository import TextRepository
 from lexiflow_core.simplify.new_words import (
-    learned_lemmas_from_stored,
+    learned_vocabulary_for_variant,
     visible_stored_suggestions,
 )
 from lexiflow_core.simplify.suggestions_store import load_suggestions
-from lexiflow_core.vocabulary.models import NewWordSuggestion
+from lexiflow_core.vocabulary.models import NewWordSuggestion, VocabularyEntry
 from lexiflow_core.vocabulary.store import VocabularyStore, VocabularyStoreError
 from PySide6.QtCore import Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QFont
@@ -58,6 +58,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from lexiflow_ui.add_word_flow import prompt_edit_word
 from lexiflow_ui.delete_text_flow import confirm_delete_text, delete_text_to_trash
 from lexiflow_ui.generation_status import generation_indicator
 from lexiflow_ui.llama_server_supervisor import LlamaServerSupervisor
@@ -213,6 +214,7 @@ class ReaderWidget(QWidget):
         read_layout.addWidget(self._read_pane, stretch=1)
         self._word_panel = WordPanel(read_page)
         self._word_panel.add_requested.connect(self._add_new_word)
+        self._word_panel.edit_requested.connect(self._edit_learned_word)
         read_layout.addWidget(self._word_panel, stretch=0)
 
         edit_page = QWidget(self)
@@ -363,6 +365,10 @@ class ReaderWidget(QWidget):
                 self.select_tab(variant)
                 return
         self.select_tab(self._active_tab)
+
+    def refresh_word_panel(self) -> None:
+        """Refresh new/learned word tables for the active simplified tab."""
+        self._refresh_word_panel()
 
     def refresh_infrastructure_status(self) -> None:
         """Refresh pending overlays when llama-server or worker state changes."""
@@ -648,24 +654,31 @@ class ReaderWidget(QWidget):
         if self._record is None or not self._active_tab.startswith(SIMPLIFIED_PREFIX):
             self._word_panel.clear()
             return
-        folder = Path(self._record.folder)
-        stored = load_suggestions(folder, self._active_tab)
-        if not stored:
-            self._word_panel.clear()
-            return
         if self._data_root is None:
             self._word_panel.clear()
             return
+        folder = Path(self._record.folder)
+        stored = load_suggestions(
+            folder,
+            self._active_tab,
+            language_code=self._record.target_language,
+        )
+        markdown = self._loaded_markdown or ""
+        if not stored and not markdown.strip():
+            self._word_panel.clear()
+            return
         store = VocabularyStore(self._data_root, self._record.target_language)
-        existing = {entry.lemma for entry in store.list_for_simplify()}
+        entries = store.list_for_simplify()
+        existing = {entry.lemma for entry in entries}
         new_words = visible_stored_suggestions(stored, existing_lemmas=existing)
-        learned_lemmas = learned_lemmas_from_stored(
+        learned_words = learned_vocabulary_for_variant(
             stored,
-            lemmas_in_vocabulary=existing,
+            entries,
+            variant_markdown=markdown,
         )
-        learned_words = tuple(
-            entry for lemma in learned_lemmas if (entry := store.get(lemma)) is not None
-        )
+        if not new_words and not learned_words:
+            self._word_panel.clear()
+            return
         self._word_panel.set_content(
             new_words=new_words,
             learned_words=learned_words,
@@ -697,7 +710,9 @@ class ReaderWidget(QWidget):
             or self._settings.native_language is None
         ):
             return False
-        surface_form = self._read_pane.textCursor().selectedText().strip()
+        surface_form = (
+            self._read_pane.textCursor().selectedText().replace("\u2029", " ").strip()
+        )
         saved = open_highlight_add_dialog(
             self,
             data_root=self._data_root,
@@ -726,5 +741,36 @@ class ReaderWidget(QWidget):
             lemma=suggestion.lemma,
         )
         self._supervisor.ensure_running()
+        self._refresh_word_panel()
+        self.vocabulary_changed.emit()
+
+    def _edit_learned_word(self, entry: VocabularyEntry) -> None:
+        if self._record is None or self._data_root is None:
+            return
+        form = prompt_edit_word(self, entry=entry)
+        if form is None:
+            return
+        store = VocabularyStore(self._data_root, self._record.target_language)
+        try:
+            updated = store.update_entry(
+                entry.lemma,
+                new_lemma=form.lemma,
+                translation=form.translation,
+                explanation=form.explanation,
+                level_when_learned=form.level_when_learned,
+                word_category=form.word_category,
+                difficulty_rating=form.difficulty_rating,
+            )
+        except VocabularyStoreError as error:
+            QMessageBox.warning(self, "Edit word", str(error))
+            return
+        if updated.lemma != entry.lemma or updated.translation != entry.translation:
+            enqueue_vocabulary_word_embed(
+                JobService(self._data_root),
+                language_code=self._record.target_language,
+                lemma=updated.lemma,
+            )
+            if self._supervisor is not None:
+                self._supervisor.ensure_running()
         self._refresh_word_panel()
         self.vocabulary_changed.emit()

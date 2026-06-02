@@ -7,7 +7,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from lexiflow_core.languages.models import CEFRLevel
-from lexiflow_core.vocabulary.models import NewWordSuggestion
+from lexiflow_core.vocabulary.lemma_form import normalize_lemma, parse_word_category
+from lexiflow_core.vocabulary.models import NewWordSuggestion, WordCategory
 
 
 class SuggestionsStoreError(Exception):
@@ -19,6 +20,8 @@ class StoredSuggestion:
     lemma: str
     gloss: str
     level: str
+    explanation: str = ""
+    category: str = WordCategory.OTHER.value
 
 
 def suggestions_path(text_folder: Path, variant_name: str) -> Path:
@@ -27,7 +30,10 @@ def suggestions_path(text_folder: Path, variant_name: str) -> Path:
 
 
 def load_suggestions(
-    text_folder: Path, variant_name: str
+    text_folder: Path,
+    variant_name: str,
+    *,
+    language_code: str,
 ) -> tuple[NewWordSuggestion, ...]:
     """Load stored suggestions for a simplified variant."""
     path = suggestions_path(text_folder, variant_name)
@@ -39,7 +45,7 @@ def load_suggestions(
         raise SuggestionsStoreError(f"failed to read suggestions: {path}") from exc
     if not isinstance(raw, list):
         raise SuggestionsStoreError(f"invalid suggestions format: {path}")
-    return tuple(_parse_item(item) for item in raw)
+    return tuple(_parse_item(item, language_code=language_code) for item in raw)
 
 
 def save_suggestions(
@@ -54,6 +60,8 @@ def save_suggestions(
             lemma=item.lemma,
             gloss=item.gloss,
             level=item.suggested_level.value,
+            explanation=item.explanation,
+            category=item.word_category.value,
         )
         for item in suggestions
     ]
@@ -66,22 +74,35 @@ def save_suggestions(
         raise SuggestionsStoreError(f"failed to write suggestions: {path}") from exc
 
 
-def _parse_item(raw: object) -> NewWordSuggestion:
+def _parse_item(raw: object, *, language_code: str) -> NewWordSuggestion:
     if not isinstance(raw, dict):
         raise SuggestionsStoreError("each suggestion must be an object")
     lemma = raw.get("lemma")
     gloss = raw.get("gloss")
     level_value = raw.get("level")
+    explanation = raw.get("explanation", "")
+    category = parse_word_category(raw.get("category"))
     if not isinstance(lemma, str) or not isinstance(gloss, str):
         raise SuggestionsStoreError("suggestion fields must be strings")
     if not isinstance(level_value, str):
         raise SuggestionsStoreError("suggestion level must be a string")
+    if not isinstance(explanation, str):
+        explanation = ""
     try:
         level = CEFRLevel(level_value.upper())
     except ValueError as exc:
         raise SuggestionsStoreError(f"invalid CEFR level: {level_value!r}") from exc
+    normalized = normalize_lemma(
+        lemma,
+        language_code=language_code,
+        category=category,
+    )
+    if not normalized:
+        raise SuggestionsStoreError("suggestion lemma must be non-empty")
     return NewWordSuggestion(
-        lemma=lemma.strip().lower(),
+        lemma=normalized,
         gloss=gloss.strip(),
         suggested_level=level,
+        explanation=explanation.strip(),
+        word_category=category,
     )

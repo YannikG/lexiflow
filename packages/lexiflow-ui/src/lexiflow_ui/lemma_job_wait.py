@@ -2,36 +2,59 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
 from pathlib import Path
+from typing import Literal
 
 from lexiflow_core.jobs.models import JobStatus, JobType
 from lexiflow_core.jobs.service import JobService
 from PySide6.QtCore import QElapsedTimer
 from PySide6.QtWidgets import QApplication
 
+LemmaJobPoll = dict[str, object] | Literal["pending", "failed"]
+
+
+class LemmaJobPollState(StrEnum):
+    PENDING = "pending"
+    FAILED = "failed"
+
+
+def find_lemma_job_result(
+    data_root: Path,
+    *,
+    surface_form: str,
+) -> LemmaJobPoll:
+    """Return lemma job result, pending, or failed without blocking."""
+    normalized = surface_form.strip()
+    for job in JobService(data_root).list_jobs():
+        if job.job_type != JobType.LEMMA:
+            continue
+        if job.payload.get("surface_form") != normalized:
+            continue
+        if job.status == JobStatus.COMPLETED and job.result is not None:
+            return job.result
+        if job.status == JobStatus.FAILED:
+            return LemmaJobPollState.FAILED.value
+        return LemmaJobPollState.PENDING.value
+    return LemmaJobPollState.PENDING.value
+
 
 def wait_for_lemma_result(
     data_root: Path,
     *,
     surface_form: str,
-    timeout_ms: int = 5000,
+    timeout_ms: int = 120_000,
 ) -> dict[str, object] | None:
     """Poll the job queue until a lemma job for the surface form completes."""
     app = QApplication.instance()
-    job_service = JobService(data_root)
     timer = QElapsedTimer()
     timer.start()
-    normalized = surface_form.strip()
     while timer.elapsed() < timeout_ms:
-        for job in job_service.list_jobs():
-            if job.job_type != JobType.LEMMA:
-                continue
-            if job.payload.get("surface_form") != normalized:
-                continue
-            if job.status == JobStatus.COMPLETED and job.result is not None:
-                return job.result
-            if job.status == JobStatus.FAILED:
-                return None
+        polled = find_lemma_job_result(data_root, surface_form=surface_form)
+        if isinstance(polled, dict):
+            return polled
+        if polled == LemmaJobPollState.FAILED.value:
+            return None
         if app is not None:
             app.processEvents()
     return None

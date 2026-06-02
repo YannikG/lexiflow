@@ -6,6 +6,7 @@ from lexiflow_core.vocabulary.models import (
     NewWordSuggestion,
     VocabularyEntry,
     VocabularySort,
+    WordCategory,
 )
 from lexiflow_core.vocabulary.store import (
     DeletedVocabularyEntry,
@@ -19,6 +20,7 @@ __all__ = [
     "NewWordSuggestion",
     "VocabularyEntry",
     "VocabularySort",
+    "WordCategory",
     "VocabularyStore",
     "VocabularyStoreError",
     "next_difficulty",

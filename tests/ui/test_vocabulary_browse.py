@@ -10,6 +10,7 @@ from lexiflow_core.vocabulary.models import (
     DifficultyRating,
     VocabularyEntry,
     VocabularySort,
+    WordCategory,
 )
 from lexiflow_core.vocabulary.store import VocabularyStore
 from lexiflow_ui.dialogs.add_word_dialog import EditWordForm
@@ -75,7 +76,7 @@ def test_browse_difficulty_combo_updates_store(qtbot, tmp_path: Path) -> None:
 
     grid = window.findChild(QTableWidget, "vocabulary_browse_grid")
     assert grid is not None
-    combo = grid.cellWidget(0, 4)
+    combo = grid.cellWidget(0, 5)
     assert isinstance(combo, QComboBox)
     well_index = combo.findData(DifficultyRating.WELL.value)
     assert well_index >= 0
@@ -100,7 +101,7 @@ def test_browse_difficulty_survives_table_refresh(qtbot, tmp_path: Path) -> None
 
     grid = window.findChild(QTableWidget, "vocabulary_browse_grid")
     assert grid is not None
-    combo = grid.cellWidget(0, 4)
+    combo = grid.cellWidget(0, 5)
     assert isinstance(combo, QComboBox)
     well_index = combo.findData(DifficultyRating.WELL.value)
     assert well_index >= 0
@@ -109,7 +110,7 @@ def test_browse_difficulty_survives_table_refresh(qtbot, tmp_path: Path) -> None
     window._vocabulary.refresh()
     grid = window.findChild(QTableWidget, "vocabulary_browse_grid")
     assert grid is not None
-    combo = grid.cellWidget(0, 4)
+    combo = grid.cellWidget(0, 5)
     assert isinstance(combo, QComboBox)
     assert combo.currentIndex() == well_index
 
@@ -138,7 +139,7 @@ def test_edit_via_context_menu_updates_store(
         translation="to jog",
         explanation="fast movement",
         level_when_learned=CEFRLevel.B1,
-        surface_form="corriendo",
+        word_category=WordCategory.VERB,
         difficulty_rating=DifficultyRating.WELL,
     )
     with patch(
@@ -157,7 +158,6 @@ def test_edit_via_context_menu_updates_store(
     assert entry.translation == "to jog"
     assert entry.explanation == "fast movement"
     assert entry.level_when_learned == CEFRLevel.B1
-    assert entry.surface_form == "corriendo"
     assert entry.difficulty_rating == DifficultyRating.WELL
 
 
