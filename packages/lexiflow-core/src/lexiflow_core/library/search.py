@@ -25,6 +25,11 @@ def search_texts(index: LibraryIndex, *, lang: str, query: str) -> list[SearchHi
         hits = _fts_search(connection, lang=lang, query=trimmed)
         if not hits:
             hits = _fuzzy_search(connection, lang=lang, query=trimmed)
+        from lexiflow_core.library.trash import trashed_text_ids
+
+        trashed = trashed_text_ids(index._data_root)  # noqa: SLF001
+        if trashed:
+            hits = [hit for hit in hits if hit.text_id not in trashed]
         return hits
     finally:
         connection.close()

@@ -380,6 +380,9 @@ class VocabularyStore:
                 self._delete_word_embedding(connection, resolved)
         finally:
             connection.close()
+        from lexiflow_core.vocabulary.trash import archive_deleted_entry
+
+        archive_deleted_entry(self._data_root, self._language_code, snapshot)
         return snapshot
 
     @staticmethod
@@ -425,6 +428,9 @@ class VocabularyStore:
         entry = self.get(snapshot.lemma)
         if entry is None:
             raise VocabularyStoreError(f"failed to restore lemma: {snapshot.lemma}")
+        from lexiflow_core.vocabulary.trash import remove_trash_item
+
+        remove_trash_item(self._data_root, self._language_code, snapshot.lemma)
         return entry
 
     def _resolve_lemma(self, lemma: str) -> str | None:

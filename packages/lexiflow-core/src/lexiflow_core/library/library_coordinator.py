@@ -8,6 +8,7 @@ from pathlib import Path
 from uuid import UUID
 
 from lexiflow_core.config.app_layout import ensure_app_layout
+from lexiflow_core.config.paths import trash_dir
 from lexiflow_core.library.group_registry import GroupNotFoundError
 from lexiflow_core.library.group_storage import GroupStorage
 from lexiflow_core.library.index import LibraryIndex, ensure_library_index
@@ -147,24 +148,33 @@ class LibraryCoordinator:
     def delete_to_trash(self, text_id: UUID) -> None:
         indexed = self._index.get_by_id(text_id)
         if indexed is None:
+            return
+        folder = Path(indexed.folder)
+        trash_path = trash_dir(self._data_root) / str(text_id)
+        if folder.is_dir():
+            self._texts.move_to_trash(folder, text_id)
+        elif not trash_path.is_dir():
             raise TextNotFoundError(f"text not found: {text_id}")
-        self._texts.move_to_trash(Path(indexed.folder), text_id)
         self._index.remove_from_index(text_id)
 
-    def list_trash(self) -> list[TrashItem]:
+    def list_trash(self, *, language_code: str | None = None) -> list[TrashItem]:
         from lexiflow_core.library.trash import list_trash
 
-        return list_trash(self._data_root)
+        return list_trash(self._data_root, language_code=language_code)
 
     def restore_from_trash(self, text_id: UUID) -> None:
         from lexiflow_core.library.trash import restore_from_trash
 
         restore_from_trash(self._data_root, self._index, text_id)
 
-    def empty_trash(self) -> int:
-        from lexiflow_core.library.trash import empty_trash
+    def empty_trash(self, *, language_code: str | None = None) -> int:
+        from lexiflow_core.library.trash import empty_trash, list_trash
 
-        return empty_trash(self._data_root)
+        items = list_trash(self._data_root, language_code=language_code)
+        removed = empty_trash(self._data_root, language_code=language_code)
+        for item in items:
+            self._index.remove_from_index(item.text_id)
+        return removed
 
     def list_groups(self, lang: str) -> list[str]:
         return self._groups.list_display_names(lang)

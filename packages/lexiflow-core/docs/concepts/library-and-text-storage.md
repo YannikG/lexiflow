@@ -1,6 +1,6 @@
 # Library and text storage
 
-LexiFlow stores learning texts on disk under the user **data root**. A SQLite **library index** caches metadata for fast **sidebar** listing. Full-text search over variant bodies is added in a later phase.
+LexiFlow stores learning texts on disk under the user **data root**. A SQLite **library index** caches metadata for fast **sidebar** listing and full-text search over variant bodies for the **active target language**.
 
 ## Layout
 
@@ -22,7 +22,7 @@ Global under the library:
 
 ```
 {data_root}/.app/index.sqlite   # library index
-{data_root}/.trash/             # deleted texts (minimal stub in phase 03)
+{data_root}/.trash/             # deleted texts and vocabulary snapshots
 ```
 
 Path helpers live in `lexiflow_core.config.paths`. Filesystem mutations belong in repository modules.
@@ -67,8 +67,11 @@ Path helpers live in `lexiflow_core.config.paths`. Filesystem mutations belong i
 ## Trash
 
 - Deleted texts live under `{data_root}/.trash/{text_id}/`.
+- Deleted vocabulary snapshots live under `{data_root}/.trash/vocabulary/{language_code}/`.
 - `TextRepository.delete_to_trash` moves the folder and drops the text from the metadata index and FTS table.
-- `list_trash`, `restore_from_trash`, and `empty_trash` restore or permanently remove trashed texts. Restore re-indexes the text.
+- `list_trash`, `restore_from_trash`, and `empty_trash` restore or permanently remove trashed texts. Restore re-indexes the text. All three accept an optional `language_code` to scope to one target language.
+- Trashed text ids are excluded from `list_by_lang`, `get_by_id`, duplicate checks, and search even when index rows are stale; `purge_trashed_texts` repairs orphaned metadata rows.
+- Vocabulary deletes archive JSON snapshots via `vocabulary/trash.py`; restore removes the snapshot file.
 
 ## Library backup
 
@@ -90,4 +93,4 @@ Path helpers live in `lexiflow_core.config.paths`. Filesystem mutations belong i
 
 ## Downstream contracts
 
-- Phase 14 settings panel absorbs **Library and data** dialog from phase 13.
+- Phase 14 settings panel absorbs library backup and index controls from phase 13; **Trash** stays under **Library**.

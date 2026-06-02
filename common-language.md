@@ -243,7 +243,7 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Level when learned** — Historical CEFR band when the word entered **Vocabulary**. Defaults: from simplified tab → active simplified level; from translated tab or highlight-add → **user language level**. User may override in add dialog.
 
-**Vocabulary entry** — One lemma per target language with **word category**, translation, explanation, **level when learned**, **difficulty rating**, stable identifier, optional import source (local or imported). No per-text backlink list. Lemma change triggers re-embed. Delete requires confirmation, then brief **delete undo window** to restore. **Duplicate lemma on add** is rejected in v1.
+**Vocabulary entry** — One lemma per target language with **word category**, translation, explanation, **level when learned**, **difficulty rating**, stable identifier, optional import source (local or imported). No per-text backlink list. Lemma change triggers re-embed. Delete requires confirmation; browse moves the entry to **Trash**, reader shows a brief **delete undo window**. **Duplicate lemma on add** is rejected in v1.
 
 **Manual add word** — Create vocabulary without highlighting text; user enters fields manually.
 
@@ -283,7 +283,7 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Remove target language** — Optional vocabulary export first, then wipe entire language folder (texts, groups, databases, metadata). **Strong confirmation** required.
 
-**Trash** — Deleted texts moved to trash area; restore or empty from **settings**. Vocabulary entries are never deleted when a text is removed.
+**Trash** — Deleted texts and vocabulary entries moved to trash; restore or empty from **Library → Trash**. Scoped to the **active target language**. Deleting a text never removes its vocabulary entries.
 
 **Language data root** — Per target language folder on disk. Contains group and text content plus per-language databases. CEFR level is not encoded in folder paths; **sidebar** tree comes from metadata.
 

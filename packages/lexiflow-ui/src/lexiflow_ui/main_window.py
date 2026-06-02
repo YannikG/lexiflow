@@ -31,8 +31,14 @@ from PySide6.QtWidgets import (
 from lexiflow_ui.add_text_flow import submit_add_text
 from lexiflow_ui.ai_worker_startup import ensure_ai_workers_running
 from lexiflow_ui.dialogs.add_text_dialog import open_add_text_dialog
-from lexiflow_ui.dialogs.library_data_dialog import open_library_data_dialog
+from lexiflow_ui.dialogs.trash_dialog import open_trash_dialog
 from lexiflow_ui.find_in_texts_flow import find_in_texts
+from lexiflow_ui.library_options_flow import (
+    export_library_backup,
+    rebuild_library_index,
+    replace_current_library,
+    restore_library_to_new_folder,
+)
 from lexiflow_ui.llama_server_supervisor import LlamaServerSupervisor
 from lexiflow_ui.reader_flow import (
     list_texts_for_sidebar,
@@ -141,7 +147,7 @@ class MainWindow(QMainWindow):
         return self._data_root
 
     def add_text_action(self) -> QAction:
-        """File menu action wired to the standard New shortcut."""
+        """Texts menu action wired to the standard New shortcut."""
         return self._add_text_menu_action
 
     def texts_empty_action_button(self) -> QPushButton | None:
@@ -161,17 +167,41 @@ class MainWindow(QMainWindow):
             app.alert(self)
 
     def _build_menu_bar(self) -> None:
-        file_menu = self.menuBar().addMenu("&File")
+        texts_menu = self.menuBar().addMenu("&Texts")
         self._add_text_menu_action = QAction("Add text…", self)
         self._add_text_menu_action.setShortcut(QKeySequence.StandardKey.New)
         self._add_text_menu_action.triggered.connect(self._open_add_text_dialog)
-        file_menu.addAction(self._add_text_menu_action)
+        texts_menu.addAction(self._add_text_menu_action)
+
+        vocabulary_menu = self.menuBar().addMenu("&Vocabulary")
+        self._export_vocabulary_action = QAction("Export vocabulary…", self)
+        vocabulary_menu.addAction(self._export_vocabulary_action)
+        self._import_vocabulary_action = QAction("Import vocabulary…", self)
+        vocabulary_menu.addAction(self._import_vocabulary_action)
+        vocabulary_menu.addSeparator()
         self._remove_language_action = QAction("Remove target language…", self)
         self._remove_language_action.triggered.connect(self._remove_target_language)
-        file_menu.addAction(self._remove_language_action)
-        self._library_data_action = QAction("Library and data…", self)
-        self._library_data_action.triggered.connect(self._open_library_data_dialog)
-        file_menu.addAction(self._library_data_action)
+        vocabulary_menu.addAction(self._remove_language_action)
+
+        library_menu = self.menuBar().addMenu("&Library")
+        self._trash_action = QAction("Trash…", self)
+        self._trash_action.triggered.connect(self._open_trash_dialog)
+        library_menu.addAction(self._trash_action)
+
+        options_menu = self.menuBar().addMenu("&Options")
+        self._export_library_action = QAction("Export library…", self)
+        self._export_library_action.triggered.connect(self._export_library_backup)
+        options_menu.addAction(self._export_library_action)
+        self._restore_library_action = QAction("Restore library to new folder…", self)
+        self._restore_library_action.triggered.connect(self._restore_library_backup)
+        options_menu.addAction(self._restore_library_action)
+        self._replace_library_action = QAction("Replace current library…", self)
+        self._replace_library_action.triggered.connect(self._replace_current_library)
+        options_menu.addAction(self._replace_library_action)
+        options_menu.addSeparator()
+        self._rebuild_index_action = QAction("Rebuild library index", self)
+        self._rebuild_index_action.triggered.connect(self._rebuild_library_index)
+        options_menu.addAction(self._rebuild_index_action)
 
         self._search_action = QAction("Search library", self)
         self._search_action.setShortcut(QKeySequence.StandardKey.Find)
@@ -224,6 +254,7 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         self._sidebar = SidebarWidget(container)
         self._sidebar.setFixedWidth(SIDEBAR_WIDTH)
+        self._sidebar.search_requested.connect(self._toolbar_search.focus_search)
         self._sidebar.add_text_button().clicked.connect(self._open_add_text_dialog)
         self._sidebar.text_selected.connect(self._open_reader_for_text)
         self._texts_stack = QStackedWidget(container)
@@ -259,6 +290,12 @@ class MainWindow(QMainWindow):
         )
         self._vocabulary.vocabulary_changed.connect(self._on_vocabulary_changed)
         self._vocabulary.find_in_texts_requested.connect(self._find_in_texts_for_lemma)
+        self._export_vocabulary_action.triggered.connect(
+            self._vocabulary.export_vocabulary
+        )
+        self._import_vocabulary_action.triggered.connect(
+            self._vocabulary.import_vocabulary
+        )
         self._study = StudyWidget(
             data_root=self._data_root,
             settings=self._settings,
@@ -399,12 +436,39 @@ class MainWindow(QMainWindow):
             ),
         )
 
-    def _open_library_data_dialog(self) -> None:
-        open_library_data_dialog(
+    def _open_trash_dialog(self) -> None:
+        open_trash_dialog(
             self,
             data_root=self._data_root,
+            language_code=self._settings.active_target_language,
             text_repository=self._text_repository,
+            supervisor=self._supervisor,
+        )
+        self._refresh_texts_ui()
+        self._vocabulary.refresh()
+        self._on_vocabulary_changed()
+
+    def _export_library_backup(self) -> None:
+        export_library_backup(parent=self, data_root=self._data_root)
+
+    def _restore_library_backup(self) -> None:
+        restore_library_to_new_folder(parent=self)
+
+    def _replace_current_library(self) -> None:
+        if replace_current_library(
+            parent=self,
+            data_root=self._data_root,
             library_index=self._library_index,
+        ):
+            self._refresh_texts_ui()
+            self._vocabulary.refresh()
+
+    def _rebuild_library_index(self) -> None:
+        rebuild_library_index(
+            parent=self,
+            data_root=self._data_root,
+            library_index=self._library_index,
+            language_code=self._settings.active_target_language,
         )
         self._refresh_texts_ui()
 

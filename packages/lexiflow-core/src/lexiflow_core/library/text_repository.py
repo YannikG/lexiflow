@@ -32,14 +32,14 @@ class TextRepository:
     def delete_to_trash(self, text_id: UUID) -> None:
         self._coordinator.delete_to_trash(text_id)
 
-    def list_trash(self) -> list[TrashItem]:
-        return self._coordinator.list_trash()
+    def list_trash(self, *, language_code: str | None = None) -> list[TrashItem]:
+        return self._coordinator.list_trash(language_code=language_code)
 
     def restore_from_trash(self, text_id: UUID) -> None:
         self._coordinator.restore_from_trash(text_id)
 
-    def empty_trash(self) -> int:
-        return self._coordinator.empty_trash()
+    def empty_trash(self, *, language_code: str | None = None) -> int:
+        return self._coordinator.empty_trash(language_code=language_code)
 
     def write_native_variant(self, text_id: UUID, markdown: str) -> None:
         self._coordinator.write_native_variant(text_id, markdown)

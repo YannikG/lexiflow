@@ -216,6 +216,7 @@ class ReaderWidget(QWidget):
         self._delete_undo_banner = VocabularyDeleteUndoBanner(
             data_root=self._data_root,
             language_code=self._reader_language_code,
+            supervisor=self._supervisor,
             parent=read_page,
         )
         self._delete_undo_banner.restored.connect(self._on_vocabulary_delete_restored)

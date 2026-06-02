@@ -13,6 +13,9 @@ from lexiflow_core.vocabulary.store import (
 from PySide6.QtCore import QTimer, Signal
 from PySide6.QtWidgets import QHBoxLayout, QMessageBox, QPushButton, QWidget
 
+from lexiflow_ui.vocabulary_embed_flow import schedule_vocabulary_word_embed
+from lexiflow_ui.worker_supervisor import WorkerSupervisor
+
 DELETE_UNDO_WINDOW_MS = 8_000
 
 
@@ -26,12 +29,14 @@ class VocabularyDeleteUndoBanner(QWidget):
         *,
         data_root: Path | None,
         language_code: Callable[[], str | None],
+        supervisor: WorkerSupervisor | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("vocabulary_delete_undo_banner")
         self._data_root = data_root
         self._language_code = language_code
+        self._supervisor = supervisor
         self._snapshot: DeletedVocabularyEntry | None = None
         self._timer = QTimer(self)
         self._timer.setSingleShot(True)
@@ -72,5 +77,11 @@ class VocabularyDeleteUndoBanner(QWidget):
         except VocabularyStoreError as error:
             QMessageBox.warning(self, "Vocabulary", str(error))
             return
+        schedule_vocabulary_word_embed(
+            self._data_root,
+            language_code=language,
+            lemma=snapshot.lemma,
+            supervisor=self._supervisor,
+        )
         self.clear()
         self.restored.emit()

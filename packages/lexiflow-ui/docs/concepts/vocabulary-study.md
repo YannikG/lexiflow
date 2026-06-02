@@ -10,7 +10,7 @@ The toolbar has separate **Vocabulary** and **Study** navigation modes for the *
 
 - `VocabularyBrowseTable`: lemma, translation, explanation, level, difficulty combo; pages to fill the viewport (no vertical scrollbar)
 - Right-click row context menu: **Edit word**, **Delete**
-- Delete asks for confirmation, then shows the shared **delete undo window**
+- Delete asks for confirmation, then moves the entry to **Trash** (restore from **Library → Trash**)
 - Search filters lemma, translation, explanation
 - Sort: recent, alphabetical, level, difficulty
 - **Add word**, **Export**, **Import** vocabulary zip bundles

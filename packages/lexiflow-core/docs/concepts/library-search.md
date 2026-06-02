@@ -23,7 +23,8 @@ Each `SearchHit` includes `text_id`, `title`, matching `variant`, HTML `snippet`
 - Migration `005_fts_search.sql` creates `text_search`.
 - `LibraryIndex.upsert_text` indexes all `*.md` files in the text folder.
 - `remove_from_index` and trash delete remove FTS rows.
-- `rebuild_from_disk` clears and rebuilds FTS alongside metadata rows.
+- Trashed text ids are excluded from search results even when FTS rows are stale.
+- `rebuild_from_disk` clears and rebuilds FTS alongside metadata rows. Trashed text ids are never indexed, even when stale library folders remain on disk.
 
 ## Consumers
 

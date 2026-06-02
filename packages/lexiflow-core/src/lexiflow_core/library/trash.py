@@ -33,7 +33,7 @@ class TrashItem:
     deleted_at: datetime | None = None
 
 
-def list_trash(data_root: Path) -> list[TrashItem]:
+def list_trash(data_root: Path, *, language_code: str | None = None) -> list[TrashItem]:
     """Return metadata for texts currently in trash."""
     root = trash_dir(data_root)
     if not root.is_dir():
@@ -53,6 +53,8 @@ def list_trash(data_root: Path) -> list[TrashItem]:
             metadata = load_text_metadata(meta_file)
         except TextMetadataError:
             continue
+        if language_code is not None and metadata.target_language != language_code:
+            continue
         deleted_at = datetime.fromtimestamp(folder.stat().st_mtime)
         items.append(
             TrashItem(
@@ -65,6 +67,54 @@ def list_trash(data_root: Path) -> list[TrashItem]:
         )
     items.sort(key=lambda item: (item.target_language, item.title.casefold()))
     return items
+
+
+def trashed_text_ids(
+    data_root: Path, *, language_code: str | None = None
+) -> frozenset[UUID]:
+    """Return ids for texts currently stored under the trash area."""
+    root = trash_dir(data_root)
+    if not root.is_dir():
+        return frozenset()
+    ids: set[UUID] = set()
+    for folder in root.iterdir():
+        if not folder.is_dir():
+            continue
+        meta_file = meta_path(folder)
+        if meta_file.is_file():
+            try:
+                metadata = load_text_metadata(meta_file)
+            except TextMetadataError:
+                continue
+            if language_code is not None and metadata.target_language != language_code:
+                continue
+            ids.add(metadata.id)
+            try:
+                ids.add(UUID(folder.name))
+            except ValueError:
+                pass
+            continue
+        if language_code is not None:
+            continue
+        try:
+            ids.add(UUID(folder.name))
+        except ValueError:
+            pass
+    return frozenset(ids)
+
+
+def text_is_in_trash(data_root: Path, text_id: UUID) -> bool:
+    """Return whether a text id currently has an entry under trash."""
+    return text_id in trashed_text_ids(data_root)
+
+
+def is_path_in_trash(path: Path, data_root: Path) -> bool:
+    """Return whether a path is inside the library trash area."""
+    try:
+        path.resolve().relative_to(trash_dir(data_root).resolve())
+    except ValueError:
+        return False
+    return True
 
 
 def restore_from_trash(
@@ -101,16 +151,31 @@ def restore_from_trash(
     index.upsert_text(record)
 
 
-def empty_trash(data_root: Path) -> int:
-    """Permanently delete all trashed texts. Returns count removed."""
+def empty_trash(data_root: Path, *, language_code: str | None = None) -> int:
+    """Permanently delete trashed texts. Returns count removed."""
     root = trash_dir(data_root)
     if not root.is_dir():
         return 0
     count = 0
     for folder in list(root.iterdir()):
-        if folder.is_dir():
-            shutil.rmtree(folder)
-            count += 1
+        if not folder.is_dir():
+            continue
+        try:
+            UUID(folder.name)
+        except ValueError:
+            continue
+        if language_code is not None:
+            meta_file = meta_path(folder)
+            if not meta_file.is_file():
+                continue
+            try:
+                metadata = load_text_metadata(meta_file)
+            except TextMetadataError:
+                continue
+            if metadata.target_language != language_code:
+                continue
+        shutil.rmtree(folder)
+        count += 1
     return count
 
 

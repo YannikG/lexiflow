@@ -307,9 +307,13 @@ class LibrarySearchField(QWidget):
             self._emit_selected_item(item)
 
     def focus_search(self) -> None:
-        """Move keyboard focus to the search field."""
+        """Move keyboard focus to the search field with a fresh query."""
+        self._query.clear()
+        self._hits = []
+        self._results.clear()
+        self._selected_row = -1
+        self._hide_popup()
         self._query.setFocus()
-        self._query.selectAll()
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         if event.type() == QEvent.Type.WindowDeactivate:
