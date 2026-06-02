@@ -5,7 +5,11 @@ from __future__ import annotations
 from pathlib import Path
 
 from lexiflow_core.library.text_repository import TextRepository
-from lexiflow_core.library.trash import TrashItem
+from lexiflow_core.library.trash import (
+    TrashItem,
+    TrashItemNotFoundError,
+    TrashRestoreError,
+)
 from lexiflow_core.vocabulary.store import VocabularyStore, VocabularyStoreError
 from lexiflow_core.vocabulary.trash import (
     VocabularyTrashItem,
@@ -145,7 +149,11 @@ class TrashDialog(QDialog):
         if trash_item is None:
             QMessageBox.information(self, "Trash", "Select a trashed text to restore.")
             return
-        self._text_repo.restore_from_trash(trash_item.text_id)
+        try:
+            self._text_repo.restore_from_trash(trash_item.text_id)
+        except (TrashItemNotFoundError, TrashRestoreError) as error:
+            QMessageBox.warning(self, "Trash", str(error))
+            return
         self._reload_text_trash()
         QMessageBox.information(self, "Trash", f'Restored "{trash_item.title}".')
 

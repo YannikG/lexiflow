@@ -20,6 +20,11 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeySequence
 
 
+@pytest.fixture(autouse=True)
+def _disable_search_debounce(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(LibrarySearchField, "_SEARCH_DEBOUNCE_MS", 0)
+
+
 def test_plain_snippet_strips_mark_tags() -> None:
     assert _plain_snippet("...Gege<mark>nmaßnah</mark>men...") == "...Gegenmaßnahmen..."
     assert "<mark>" not in _result_label(

@@ -77,35 +77,34 @@ def trashed_text_ids(
     if not root.is_dir():
         return frozenset()
     ids: set[UUID] = set()
+    if language_code is None:
+        for folder in root.iterdir():
+            if not folder.is_dir():
+                continue
+            try:
+                ids.add(UUID(folder.name))
+            except ValueError:
+                continue
+        return frozenset(ids)
     for folder in root.iterdir():
         if not folder.is_dir():
             continue
         meta_file = meta_path(folder)
-        if meta_file.is_file():
-            try:
-                metadata = load_text_metadata(meta_file)
-            except TextMetadataError:
-                continue
-            if language_code is not None and metadata.target_language != language_code:
-                continue
-            ids.add(metadata.id)
-            try:
-                ids.add(UUID(folder.name))
-            except ValueError:
-                pass
-            continue
-        if language_code is not None:
+        if not meta_file.is_file():
             continue
         try:
-            ids.add(UUID(folder.name))
-        except ValueError:
-            pass
+            metadata = load_text_metadata(meta_file)
+        except TextMetadataError:
+            continue
+        if metadata.target_language != language_code:
+            continue
+        ids.add(metadata.id)
     return frozenset(ids)
 
 
 def text_is_in_trash(data_root: Path, text_id: UUID) -> bool:
     """Return whether a text id currently has an entry under trash."""
-    return text_id in trashed_text_ids(data_root)
+    return (trash_dir(data_root) / str(text_id)).is_dir()
 
 
 def is_path_in_trash(path: Path, data_root: Path) -> bool:

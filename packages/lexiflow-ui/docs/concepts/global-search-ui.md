@@ -10,7 +10,7 @@ Inline search fields for the **library index** in the **active target language**
 
 ## Behavior
 
-- `LibrarySearchField` runs `search_texts` as the user types.
+- `LibrarySearchField` runs `search_texts` as the user types (debounced by 150ms).
 - `Find` and sidebar search entry clear any previous query before focus.
 - Matching hits appear in a popup list under the field (title, variant, snippet).
 - Arrow keys move selection; Enter opens the hit; Escape closes the list.

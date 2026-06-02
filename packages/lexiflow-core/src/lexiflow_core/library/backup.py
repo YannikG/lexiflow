@@ -37,6 +37,29 @@ def export_library_zip(destination: Path, *, data_root: Path) -> Path:
     return destination
 
 
+def _path_is_within(child: Path, parent: Path) -> bool:
+    try:
+        child.resolve().relative_to(parent.resolve())
+    except ValueError:
+        return False
+    return True
+
+
+def _validate_zip_members(zf: zipfile.ZipFile, destination: Path) -> None:
+    """Reject zip entries that escape the destination directory."""
+    dest = destination.resolve()
+    for member in zf.infolist():
+        target = (dest / member.filename).resolve()
+        if not target.is_relative_to(dest):
+            raise ValueError(f"unsafe path in backup archive: {member.filename}")
+
+
+def _safe_extract_zip(zf: zipfile.ZipFile, destination: Path) -> None:
+    destination.mkdir(parents=True, exist_ok=True)
+    _validate_zip_members(zf, destination)
+    zf.extractall(destination)
+
+
 def restore_library_zip(
     archive_path: Path,
     *,
@@ -51,7 +74,7 @@ def restore_library_zip(
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_root = Path(temp_dir)
         with zipfile.ZipFile(archive, "r") as zf:
-            zf.extractall(temp_root)
+            _safe_extract_zip(zf, temp_root)
         manifest_path = temp_root / "manifest.json"
         if not manifest_path.is_file():
             raise ValueError("backup archive missing manifest.json")
@@ -76,11 +99,24 @@ def replace_data_root_from_zip(
     data_root: Path,
 ) -> None:
     """Replace the current data root contents from a backup zip."""
+    archive = archive_path.expanduser().resolve()
     root = data_root.expanduser().resolve()
     root.mkdir(parents=True, exist_ok=True)
-    for child in list(root.iterdir()):
-        if child.is_dir():
-            shutil.rmtree(child)
-        else:
-            child.unlink()
-    restore_library_zip(archive_path, destination_root=root)
+    restore_archive = archive
+    temp_archive: Path | None = None
+    if _path_is_within(archive, root):
+        temp_file = tempfile.NamedTemporaryFile(suffix=".zip", delete=False)
+        temp_archive = Path(temp_file.name)
+        temp_file.close()
+        shutil.copy2(archive, temp_archive)
+        restore_archive = temp_archive
+    try:
+        for child in list(root.iterdir()):
+            if child.is_dir():
+                shutil.rmtree(child)
+            else:
+                child.unlink()
+        restore_library_zip(restore_archive, destination_root=root)
+    finally:
+        if temp_archive is not None:
+            temp_archive.unlink(missing_ok=True)

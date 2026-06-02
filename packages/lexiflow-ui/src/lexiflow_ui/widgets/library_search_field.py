@@ -210,6 +210,7 @@ class SearchResultItemDelegate(QStyledItemDelegate):
 
 class LibrarySearchField(QWidget):
     hit_selected = Signal(object)
+    _SEARCH_DEBOUNCE_MS = 150
 
     def __init__(
         self,
@@ -233,7 +234,11 @@ class LibrarySearchField(QWidget):
         self._query.setObjectName(f"{object_name}_query")
         self._query.setPlaceholderText("Search library")
         self._query.setClearButtonEnabled(True)
-        self._query.textChanged.connect(self._refresh_results)
+        self._search_timer = QTimer(self)
+        self._search_timer.setSingleShot(True)
+        self._search_timer.setInterval(self._SEARCH_DEBOUNCE_MS)
+        self._search_timer.timeout.connect(self._refresh_results)
+        self._query.textChanged.connect(self._schedule_refresh)
         self._query.move_selection.connect(self._move_selection)
         self._query.confirm_selection.connect(self._confirm_selection)
         self._query.cancel_search.connect(self._hide_popup)
@@ -308,12 +313,19 @@ class LibrarySearchField(QWidget):
 
     def focus_search(self) -> None:
         """Move keyboard focus to the search field with a fresh query."""
+        self._search_timer.stop()
         self._query.clear()
         self._hits = []
         self._results.clear()
         self._selected_row = -1
         self._hide_popup()
         self._query.setFocus()
+
+    def _schedule_refresh(self) -> None:
+        if self._SEARCH_DEBOUNCE_MS <= 0:
+            self._refresh_results()
+            return
+        self._search_timer.start()
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         if event.type() == QEvent.Type.WindowDeactivate:
@@ -417,7 +429,12 @@ class LibrarySearchField(QWidget):
         self._popup.setFixedWidth(width)
         self._popup.setFixedHeight(content_height)
         self._results.setFixedHeight(content_height)
-        self._popup.setParent(None)
+        parent_window = self.window()
+        if parent_window is not None:
+            self._popup.setParent(
+                parent_window,
+                Qt.WindowType.ToolTip | Qt.WindowType.FramelessWindowHint,
+            )
         self._popup.move(anchor)
         self._popup.show()
         if self._selected_row >= 0:
