@@ -61,6 +61,8 @@ def build_theme_stylesheet(effective: EffectiveTheme) -> str:
         "QPushButton#reader_cancel_button",
         "QPushButton#sidebar_add_text_button",
         "QPushButton#empty_state_action",
+        "QPushButton#trash_empty_button",
+        "QPushButton#trash_close_button",
     )
     secondary_selectors = ",\n".join(secondary_buttons)
     tab_selectors = _tab_selectors()

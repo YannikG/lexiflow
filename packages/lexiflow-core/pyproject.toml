@@ -6,6 +6,7 @@ requires-python = ">=3.12,<3.14"
 dependencies = [
     "huggingface_hub>=0.28",
     "langdetect>=1.0.9",
+    "rapidfuzz>=3.9",
     "sqlite-vec>=0.1.6",
     "tomli-w>=1.0",
 ]

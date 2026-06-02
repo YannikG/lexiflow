@@ -57,6 +57,11 @@ def trash_dir(data_root: Path) -> Path:
     return data_root / ".trash"
 
 
+def vocabulary_trash_dir(data_root: Path, language_code: str) -> Path:
+    """Return the trash directory for deleted vocabulary in one target language."""
+    return trash_dir(data_root) / "vocabulary" / language_code
+
+
 def group_dir(data_root: Path, language_code: str, group_folder_slug: str) -> Path:
     """Return the on-disk folder for a group within a target language."""
     return language_data_root(data_root, language_code) / group_folder_slug

@@ -13,6 +13,7 @@ from lexiflow_core.jobs.service import JobService
 from lexiflow_core.languages.models import CEFRLevel
 from lexiflow_core.library.index import LibraryIndex, ensure_library_index
 from lexiflow_core.library.reader_tabs import NATIVE_TAB
+from lexiflow_core.library.search_models import SearchHit
 from lexiflow_core.library.text_repository import TextRepository
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QActionGroup, QCloseEvent, QKeySequence
@@ -30,6 +31,14 @@ from PySide6.QtWidgets import (
 from lexiflow_ui.add_text_flow import submit_add_text
 from lexiflow_ui.ai_worker_startup import ensure_ai_workers_running
 from lexiflow_ui.dialogs.add_text_dialog import open_add_text_dialog
+from lexiflow_ui.dialogs.trash_dialog import open_trash_dialog
+from lexiflow_ui.find_in_texts_flow import find_in_texts
+from lexiflow_ui.library_options_flow import (
+    export_library_backup,
+    rebuild_library_index,
+    replace_current_library,
+    restore_library_to_new_folder,
+)
 from lexiflow_ui.llama_server_supervisor import LlamaServerSupervisor
 from lexiflow_ui.reader_flow import (
     list_texts_for_sidebar,
@@ -40,6 +49,7 @@ from lexiflow_ui.remove_target_language_flow import offer_remove_target_language
 from lexiflow_ui.unsaved_changes import DirtyEditor, confirm_leave_dirty_editors
 from lexiflow_ui.widgets.active_target_language import ActiveTargetLanguageWidget
 from lexiflow_ui.widgets.empty_state import EmptyStateWidget
+from lexiflow_ui.widgets.library_search_field import LibrarySearchField
 from lexiflow_ui.widgets.reader_widget import ReaderWidget
 from lexiflow_ui.widgets.sidebar import SidebarWidget
 from lexiflow_ui.widgets.study_widget import StudyWidget
@@ -80,6 +90,9 @@ class MainWindow(QMainWindow):
         self.resize(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT)
         self._navigation_actions: dict[NavigationMode, QAction] = {}
         self._active_target_language: ActiveTargetLanguageWidget | None = None
+        ensure_library_index(self._data_root)
+        self._library_index = LibraryIndex(self._data_root)
+        self._text_repository = TextRepository(self._data_root, self._library_index)
         self._build_menu_bar()
         self._build_toolbar()
         self._build_central_layout()
@@ -93,9 +106,6 @@ class MainWindow(QMainWindow):
             self._llama_supervisor.state_changed.connect(
                 self._on_infrastructure_state_changed
             )
-        ensure_library_index(self._data_root)
-        self._library_index = LibraryIndex(self._data_root)
-        self._text_repository = TextRepository(self._data_root, self._library_index)
         self._open_text_id: UUID | None = None
         self._seen_completed_job_ids: set[UUID] = set()
         self._seen_failed_job_ids: set[UUID] = set()
@@ -137,7 +147,7 @@ class MainWindow(QMainWindow):
         return self._data_root
 
     def add_text_action(self) -> QAction:
-        """File menu action wired to the standard New shortcut."""
+        """Texts menu action wired to the standard New shortcut."""
         return self._add_text_menu_action
 
     def texts_empty_action_button(self) -> QPushButton | None:
@@ -157,14 +167,46 @@ class MainWindow(QMainWindow):
             app.alert(self)
 
     def _build_menu_bar(self) -> None:
-        file_menu = self.menuBar().addMenu("&File")
+        texts_menu = self.menuBar().addMenu("&Texts")
         self._add_text_menu_action = QAction("Add text…", self)
         self._add_text_menu_action.setShortcut(QKeySequence.StandardKey.New)
         self._add_text_menu_action.triggered.connect(self._open_add_text_dialog)
-        file_menu.addAction(self._add_text_menu_action)
+        texts_menu.addAction(self._add_text_menu_action)
+
+        vocabulary_menu = self.menuBar().addMenu("&Vocabulary")
+        self._export_vocabulary_action = QAction("Export vocabulary…", self)
+        vocabulary_menu.addAction(self._export_vocabulary_action)
+        self._import_vocabulary_action = QAction("Import vocabulary…", self)
+        vocabulary_menu.addAction(self._import_vocabulary_action)
+        vocabulary_menu.addSeparator()
         self._remove_language_action = QAction("Remove target language…", self)
         self._remove_language_action.triggered.connect(self._remove_target_language)
-        file_menu.addAction(self._remove_language_action)
+        vocabulary_menu.addAction(self._remove_language_action)
+
+        library_menu = self.menuBar().addMenu("&Library")
+        self._trash_action = QAction("Trash…", self)
+        self._trash_action.triggered.connect(self._open_trash_dialog)
+        library_menu.addAction(self._trash_action)
+
+        options_menu = self.menuBar().addMenu("&Options")
+        self._export_library_action = QAction("Export library…", self)
+        self._export_library_action.triggered.connect(self._export_library_backup)
+        options_menu.addAction(self._export_library_action)
+        self._restore_library_action = QAction("Restore library to new folder…", self)
+        self._restore_library_action.triggered.connect(self._restore_library_backup)
+        options_menu.addAction(self._restore_library_action)
+        self._replace_library_action = QAction("Replace current library…", self)
+        self._replace_library_action.triggered.connect(self._replace_current_library)
+        options_menu.addAction(self._replace_library_action)
+        options_menu.addSeparator()
+        self._rebuild_index_action = QAction("Rebuild library index", self)
+        self._rebuild_index_action.triggered.connect(self._rebuild_library_index)
+        options_menu.addAction(self._rebuild_index_action)
+
+        self._search_action = QAction("Search library", self)
+        self._search_action.setShortcut(QKeySequence.StandardKey.Find)
+        self._search_action.triggered.connect(self._focus_library_search)
+        self.addAction(self._search_action)
 
     def _build_toolbar(self) -> None:
         toolbar = QToolBar("Main", self)
@@ -195,6 +237,16 @@ class MainWindow(QMainWindow):
             group.addAction(action)
             toolbar.addAction(action)
             self._navigation_actions[mode] = action
+        toolbar.addSeparator()
+        self._toolbar_search = LibrarySearchField(
+            index=self._library_index,
+            language_code=lambda: self._settings.active_target_language,
+            object_name="toolbar_search",
+            parent=toolbar,
+        )
+        self._toolbar_search.setMinimumWidth(220)
+        self._toolbar_search.hit_selected.connect(self._on_library_search_hit)
+        toolbar.addWidget(self._toolbar_search)
 
     def _build_central_layout(self) -> None:
         container = QWidget(self)
@@ -236,6 +288,13 @@ class MainWindow(QMainWindow):
             parent=self._content_stack,
         )
         self._vocabulary.vocabulary_changed.connect(self._on_vocabulary_changed)
+        self._vocabulary.find_in_texts_requested.connect(self._find_in_texts_for_lemma)
+        self._export_vocabulary_action.triggered.connect(
+            self._vocabulary.export_vocabulary
+        )
+        self._import_vocabulary_action.triggered.connect(
+            self._vocabulary.import_vocabulary
+        )
         self._study = StudyWidget(
             data_root=self._data_root,
             settings=self._settings,
@@ -314,6 +373,103 @@ class MainWindow(QMainWindow):
             return
         self._open_text_id = text_id
         self._texts_stack.setCurrentWidget(self._reader)
+
+    def _open_reader_for_search_hit(self, hit: SearchHit, *, query: str) -> None:
+        if not self._confirm_leave_editing_surfaces():
+            return
+        texts_action = self._navigation_actions.get("texts")
+        if texts_action is not None:
+            texts_action.setChecked(True)
+        self._show_navigation_mode("texts")
+        record = self._text_repository.get_text(hit.text_id)
+        opened = self._reader.open_text(
+            record=record,
+            repo=self._text_repository,
+            index=self._library_index,
+            settings=self._settings,
+            initial_tab=hit.variant,
+        )
+        if not opened:
+            return
+        self._open_text_id = hit.text_id
+        self._sidebar.select_text(hit.text_id)
+        self._texts_stack.setCurrentWidget(self._reader)
+        self._reader.scroll_to_match(query)
+
+    def _on_library_search_hit(self, hit: SearchHit) -> None:
+        self._open_reader_for_search_hit(
+            hit,
+            query=self._search_query_from_hit(hit),
+        )
+
+    def _focus_library_search(self) -> None:
+        if self._settings.active_target_language is None:
+            QMessageBox.information(
+                self,
+                "Search",
+                "Finish language setup before searching the library.",
+            )
+            return
+        self._toolbar_search.focus_search()
+
+    def _search_query_from_hit(self, hit: SearchHit) -> str:
+        import re
+
+        match = re.search(r"<mark>(.*?)</mark>", hit.snippet)
+        if match is not None:
+            return match.group(1)
+        return hit.title
+
+    def _find_in_texts_for_lemma(self, lemma: str) -> None:
+        language = self._settings.active_target_language
+        if language is None:
+            return
+        find_in_texts(
+            self,
+            index=self._library_index,
+            language_code=language,
+            query=lemma,
+            on_hit_selected=lambda hit: self._open_reader_for_search_hit(
+                hit,
+                query=lemma,
+            ),
+        )
+
+    def _open_trash_dialog(self) -> None:
+        open_trash_dialog(
+            self,
+            data_root=self._data_root,
+            language_code=self._settings.active_target_language,
+            text_repository=self._text_repository,
+            supervisor=self._supervisor,
+        )
+        self._refresh_texts_ui()
+        self._vocabulary.refresh()
+        self._on_vocabulary_changed()
+
+    def _export_library_backup(self) -> None:
+        export_library_backup(parent=self, data_root=self._data_root)
+
+    def _restore_library_backup(self) -> None:
+        restore_library_to_new_folder(parent=self)
+
+    def _replace_current_library(self) -> None:
+        if replace_current_library(
+            parent=self,
+            data_root=self._data_root,
+            library_index=self._library_index,
+        ):
+            self._refresh_texts_ui()
+            self._vocabulary.refresh()
+
+    def _rebuild_library_index(self) -> None:
+        rebuild_library_index(
+            parent=self,
+            data_root=self._data_root,
+            library_index=self._library_index,
+            language_code=self._settings.active_target_language,
+        )
+        self._refresh_texts_ui()
 
     def _on_reader_tab_changed(self, tab_id: str) -> None:
         if self._open_text_id is None:

@@ -13,7 +13,7 @@ def confirm_delete_text(parent: QWidget | None, *, title: str) -> bool:
     answer = QMessageBox.question(
         parent,
         "Delete text",
-        f'Move "{title}" to trash? You can restore it later from settings.',
+        f'Move "{title}" to trash? You can restore it later from Library → Trash.',
         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         QMessageBox.StandardButton.No,
     )

@@ -27,7 +27,7 @@ The **Application shell** is LexiFlow's main window frame: toolbar, **sidebar**,
 
 ## Phase 08 (add text)
 
-- **Add text** entry points: File menu, sidebar button, empty-state button (Texts mode)
+- **Add text** entry points: Texts menu, sidebar button, empty-state button (Texts mode)
 - Sidebar lists target-language titles from the library index; after add-text, the shell re-reads the index on a short timer ladder while jobs may still be running
 
 ## Phase 09 (reader)
@@ -46,10 +46,18 @@ The **Application shell** is LexiFlow's main window frame: toolbar, **sidebar**,
 - **Vocabulary** mode shows `VocabularyWidget` (browse table, search, export/import)
 - **Study** mode shows `StudyWidget` (flashcard deck)
 - Sidebar hidden in Vocabulary mode
-- File → **Remove target language** with optional export-first flow
+- Vocabulary menu → **Remove target language** with optional export-first flow
 - Reader **Add word** on translated/simplified tabs
 
 See [vocabulary-study.md](vocabulary-study.md).
+
+## Phase 13 (search and data)
+
+- **Global search UI** toolbar field — see [global-search-ui.md](global-search-ui.md)
+- **Search hit navigation** opens reader on matching variant tab
+- Vocabulary browse **Find in texts** uses the same search rules
+- **Library** menu → **Trash…** for restore and empty, scoped to **active target language** (Texts and Vocabulary tabs)
+- **Options** menu → **library backup** export/restore/replace and **rebuild library index**
 
 ## Deferred (later phases)
 

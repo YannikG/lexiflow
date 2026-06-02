@@ -229,9 +229,9 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Active target language** — Toolbar switcher shows flag, name, and **user language level**. **Sidebar**, library, and **Vocabulary** scope to this language only.
 
-**Keyboard shortcuts (v1)** — Minimal set: search, new text, cancel active job. New text opens **add text dialog** empty; user pastes manually. **No automatic clipboard read.** Search opens **global search UI** with last query prefilled.
+**Keyboard shortcuts (v1)** — Minimal set: search, new text, cancel active job. New text opens **add text dialog** empty; user pastes manually. **No automatic clipboard read.** Find focuses the toolbar **global search UI** field.
 
-**Global search UI** — Toolbar and **sidebar** search open the same spotlight-style overlay with keyboard navigation. Shows **target-language title** and snippet per hit. Fresh query each open. **Search hit navigation** opens text on the variant where the match occurred when known.
+**Global search UI** — Toolbar search field filters the **library index** for the **active target language**. Results appear in a dropdown list beneath the field as the user types. **Search hit navigation** opens text on the variant where the match occurred when known.
 
 ## Vocabulary
 
@@ -243,7 +243,7 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Level when learned** — Historical CEFR band when the word entered **Vocabulary**. Defaults: from simplified tab → active simplified level; from translated tab or highlight-add → **user language level**. User may override in add dialog.
 
-**Vocabulary entry** — One lemma per target language with **word category**, translation, explanation, **level when learned**, **difficulty rating**, stable identifier, optional import source (local or imported). No per-text backlink list. Lemma change triggers re-embed. Delete requires confirmation, then brief **delete undo window** to restore. **Duplicate lemma on add** is rejected in v1.
+**Vocabulary entry** — One lemma per target language with **word category**, translation, explanation, **level when learned**, **difficulty rating**, stable identifier, optional import source (local or imported). No per-text backlink list. Lemma change triggers re-embed. Delete requires confirmation; browse moves the entry to **Trash**, reader shows a brief **delete undo window**. **Duplicate lemma on add** is rejected in v1.
 
 **Manual add word** — Create vocabulary without highlighting text; user enters fields manually.
 
@@ -283,7 +283,7 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Remove target language** — Optional vocabulary export first, then wipe entire language folder (texts, groups, databases, metadata). **Strong confirmation** required.
 
-**Trash** — Deleted texts moved to trash area; restore or empty from **settings**. Vocabulary entries are never deleted when a text is removed.
+**Trash** — Deleted texts and vocabulary entries moved to trash; restore or empty from **Library → Trash**. Scoped to the **active target language**. Deleting a text never removes its vocabulary entries.
 
 **Language data root** — Per target language folder on disk. Contains group and text content plus per-language databases. CEFR level is not encoded in folder paths; **sidebar** tree comes from metadata.
 

@@ -1,6 +1,6 @@
 # Library and text storage
 
-LexiFlow stores learning texts on disk under the user **data root**. A SQLite **library index** caches metadata for fast **sidebar** listing. Full-text search over variant bodies is added in a later phase.
+LexiFlow stores learning texts on disk under the user **data root**. A SQLite **library index** caches metadata for fast **sidebar** listing and full-text search over variant bodies for the **active target language**.
 
 ## Layout
 
@@ -22,7 +22,7 @@ Global under the library:
 
 ```
 {data_root}/.app/index.sqlite   # library index
-{data_root}/.trash/             # deleted texts (minimal stub in phase 03)
+{data_root}/.trash/             # deleted texts and vocabulary snapshots
 ```
 
 Path helpers live in `lexiflow_core.config.paths`. Filesystem mutations belong in repository modules.
@@ -61,6 +61,22 @@ Path helpers live in `lexiflow_core.config.paths`. Filesystem mutations belong i
 - `list_by_lang` returns texts for **sidebar** listing (group display name, title, slug).
 - `last_viewed_tab` column stores the per-text **last viewed tab** (Native, Translated, or simplified variant id).
 - `rebuild_from_disk` rescans all language folders after external edits; infers missing `groups.json` entries from folder slugs and repairs the registry (does not write `meta.json`).
+- FTS5 table `text_search` indexes all variant markdown bodies plus titles for **library index** search. Rows are maintained on `upsert_text`, removed on delete/trash, and rebuilt during `rebuild_from_disk`.
+- Public search API: `lexiflow_core.library.search.search_texts(index, lang=..., query=...)`.
+
+## Trash
+
+- Deleted texts live under `{data_root}/.trash/{text_id}/`.
+- Deleted vocabulary snapshots live under `{data_root}/.trash/vocabulary/{language_code}/`.
+- `TextRepository.delete_to_trash` moves the folder and drops the text from the metadata index and FTS table.
+- `list_trash`, `restore_from_trash`, and `empty_trash` restore or permanently remove trashed texts. Restore re-indexes the text. All three accept an optional `language_code` to scope to one target language.
+- Trashed text ids are excluded from `list_by_lang`, `get_by_id`, duplicate checks, and search even when index rows are stale; `purge_trashed_texts` repairs orphaned metadata rows.
+- Vocabulary deletes archive JSON snapshots via `vocabulary/trash.py`; restore removes the snapshot file.
+
+## Library backup
+
+- `export_library_zip` archives the entire **data root** (zip + manifest). **Global settings** are not included.
+- `restore_library_zip` extracts to a new folder; `replace_data_root_from_zip` replaces the current library after **strong confirmation** in the UI.
 
 ## Repositories
 
@@ -77,4 +93,4 @@ Path helpers live in `lexiflow_core.config.paths`. Filesystem mutations belong i
 
 ## Downstream contracts
 
-- Phase 13 adds FTS to **library index** and full **trash** restore UX.
+- Phase 14 settings panel absorbs library backup and index controls from phase 13; **Trash** stays under **Library**.

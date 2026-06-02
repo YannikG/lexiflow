@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from lexiflow_core.config.paths import index_db_path, meta_path, text_dir
+from lexiflow_core.config.paths import index_db_path, meta_path, text_dir, trash_dir
 from lexiflow_core.db.database_path import ensure_database_parent
 from lexiflow_core.db.migration_loader import bundled_migrations_dir
 from lexiflow_core.db.migrations import MigrationRunner
@@ -53,6 +53,7 @@ class LibraryIndex:
         connection = self._connect()
         try:
             self._upsert_on_connection(connection, record)
+            self._reindex_fts(connection, record)
             connection.commit()
         finally:
             connection.close()
@@ -62,6 +63,7 @@ class LibraryIndex:
         connection = self._connect()
         try:
             connection.execute("DELETE FROM texts WHERE id = ?", (str(text_id),))
+            self._delete_fts(connection, text_id)
             connection.commit()
         finally:
             connection.close()
@@ -78,6 +80,8 @@ class LibraryIndex:
             connection.close()
         if row is None:
             return None
+        if self._is_trashed(text_id):
+            return None
         return self._record_from_index_row(row)
 
     def list_by_lang(self, lang: str) -> list[TextRecord]:
@@ -92,7 +96,13 @@ class LibraryIndex:
         finally:
             connection.close()
 
-        return [self._record_from_index_row(row) for row in rows]
+        from lexiflow_core.library.trash import trashed_text_ids
+
+        records = [self._record_from_index_row(row) for row in rows]
+        trashed = trashed_text_ids(self._data_root)
+        if trashed:
+            return [record for record in records if record.id not in trashed]
+        return records
 
     def find_by_source_url(self, lang: str, source_url: str) -> UUID | None:
         """Return a text id with the same source URL in a target language, if any."""
@@ -111,7 +121,10 @@ class LibraryIndex:
             connection.close()
         if row is None:
             return None
-        return UUID(str(row[0]))
+        text_id = UUID(str(row[0]))
+        if self._is_trashed(text_id):
+            return None
+        return text_id
 
     def find_by_content_fingerprint(
         self, lang: str, content_fingerprint: str
@@ -132,7 +145,10 @@ class LibraryIndex:
             connection.close()
         if row is None:
             return None
-        return UUID(str(row[0]))
+        text_id = UUID(str(row[0]))
+        if self._is_trashed(text_id):
+            return None
+        return text_id
 
     def get_last_viewed_tab(self, text_id: UUID) -> str | None:
         """Return the persisted reader tab id for a text, if any."""
@@ -163,9 +179,13 @@ class LibraryIndex:
     def rebuild_from_disk(self, data_root: Path | None = None) -> int:
         """Rescan disk and rebuild the index. Read-only on text metadata."""
         root = data_root if data_root is not None else self._data_root
+        from lexiflow_core.library.trash import is_path_in_trash, trashed_text_ids
+
+        excluded = trashed_text_ids(root)
         connection = self._connect()
         try:
             connection.execute("DELETE FROM texts")
+            connection.execute("DELETE FROM text_search")
             count = 0
             for lang_dir in sorted(root.iterdir()):
                 if not lang_dir.is_dir() or lang_dir.name.startswith("."):
@@ -179,12 +199,19 @@ class LibraryIndex:
                     for text_folder in sorted(group_folder.iterdir()):
                         if not text_folder.is_dir():
                             continue
+                        if is_path_in_trash(text_folder, root):
+                            continue
                         meta_file = meta_path(text_folder)
                         if not meta_file.is_file():
                             continue
                         try:
                             metadata = load_text_metadata(meta_file)
                         except TextMetadataError:
+                            continue
+                        if (
+                            metadata.id in excluded
+                            or trash_dir(root).joinpath(str(metadata.id)).is_dir()
+                        ):
                             continue
                         group_display = self._index_group_display(
                             registry, folder_slug, metadata.group
@@ -213,11 +240,41 @@ class LibraryIndex:
                                 folder=record.folder,
                             )
                         self._upsert_on_connection(connection, record)
+                        self._reindex_fts(connection, record)
                         count += 1
+            for text_id in excluded:
+                connection.execute(
+                    "DELETE FROM texts WHERE id = ?",
+                    (str(text_id),),
+                )
+                connection.execute(
+                    "DELETE FROM text_search WHERE text_id = ?",
+                    (str(text_id),),
+                )
             connection.commit()
             return count
         finally:
             connection.close()
+
+    def purge_trashed_texts(self) -> int:
+        """Remove stale index rows for texts that live in trash."""
+        from lexiflow_core.library.trash import trashed_text_ids
+
+        removed = 0
+        for text_id in trashed_text_ids(self._data_root):
+            connection = self._connect()
+            try:
+                row = connection.execute(
+                    "SELECT 1 FROM texts WHERE id = ?",
+                    (str(text_id),),
+                ).fetchone()
+            finally:
+                connection.close()
+            if row is None:
+                continue
+            self.remove_from_index(text_id)
+            removed += 1
+        return removed
 
     def _index_group_display(
         self, registry: GroupRegistry, folder_slug: str, metadata_group: str
@@ -255,6 +312,44 @@ class LibraryIndex:
             self._row_from_record(record),
         )
 
+    def _delete_fts(self, connection: sqlite3.Connection, text_id: UUID) -> None:
+        connection.execute(
+            "DELETE FROM text_search WHERE text_id = ?",
+            (str(text_id),),
+        )
+
+    def _reindex_fts(self, connection: sqlite3.Connection, record: TextRecord) -> None:
+        self._delete_fts(connection, record.id)
+        folder = self._text_folder(record)
+        if not folder.is_dir():
+            return
+        for md_file in sorted(folder.glob("*.md")):
+            variant = md_file.stem
+            body = md_file.read_text(encoding="utf-8")
+            connection.execute(
+                """
+                INSERT INTO text_search (text_id, lang, variant, title, body)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    str(record.id),
+                    record.target_language,
+                    variant,
+                    record.title,
+                    body,
+                ),
+            )
+
+    def _text_folder(self, record: TextRecord) -> Path:
+        if record.folder:
+            return Path(record.folder)
+        return text_dir(
+            self._data_root,
+            record.target_language,
+            record.group_folder_slug,
+            record.text_slug,
+        )
+
     def _row_from_record(self, record: TextRecord) -> tuple[Any, ...]:
         return (
             str(record.id),
@@ -276,6 +371,11 @@ class LibraryIndex:
         from lexiflow_core.db.connection import connect_sqlite
 
         return connect_sqlite(self._db_path)
+
+    def _is_trashed(self, text_id: UUID) -> bool:
+        from lexiflow_core.library.trash import text_is_in_trash
+
+        return text_is_in_trash(self._data_root, text_id)
 
     def _record_from_index_row(
         self, row: sqlite3.Row | tuple[object, ...]

@@ -35,12 +35,12 @@ from lexiflow_ui.add_word_flow import (
 from lexiflow_ui.dialogs.add_word_dialog import AddWordForm
 from lexiflow_ui.widgets.empty_state import EmptyStateWidget
 from lexiflow_ui.widgets.vocabulary_browse_table import VocabularyBrowseTable
-from lexiflow_ui.widgets.vocabulary_delete_undo_banner import VocabularyDeleteUndoBanner
 from lexiflow_ui.worker_supervisor import WorkerSupervisor
 
 
 class VocabularyWidget(QWidget):
     vocabulary_changed = Signal()
+    find_in_texts_requested = Signal(str)
 
     def __init__(
         self,
@@ -94,14 +94,6 @@ class VocabularyWidget(QWidget):
 
         root.addLayout(toolbar)
 
-        self._delete_undo_banner = VocabularyDeleteUndoBanner(
-            data_root=self._data_root,
-            language_code=lambda: self._settings.active_target_language,
-            parent=self,
-        )
-        self._delete_undo_banner.restored.connect(self._on_delete_restored)
-        root.addWidget(self._delete_undo_banner)
-
         self._stack = QStackedWidget(self)
         self._empty_state = EmptyStateWidget(
             title="No vocabulary yet",
@@ -115,6 +107,9 @@ class VocabularyWidget(QWidget):
 
         self._browse_table.edit_requested.connect(self._edit_entry)
         self._browse_table.delete_requested.connect(self._delete_entry)
+        self._browse_table.find_in_texts_requested.connect(
+            self.find_in_texts_requested.emit
+        )
         self._browse_table.difficulty_changed.connect(self._set_difficulty)
 
         self.refresh()
@@ -216,15 +211,10 @@ class VocabularyWidget(QWidget):
             return
         store = VocabularyStore(self._data_root, language)
         try:
-            snapshot = store.delete_entry(lemma)
+            store.delete_entry(lemma)
         except VocabularyStoreError as error:
             QMessageBox.warning(self, "Vocabulary", str(error))
             return
-        self._delete_undo_banner.offer(snapshot)
-        self.vocabulary_changed.emit()
-        self.refresh()
-
-    def _on_delete_restored(self) -> None:
         self.vocabulary_changed.emit()
         self.refresh()
 
@@ -264,6 +254,12 @@ class VocabularyWidget(QWidget):
             self._supervisor.ensure_running()
         self.vocabulary_changed.emit()
         self.refresh()
+
+    def export_vocabulary(self) -> None:
+        self._export_vocabulary()
+
+    def import_vocabulary(self) -> None:
+        self._import_vocabulary()
 
     def _export_vocabulary(self) -> None:
         language = self._settings.active_target_language

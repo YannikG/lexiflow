@@ -16,7 +16,9 @@ Lemma spelling follows target-language rules: German nouns are capitalized; othe
 | Mode | Behavior |
 |------|----------|
 | **Study** | Shuffled flashcards; translation hidden until **Reveal**; **Got it** (**promote fluency**) enabled only after reveal; hidden at **mastered** (easy). |
-| **Browse** | Full list with search, sort, inline difficulty edit, viewport paging (no scrollbar), delete with **delete undo window**. |
+| **Browse** | Full list with search, sort, inline difficulty edit, delete with confirmation and trash archive. |
+
+Deleted entries are archived under `{data_root}/.trash/vocabulary/{language_code}/` for restore from **Library → Trash**. Restore queues a vocabulary embed job.
 
 ## Export and import
 
