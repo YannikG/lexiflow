@@ -254,7 +254,6 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         self._sidebar = SidebarWidget(container)
         self._sidebar.setFixedWidth(SIDEBAR_WIDTH)
-        self._sidebar.search_requested.connect(self._toolbar_search.focus_search)
         self._sidebar.add_text_button().clicked.connect(self._open_add_text_dialog)
         self._sidebar.text_selected.connect(self._open_reader_for_text)
         self._texts_stack = QStackedWidget(container)

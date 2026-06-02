@@ -18,7 +18,6 @@ from PySide6.QtWidgets import (
 
 class SidebarWidget(QWidget):
     text_selected = Signal(UUID)
-    search_requested = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -26,11 +25,6 @@ class SidebarWidget(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(8)
-
-        self._search = QPushButton("Search library…", self)
-        self._search.setObjectName("sidebar_search_button")
-        self._search.clicked.connect(self.search_requested.emit)
-        layout.addWidget(self._search)
 
         self._empty_label = QLabel("No texts yet", self)
         self._empty_label.setObjectName("sidebar_empty_label")

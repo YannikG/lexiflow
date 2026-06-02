@@ -5,13 +5,12 @@ Inline search fields for the **library index** in the **active target language**
 ## Entry points
 
 - Toolbar **Search library** field with dropdown results
-- Sidebar **Search library…** button focuses the toolbar search field
 - `Find` keyboard shortcut (`Ctrl+F` / `Cmd+F`) focuses the toolbar search field with a fresh query
 
 ## Behavior
 
 - `LibrarySearchField` runs `search_texts` as the user types (debounced by 150ms).
-- `Find` and sidebar search entry clear any previous query before focus.
+- `Find` clears any previous query before focus.
 - Matching hits appear in a popup list under the field (title, variant, snippet).
 - Arrow keys move selection; Enter opens the hit; Escape closes the list.
 - **Search hit navigation** opens the reader on the matching variant tab and scrolls to the matched text when possible.
