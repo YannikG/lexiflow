@@ -41,6 +41,7 @@ from lexiflow_ui.worker_supervisor import WorkerSupervisor
 
 class VocabularyWidget(QWidget):
     vocabulary_changed = Signal()
+    find_in_texts_requested = Signal(str)
 
     def __init__(
         self,
@@ -115,6 +116,9 @@ class VocabularyWidget(QWidget):
 
         self._browse_table.edit_requested.connect(self._edit_entry)
         self._browse_table.delete_requested.connect(self._delete_entry)
+        self._browse_table.find_in_texts_requested.connect(
+            self.find_in_texts_requested.emit
+        )
         self._browse_table.difficulty_changed.connect(self._set_difficulty)
 
         self.refresh()

@@ -358,6 +358,13 @@ class ReaderWidget(QWidget):
         self._refresh_word_panel()
         self.tab_changed.emit(tab_id)
 
+    def scroll_to_match(self, query: str) -> None:
+        """Scroll the read pane to the first occurrence of *query* when possible."""
+        trimmed = query.strip()
+        if not trimmed:
+            return
+        self._read_pane.find(trimmed)
+
     def reload_from_disk(
         self, *, focus_simplified_level: CEFRLevel | None = None
     ) -> None:

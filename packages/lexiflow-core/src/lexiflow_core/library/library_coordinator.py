@@ -13,6 +13,7 @@ from lexiflow_core.library.group_storage import GroupStorage
 from lexiflow_core.library.index import LibraryIndex, ensure_library_index
 from lexiflow_core.library.models import CreateTextRequest, TextRecord
 from lexiflow_core.library.text_storage import TextStorage
+from lexiflow_core.library.trash import TrashItem
 
 
 class GroupNotEmptyError(Exception):
@@ -149,6 +150,21 @@ class LibraryCoordinator:
             raise TextNotFoundError(f"text not found: {text_id}")
         self._texts.move_to_trash(Path(indexed.folder), text_id)
         self._index.remove_from_index(text_id)
+
+    def list_trash(self) -> list[TrashItem]:
+        from lexiflow_core.library.trash import list_trash
+
+        return list_trash(self._data_root)
+
+    def restore_from_trash(self, text_id: UUID) -> None:
+        from lexiflow_core.library.trash import restore_from_trash
+
+        restore_from_trash(self._data_root, self._index, text_id)
+
+    def empty_trash(self) -> int:
+        from lexiflow_core.library.trash import empty_trash
+
+        return empty_trash(self._data_root)
 
     def list_groups(self, lang: str) -> list[str]:
         return self._groups.list_display_names(lang)

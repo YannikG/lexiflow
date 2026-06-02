@@ -53,6 +53,7 @@ class LibraryIndex:
         connection = self._connect()
         try:
             self._upsert_on_connection(connection, record)
+            self._reindex_fts(connection, record)
             connection.commit()
         finally:
             connection.close()
@@ -62,6 +63,7 @@ class LibraryIndex:
         connection = self._connect()
         try:
             connection.execute("DELETE FROM texts WHERE id = ?", (str(text_id),))
+            self._delete_fts(connection, text_id)
             connection.commit()
         finally:
             connection.close()
@@ -166,6 +168,7 @@ class LibraryIndex:
         connection = self._connect()
         try:
             connection.execute("DELETE FROM texts")
+            connection.execute("DELETE FROM text_search")
             count = 0
             for lang_dir in sorted(root.iterdir()):
                 if not lang_dir.is_dir() or lang_dir.name.startswith("."):
@@ -213,6 +216,7 @@ class LibraryIndex:
                                 folder=record.folder,
                             )
                         self._upsert_on_connection(connection, record)
+                        self._reindex_fts(connection, record)
                         count += 1
             connection.commit()
             return count
@@ -253,6 +257,44 @@ class LibraryIndex:
                 updated_at = excluded.updated_at
             """,
             self._row_from_record(record),
+        )
+
+    def _delete_fts(self, connection: sqlite3.Connection, text_id: UUID) -> None:
+        connection.execute(
+            "DELETE FROM text_search WHERE text_id = ?",
+            (str(text_id),),
+        )
+
+    def _reindex_fts(self, connection: sqlite3.Connection, record: TextRecord) -> None:
+        self._delete_fts(connection, record.id)
+        folder = self._text_folder(record)
+        if not folder.is_dir():
+            return
+        for md_file in sorted(folder.glob("*.md")):
+            variant = md_file.stem
+            body = md_file.read_text(encoding="utf-8")
+            connection.execute(
+                """
+                INSERT INTO text_search (text_id, lang, variant, title, body)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    str(record.id),
+                    record.target_language,
+                    variant,
+                    record.title,
+                    body,
+                ),
+            )
+
+    def _text_folder(self, record: TextRecord) -> Path:
+        if record.folder:
+            return Path(record.folder)
+        return text_dir(
+            self._data_root,
+            record.target_language,
+            record.group_folder_slug,
+            record.text_slug,
         )
 
     def _row_from_record(self, record: TextRecord) -> tuple[Any, ...]:

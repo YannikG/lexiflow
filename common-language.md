@@ -229,9 +229,9 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Active target language** — Toolbar switcher shows flag, name, and **user language level**. **Sidebar**, library, and **Vocabulary** scope to this language only.
 
-**Keyboard shortcuts (v1)** — Minimal set: search, new text, cancel active job. New text opens **add text dialog** empty; user pastes manually. **No automatic clipboard read.** Search opens **global search UI** with last query prefilled.
+**Keyboard shortcuts (v1)** — Minimal set: search, new text, cancel active job. New text opens **add text dialog** empty; user pastes manually. **No automatic clipboard read.** Find focuses the toolbar **global search UI** field.
 
-**Global search UI** — Toolbar and **sidebar** search open the same spotlight-style overlay with keyboard navigation. Shows **target-language title** and snippet per hit. Fresh query each open. **Search hit navigation** opens text on the variant where the match occurred when known.
+**Global search UI** — Toolbar search field filters the **library index** for the **active target language**. Results appear in a dropdown list beneath the field as the user types. **Search hit navigation** opens text on the variant where the match occurred when known.
 
 ## Vocabulary
 

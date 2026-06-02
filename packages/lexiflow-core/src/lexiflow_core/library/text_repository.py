@@ -11,6 +11,7 @@ from lexiflow_core.library.library_coordinator import (
     coordinator_for,
 )
 from lexiflow_core.library.models import CreateTextRequest, TextRecord
+from lexiflow_core.library.trash import TrashItem
 
 __all__ = ["TextNotFoundError", "TextRepository"]
 
@@ -30,6 +31,15 @@ class TextRepository:
 
     def delete_to_trash(self, text_id: UUID) -> None:
         self._coordinator.delete_to_trash(text_id)
+
+    def list_trash(self) -> list[TrashItem]:
+        return self._coordinator.list_trash()
+
+    def restore_from_trash(self, text_id: UUID) -> None:
+        self._coordinator.restore_from_trash(text_id)
+
+    def empty_trash(self) -> int:
+        return self._coordinator.empty_trash()
 
     def write_native_variant(self, text_id: UUID, markdown: str) -> None:
         self._coordinator.write_native_variant(text_id, markdown)

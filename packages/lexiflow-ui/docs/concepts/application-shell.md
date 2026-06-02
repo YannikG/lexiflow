@@ -51,6 +51,13 @@ The **Application shell** is LexiFlow's main window frame: toolbar, **sidebar**,
 
 See [vocabulary-study.md](vocabulary-study.md).
 
+## Phase 13 (search and data)
+
+- **Global search UI** toolbar field — see [global-search-ui.md](global-search-ui.md)
+- **Search hit navigation** opens reader on matching variant tab
+- Vocabulary browse **Find in texts** uses the same search rules
+- File → **Library and data…** for **Trash**, **library backup**, and **rebuild library index**
+
 ## Deferred (later phases)
 
 - ~~Sidebar group/text tree~~ → [phase 17 UI cleanup](../../../../docs/roadmap/phases/phase-17-ui-cleanup/README.md)

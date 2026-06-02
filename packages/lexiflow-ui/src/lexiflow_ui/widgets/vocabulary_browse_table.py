@@ -54,6 +54,7 @@ def _difficulty_combo_index(combo: QComboBox, rating: DifficultyRating) -> int:
 class VocabularyBrowseTable(QWidget):
     edit_requested = Signal(str)
     delete_requested = Signal(str)
+    find_in_texts_requested = Signal(str)
     difficulty_changed = Signal(str, DifficultyRating)
 
     def request_edit(self, row: int) -> None:
@@ -246,10 +247,13 @@ class VocabularyBrowseTable(QWidget):
             return
         menu = QMenu(self)
         edit_action = menu.addAction("Edit word")
+        find_action = menu.addAction("Find in texts")
         delete_action = menu.addAction("Delete")
         chosen = menu.exec(self._table.viewport().mapToGlobal(position))
         if chosen is edit_action:
             self.edit_requested.emit(entry.lemma)
+        elif chosen is find_action:
+            self.find_in_texts_requested.emit(entry.lemma)
         elif chosen is delete_action:
             self.delete_requested.emit(entry.lemma)
 

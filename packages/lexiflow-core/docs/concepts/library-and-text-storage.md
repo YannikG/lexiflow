@@ -61,6 +61,19 @@ Path helpers live in `lexiflow_core.config.paths`. Filesystem mutations belong i
 - `list_by_lang` returns texts for **sidebar** listing (group display name, title, slug).
 - `last_viewed_tab` column stores the per-text **last viewed tab** (Native, Translated, or simplified variant id).
 - `rebuild_from_disk` rescans all language folders after external edits; infers missing `groups.json` entries from folder slugs and repairs the registry (does not write `meta.json`).
+- FTS5 table `text_search` indexes all variant markdown bodies plus titles for **library index** search. Rows are maintained on `upsert_text`, removed on delete/trash, and rebuilt during `rebuild_from_disk`.
+- Public search API: `lexiflow_core.library.search.search_texts(index, lang=..., query=...)`.
+
+## Trash
+
+- Deleted texts live under `{data_root}/.trash/{text_id}/`.
+- `TextRepository.delete_to_trash` moves the folder and drops the text from the metadata index and FTS table.
+- `list_trash`, `restore_from_trash`, and `empty_trash` restore or permanently remove trashed texts. Restore re-indexes the text.
+
+## Library backup
+
+- `export_library_zip` archives the entire **data root** (zip + manifest). **Global settings** are not included.
+- `restore_library_zip` extracts to a new folder; `replace_data_root_from_zip` replaces the current library after **strong confirmation** in the UI.
 
 ## Repositories
 
@@ -77,4 +90,4 @@ Path helpers live in `lexiflow_core.config.paths`. Filesystem mutations belong i
 
 ## Downstream contracts
 
-- Phase 13 adds FTS to **library index** and full **trash** restore UX.
+- Phase 14 settings panel absorbs **Library and data** dialog from phase 13.
