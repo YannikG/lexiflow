@@ -32,10 +32,13 @@ def test_main_window_shows_shell_with_navigation_modes(qtbot, tmp_path) -> None:
 
     texts_action = window.navigation_action("texts")
     vocabulary_action = window.navigation_action("vocabulary")
+    study_action = window.navigation_action("study")
     assert texts_action is not None
     assert vocabulary_action is not None
+    assert study_action is not None
     assert texts_action.text() == "Texts"
     assert vocabulary_action.text() == "Vocabulary"
+    assert study_action.text() == "Study"
 
     sidebar_button = window.sidebar.add_text_button()
     assert sidebar_button.isVisible()
@@ -121,6 +124,21 @@ def test_texts_ui_updates_after_text_exists(qtbot, tmp_path) -> None:
     assert "library" in title.text().lower()
     action = content.findChild(QPushButton, "empty_state_action")
     assert action is None or not action.isVisible()
+
+
+def test_study_mode_hides_sidebar(qtbot, tmp_path) -> None:
+    from lexiflow_ui.widgets.study_widget import StudyWidget
+
+    supervisor = WorkerSupervisor(data_root=tmp_path)
+    window = MainWindow(supervisor=supervisor)
+    qtbot.addWidget(window)
+
+    study_action = window.navigation_action("study")
+    assert study_action is not None
+    study_action.trigger()
+
+    assert window.sidebar.isVisible() is False
+    assert window.findChild(StudyWidget, "study_widget") is not None
 
 
 def test_vocabulary_mode_shows_empty_state_and_hides_sidebar(qtbot, tmp_path) -> None:

@@ -29,7 +29,7 @@ Global **UI theme** must cover these without per-widget QSS:
 |------|---------|
 | Main window | `main_window.py` |
 | Sidebar | `sidebar.py`, `empty_state.py` |
-| Reader | `reader_widget.py`, `widgets/new_words_panel.py` |
+| Reader | `reader_widget.py`, `widgets/word_panel.py` |
 | Dialogs | `dialogs/add_text_dialog.py`, onboarding pages under `onboarding/` |
 | Chrome | `widgets/worker_status.py`, `widgets/active_target_language.py` |
 

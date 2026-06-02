@@ -10,7 +10,7 @@ LexiFlow persists background work in `queue.sqlite` under the user library `.app
 | Running | Currently executing |
 | Completed | Finished successfully; result stored |
 | Failed | Error recorded; manual retry only |
-| Cancelled | User cancelled while pending; terminal |
+| Cancelled | User cancelled while pending or running; terminal |
 
 On startup, **Running** jobs return to **Pending** and are picked up automatically. `run_worker_loop` calls recovery before claiming work so direct callers get the same behaviour as the worker CLI. **Failed** and **Cancelled** jobs are not auto-retried. **Pending** jobs remain pending.
 
@@ -23,8 +23,13 @@ On startup, **Running** jobs return to **Pending** and are picked up automatical
 | `simplify` | Simplified variant (LLM); payload `text_id`, `level` |
 | `embed` | Embedding generation (translated text or vocabulary lemma) |
 | `download_spacy` | spaCy language pack download (enqueued when a target language is added) |
+| `lemma` | Lemma, translation, and explanation inference for highlight-add |
 
 LLM job types share the one-at-a-time rule. `download_spacy` is persisted in phase 06; worker handling arrives in a later phase.
+
+### Lemma
+
+Payload: `{language_code, surface_form, native_language, context?}`. Result: `{lemma, translation, explanation}`. Used when spaCy is not available for **lemma resolution**. See [vocabulary.md](vocabulary.md).
 
 ## One job at a time
 
@@ -34,7 +39,7 @@ Only one LLM job runs globally at a time. Additional requests stay **Pending** u
 
 The **worker process** consumes the queue headlessly. Phase 08 enqueues **cleanup** and **translate** jobs from the add-text flow; the UI spawns the worker via `WorkerSupervisor.ensure_running()`.
 
-`run_worker_loop` dispatches `cleanup`, `translate`, `simplify`, and `embed` jobs to `lexiflow_core.jobs.handlers`. Jobs with a legacy `prompt` payload still use the phase 04 prompt-only path for tests. Other types without handlers are marked **Failed**.
+`run_worker_loop` dispatches `cleanup`, `translate`, `simplify`, `embed`, and `lemma` jobs to `lexiflow_core.jobs.handlers`. Jobs with a legacy `prompt` payload still use the phase 04 prompt-only path for tests. Other types without handlers are marked **Failed**.
 
 ### Simplify
 

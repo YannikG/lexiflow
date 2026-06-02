@@ -7,6 +7,7 @@ from pathlib import Path
 from lexiflow_core.embeddings.protocol import Embedder
 from lexiflow_core.jobs.handlers.cleanup import handle_cleanup
 from lexiflow_core.jobs.handlers.embed import handle_embed
+from lexiflow_core.jobs.handlers.lemma import handle_lemma
 from lexiflow_core.jobs.handlers.simplify import handle_simplify
 from lexiflow_core.jobs.handlers.translate import handle_translate
 from lexiflow_core.jobs.models import JobRecord, JobType
@@ -54,5 +55,8 @@ def process_job(
             repo=repo,
             job_service=job_service,
         )
+        return
+    if job.job_type == JobType.LEMMA:
+        handle_lemma(job, job_service=job_service, llm=llm)
         return
     job_service.fail(job.id, f"unsupported job type: {job.job_type}")

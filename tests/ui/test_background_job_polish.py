@@ -180,13 +180,13 @@ def test_poll_switches_to_simplified_tab_on_success(qtbot, tmp_path) -> None:
     assert "Texto simple" in read_pane.toPlainText()
 
 
-def test_new_words_panel_hidden_on_translated_tab(qtbot, tmp_path) -> None:
+def test_word_panel_hidden_on_translated_tab(qtbot, tmp_path) -> None:
     data_root = tmp_path / "LexiFlow"
     _seed_reader_text(data_root)
     window = _open_reader_window(qtbot, data_root)
     _click_sidebar_text(qtbot, window)
 
-    panel = window.reader.findChild(QWidget, "new_words_panel")
+    panel = window.reader.findChild(QWidget, "word_panel")
     assert panel is not None
     assert not panel.isVisible()
 

@@ -114,7 +114,27 @@ In review, flag any public query that commits, deletes, or mutates. If a read pa
 - Stable capabilities → `packages/*/docs/concepts/*.md` (concepts, minimal code refs)
 - See ADR-0004
 
+## Before commit (mandatory)
+
+**Every commit** — no exceptions, including “small fixes” and CI follow-ups — must pass lint and format locally **before** `git commit`. CI runs the same checks; do not push unformatted code and fix lint in a second commit.
+
+```bash
+uv run ruff check .
+uv run ruff format .
+uv run ruff check .
+uv run ruff format --check .
+```
+
+1. **`ruff check .`** — fix all reported issues (use `ruff check --fix .` when safe).
+2. **`ruff format .`** — apply formatting to the whole tree, not only edited files.
+3. Re-run **`ruff check .`** and **`ruff format --check .`** — both must exit 0.
+4. Stage any files ruff changed, then commit.
+
+If you touched Python under `packages/lexiflow-core` or `packages/lexiflow-worker`, also run `uv run mypy` on those packages before commit when the change is non-trivial.
+
 ## Quality gate (must pass before PR)
+
+Run the full gate before opening or updating a PR:
 
 ```bash
 uv sync

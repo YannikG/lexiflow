@@ -55,7 +55,13 @@ def _valid_simplify_json(*, title: str = "Titulo simple", body: str = "Texto.") 
             "title": title,
             "body": body,
             "new_words": [
-                {"lemma": "nuevo", "gloss": "new", "level": "A2"},
+                {
+                    "lemma": "nuevo",
+                    "gloss": "new",
+                    "explanation": "Not existing before.",
+                    "level": "A2",
+                    "category": "adjective",
+                },
             ],
         }
     )
@@ -262,7 +268,7 @@ def test_simplify_writes_filtered_suggestions_sidecar(
         job_service=job_service,
     )
 
-    suggestions = load_suggestions(folder, "simplified-a2")
+    suggestions = load_suggestions(folder, "simplified-a2", language_code="es")
     assert suggestions == ()
 
 

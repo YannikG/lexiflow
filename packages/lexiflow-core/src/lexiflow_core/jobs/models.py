@@ -15,6 +15,7 @@ class JobType(StrEnum):
     SIMPLIFY = "simplify"
     EMBED = "embed"
     DOWNLOAD_SPACY = "download_spacy"
+    LEMMA = "lemma"
 
 
 class JobStatus(StrEnum):

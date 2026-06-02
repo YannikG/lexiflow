@@ -183,11 +183,11 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Level bucket quotas** — While simplifying at level L: roughly thirty percent from vocabulary at L, twenty percent one level below, ten percent new words one level above. Remainder is general target-language prose. If buckets underfill, use available matches and let the LLM fill gaps.
 
-**New word suggestions** — After simplify, curated word list (lemma, gloss, suggested level) shown in **new words panel** for one-click add to **Vocabulary**. Post-filter removes existing vocabulary, duplicates, and junk.
+**New word suggestions** — After simplify, curated word list (lemma, gloss, native-language explanation, **word category**, suggested level) shown in **new words panel** for one-click add to **Vocabulary**. Post-filter removes existing vocabulary, duplicates, and junk.
 
 **New words panel** — UI below the Simplified reader listing filtered **new word suggestions** with add actions.
 
-**Reader add word** — Highlight text in reading pane, then add to **Vocabulary**. Available on target-language tabs only. Dialog prefills surface form; LLM proposes lemma, translation, explanation, and level. User confirms before save.
+**Reader add word** — Highlight text in reading pane, then add to **Vocabulary**. Available on target-language tabs only. The highlighted text is sent to lemma inference; the add dialog shows lemma, translation, native-language explanation, **word category**, and level. User confirms before save.
 
 ## Embeddings
 
@@ -235,15 +235,15 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 ## Vocabulary
 
-**Vocabulary** — Per-target-language personal word collection (not "Wörterbuch"). Each entry tracks lemma, translation, native-language explanation, **level when learned**, and **difficulty rating**. Sort: recently added (default), alphabetical, level when learned, difficulty.
+**Vocabulary** — Per-target-language personal word collection (not "Wörterbuch"). Each entry tracks lemma, **word category**, translation, native-language explanation, **level when learned**, and **difficulty rating**. Sort: recently added (default), alphabetical, level when learned, difficulty.
+
+**Word category** — Part of speech for a vocabulary entry: noun, verb, adjective, adverb, pronoun, preposition, conjunction, interjection, or other. Assigned by LLM on lemma inference and simplify **new word suggestions**; editable in add/edit dialogs. German nouns are stored with a capital first letter; other lemmas are lowercased.
 
 **Lemma** — Dictionary form of a word. Canonical dedup key. Resolved via **lemma resolution**.
 
-**Surface form** — Exact word form seen in text. Optional; does not affect dedup.
-
 **Level when learned** — Historical CEFR band when the word entered **Vocabulary**. Defaults: from simplified tab → active simplified level; from translated tab or highlight-add → **user language level**. User may override in add dialog.
 
-**Vocabulary entry** — One lemma per target language with translation, explanation, **level when learned**, **difficulty rating**, optional **surface form**, stable identifier, optional import source (local or imported). No per-text backlink list. Lemma change triggers re-embed. Delete requires confirmation, then brief **delete undo window** to restore. **Duplicate lemma on add** is rejected in v1.
+**Vocabulary entry** — One lemma per target language with **word category**, translation, explanation, **level when learned**, **difficulty rating**, stable identifier, optional import source (local or imported). No per-text backlink list. Lemma change triggers re-embed. Delete requires confirmation, then brief **delete undo window** to restore. **Duplicate lemma on add** is rejected in v1.
 
 **Manual add word** — Create vocabulary without highlighting text; user enters fields manually.
 
@@ -475,7 +475,6 @@ Canonical terms (alphabetical):
 - Staged generation
 - Strong confirmation
 - Supported platforms
-- Surface form
 - System requirements
 - TDD vertical slice
 - Target language

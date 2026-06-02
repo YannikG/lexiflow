@@ -232,15 +232,18 @@ def test_missing_prompt_marks_job_failed(job_service: JobService) -> None:
     assert "missing text_id" in (jobs[0].error_message or "")
 
 
-def test_cancel_running_job_raises(job_service: JobService) -> None:
+def test_cancel_running_job_marks_cancelled(job_service: JobService) -> None:
     job_id = job_service.enqueue(
         JobRequest(job_type=JobType.TRANSLATE, payload={"prompt": "running"})
     )
     claimed = job_service.claim_next()
     assert claimed is not None
 
-    with pytest.raises(JobStateError):
-        job_service.cancel(job_id)
+    job_service.cancel(job_id)
+
+    job = job_service.get(job_id)
+    assert job is not None
+    assert job.status == JobStatus.CANCELLED
 
 
 def test_retry_pending_job_raises(job_service: JobService) -> None:

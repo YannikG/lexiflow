@@ -11,6 +11,7 @@ from lexiflow_core.languages.models import CEFRLevel
 from lexiflow_core.library.document_title import format_document_title
 from lexiflow_core.library.reader_tabs import simplified_variant_name
 from lexiflow_core.library.text_repository import TextRepository
+from lexiflow_core.llm.prompt_languages import prompt_language_label
 from lexiflow_core.llm.prompts import render_prompt
 from lexiflow_core.llm.protocol import LLMProvider
 from lexiflow_core.simplify.new_words import filter_suggestions
@@ -147,13 +148,18 @@ def handle_simplify(
         "simplify",
         target_level=target_level.value,
         native_language=record.native_language,
+        native_language_label=prompt_language_label(record.native_language),
         target_language=record.target_language,
+        target_language_label=prompt_language_label(record.target_language),
         vocabulary_words=_format_vocabulary_words(prompt_words),
         source_markdown=source_markdown,
     )
     try:
         raw_output = llm.complete(prompt, json_schema=simplify_json_schema())
-        parsed = parse_simplify_output(raw_output)
+        parsed = parse_simplify_output(
+            raw_output,
+            language_code=record.target_language,
+        )
     except SimplifyOutputError as exc:
         job_service.fail(job.id, str(exc))
         return
@@ -174,6 +180,10 @@ def handle_simplify(
         else VocabularyStore(data_root, record.target_language)
     )
     existing = {entry.lemma for entry in vocab.list_for_simplify()}
-    filtered = filter_suggestions(parsed.new_words, existing_lemmas=existing)
+    filtered = filter_suggestions(
+        parsed.new_words,
+        existing_lemmas=existing,
+        language_code=record.target_language,
+    )
     save_suggestions(folder, variant_name, filtered)
     job_service.complete(job.id, {"variant": variant_name, "level": target_level.value})

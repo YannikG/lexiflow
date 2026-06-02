@@ -58,6 +58,7 @@ def run_worker_loop(
                 JobType.TRANSLATE,
                 JobType.EMBED,
                 JobType.SIMPLIFY,
+                JobType.LEMMA,
             ):
                 process_job(
                     job,

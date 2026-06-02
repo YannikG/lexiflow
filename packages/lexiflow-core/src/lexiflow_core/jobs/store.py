@@ -230,6 +230,42 @@ class JobStore:
             raise JobNotFoundError(str(job_id))
         return record
 
+    def cancel_active(self, job_id: JobId) -> JobRecord | None:
+        """Cancel a pending job or mark a running job as cancelled."""
+        existing = self.get(job_id)
+        if existing is None:
+            raise JobNotFoundError(str(job_id))
+        if existing.status in {
+            JobStatus.COMPLETED,
+            JobStatus.FAILED,
+            JobStatus.CANCELLED,
+        }:
+            return existing
+        if existing.status == JobStatus.PENDING:
+            return self.cancel_pending(job_id)
+        now = _utc_now()
+        cursor = self._connection.execute(
+            """
+            UPDATE jobs
+            SET status = ?, updated_at = ?, completed_at = ?
+            WHERE id = ? AND status = ?
+            """,
+            (
+                JobStatus.CANCELLED.value,
+                _format_dt(now),
+                _format_dt(now),
+                str(job_id),
+                JobStatus.RUNNING.value,
+            ),
+        )
+        if cursor.rowcount != 1:
+            raise JobStateError(f"job {job_id} is not running")
+        self._connection.commit()
+        record = self.get(job_id)
+        if record is None:
+            raise JobNotFoundError(str(job_id))
+        return record
+
     def retry_failed(self, job_id: JobId) -> JobRecord:
         now = _utc_now()
         cursor = self._connection.execute(
