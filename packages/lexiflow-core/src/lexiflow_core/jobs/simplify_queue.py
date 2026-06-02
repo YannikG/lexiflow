@@ -20,9 +20,10 @@ def cancel_simplify_jobs(
     for job in job_service.list_jobs(limit=200):
         if job.job_type != JobType.SIMPLIFY:
             continue
-        if job.payload.get("text_id") != text_key:
+        payload = job.payload or {}
+        if payload.get("text_id") != text_key:
             continue
-        if job.payload.get("level") != target_level:
+        if payload.get("level") != target_level:
             continue
         if job.status not in (JobStatus.PENDING, JobStatus.RUNNING):
             continue

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -41,16 +42,9 @@ def remove_simplified_variant_metadata(
         raise SimplifiedVariantError(f"not a simplified variant: {variant_name!r}")
     metadata = load_text_metadata(meta_path(text_folder))
     variants = tuple(v for v in metadata.variants if v != variant_name)
-    return TextMetadata(
-        id=metadata.id,
-        title=metadata.title,
-        group=metadata.group,
-        native_language=metadata.native_language,
-        target_language=metadata.target_language,
+    return replace(
+        metadata,
         variants=variants,
-        source_url=metadata.source_url,
-        content_fingerprint=metadata.content_fingerprint,
-        created_at=metadata.created_at,
         updated_at=datetime.now(UTC),
     )
 

@@ -14,7 +14,8 @@ from lexiflow_core.vocabulary.lemma_resolution import (
 
 
 def _iso_from_payload(job: JobRecord) -> str:
-    iso = job.payload.get("iso")
+    payload = job.payload or {}
+    iso = payload.get("iso")
     if not isinstance(iso, str) or not iso.strip():
         raise ValueError(f"job {job.id} is missing iso")
     return iso.strip()

@@ -26,7 +26,10 @@ class GitHubReleaseClient:
     def fetch_latest(self, repo: str) -> ReleaseInfo | None:
         request = Request(
             f"https://api.github.com/repos/{repo}/releases/latest",
-            headers={"Accept": "application/vnd.github+json"},
+            headers={
+                "Accept": "application/vnd.github+json",
+                "User-Agent": "LexiFlow",
+            },
         )
         try:
             with urlopen(request, timeout=5) as response:

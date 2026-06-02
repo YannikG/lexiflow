@@ -20,11 +20,14 @@ def reset_local_app(
 ) -> Settings:
     """Delete library data under data_root and reset global settings."""
     if data_root.is_dir():
-        for child in data_root.iterdir():
-            if child.is_dir():
-                shutil.rmtree(child)
-            else:
-                child.unlink()
+        try:
+            for child in data_root.iterdir():
+                if child.is_dir():
+                    shutil.rmtree(child)
+                else:
+                    child.unlink()
+        except OSError as exc:
+            raise AppResetError(f"failed to delete data under {data_root}") from exc
     cleared = Settings(data_root=data_root, onboarding_complete=False)
     try:
         settings_store.save(cleared)

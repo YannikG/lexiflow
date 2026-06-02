@@ -163,10 +163,18 @@ class SettingsDialog(QDialog):
         typed, ok = QInputDialog.getText(self, "Reset app", "Type RESET to confirm:")
         if not ok or typed.strip() != "RESET":
             return
-        self.saved_settings = reset_local_app(
-            data_root=self._data_root,
-            settings_store=self._settings_store,
-        )
+        try:
+            self.saved_settings = reset_local_app(
+                data_root=self._data_root,
+                settings_store=self._settings_store,
+            )
+        except Exception as exc:
+            QMessageBox.critical(
+                self,
+                "Reset failed",
+                f"Failed to reset application: {exc}",
+            )
+            return
         self.accept()
 
     def _save(self) -> None:

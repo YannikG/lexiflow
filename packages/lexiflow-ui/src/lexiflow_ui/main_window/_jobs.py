@@ -63,7 +63,8 @@ class MainWindowJobsMixin:
         refresh_sidebar = False
         focus_simplified_level: CEFRLevel | None = None
         for job in job_service.list_jobs():
-            payload_text_id = job.payload.get("text_id")
+            payload = job.payload or {}
+            payload_text_id = payload.get("text_id")
             if payload_text_id != open_text:
                 continue
             if job.id in self._seen_completed_job_ids:
@@ -90,7 +91,7 @@ class MainWindowJobsMixin:
             if job.job_type in (JobType.TRANSLATE, JobType.SIMPLIFY):
                 refresh_sidebar = True
             if job.job_type == JobType.SIMPLIFY:
-                level_raw = job.payload.get("level")
+                level_raw = payload.get("level")
                 if isinstance(level_raw, str):
                     try:
                         focus_simplified_level = CEFRLevel(level_raw.strip().upper())

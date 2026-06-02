@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 from lexiflow_core.config.settings import Settings
@@ -24,18 +25,7 @@ def switch_active_target(
     store = LanguageStore(data_root)
     if not store.has_target(target_language):
         raise SwitchTargetLanguageError(f"target language not found: {target_language}")
-    updated = Settings(
-        data_root=settings.data_root,
-        native_language=settings.native_language,
-        active_target_language=target_language,
-        onboarding_complete=settings.onboarding_complete,
-        ollama_url=settings.ollama_url,
-        llama_server_url=settings.llama_server_url,
-        huggingface_token=settings.huggingface_token,
-        llm_enabled=settings.llm_enabled,
-        theme=settings.theme,
-        reader_font_size=settings.reader_font_size,
-    )
+    updated = replace(settings, active_target_language=target_language)
     try:
         settings_store.save(updated)
     except Exception as exc:

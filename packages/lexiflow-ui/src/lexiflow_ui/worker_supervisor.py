@@ -7,7 +7,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Protocol
 
-from lexiflow_core.jobs.models import JobStatus
 from lexiflow_core.jobs.service import JobService
 from PySide6.QtCore import QObject, QProcess, QTimer, Signal
 
@@ -119,10 +118,7 @@ class WorkerSupervisor(QObject):
         self._set_state(WorkerState.OFFLINE)
 
     def _queue_has_active_work(self) -> bool:
-        return any(
-            job.status in (JobStatus.PENDING, JobStatus.RUNNING)
-            for job in JobService(self._data_root).list_jobs()
-        )
+        return bool(JobService(self._data_root).list_queue_jobs(limit=1))
 
     def _on_idle_timeout(self) -> None:
         if not self.is_process_running():
@@ -130,7 +126,7 @@ class WorkerSupervisor(QObject):
         if self._queue_has_active_work():
             self.note_queue_activity()
             return
-        self.shutdown(wait=True)
+        self.shutdown(wait=False)
 
     def _on_process_finished(self, exit_code: int = 0, exit_status=None) -> None:
         self._idle_timer.stop()

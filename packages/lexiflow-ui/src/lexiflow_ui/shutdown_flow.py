@@ -18,7 +18,7 @@ def confirm_application_quit(
     llama_supervisor: LlamaServerSupervisor | None,
 ) -> bool:
     """Return True when the app may exit. Shut down supervisors when allowed."""
-    jobs = job_service.list_jobs()
+    jobs = job_service.list_queue_jobs(limit=100)
     running = sum(1 for job in jobs if job.status == JobStatus.RUNNING)
     pending = sum(1 for job in jobs if job.status == JobStatus.PENDING)
     if running == 0 and pending == 0:
