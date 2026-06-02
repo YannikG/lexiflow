@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import pytest
-from PySide6.QtCore import QPoint
-from PySide6.QtGui import QAction
+from lexiflow_ui.widgets.vocabulary_browse_table import VocabularyBrowseTable
 from PySide6.QtWidgets import QTableWidget, QTextBrowser
 
 
@@ -21,43 +19,28 @@ def select_word_in_reader(window, text: str = "Cuerpo") -> str:
     return text
 
 
-def browse_row_position(window, row: int) -> QPoint:
+def browse_table(window) -> VocabularyBrowseTable:
+    table = window.findChild(VocabularyBrowseTable, "vocabulary_browse_table")
+    assert table is not None
+    return table
+
+
+def browse_grid(window) -> QTableWidget:
     grid = window.findChild(QTableWidget, "vocabulary_browse_grid")
     assert grid is not None
-    index = grid.model().index(row, 0)
-    center = grid.visualRect(index).center()
-    return QPoint(center)
-
-
-def install_browse_context_menu_choice(
-    monkeypatch: pytest.MonkeyPatch,
-    action_text: str,
-) -> None:
-    class _Menu:
-        def __init__(self, *args, **kwargs) -> None:
-            self._actions: dict[str, QAction] = {}
-
-        def addAction(self, text: str) -> QAction:
-            action = QAction(text)
-            self._actions[text] = action
-            return action
-
-        def exec(self, *args, **kwargs) -> QAction | None:
-            return self._actions.get(action_text)
-
-    monkeypatch.setattr(
-        "lexiflow_ui.widgets.vocabulary_browse_table.QMenu",
-        _Menu,
-    )
+    return grid
 
 
 def trigger_browse_context_menu(
     window,
     *,
     row: int,
-    monkeypatch: pytest.MonkeyPatch,
     action_text: str,
 ) -> None:
-    install_browse_context_menu_choice(monkeypatch, action_text)
-    browse_table = window._vocabulary._browse_table
-    browse_table._show_context_menu(browse_row_position(window, row))
+    table = browse_table(window)
+    if action_text == "Edit word":
+        table.request_edit(row)
+    elif action_text == "Delete":
+        table.request_delete(row)
+    else:
+        raise ValueError(f"unsupported browse context action: {action_text}")

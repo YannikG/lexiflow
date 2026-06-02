@@ -50,6 +50,18 @@ class VocabularyBrowseTable(QWidget):
     delete_requested = Signal(str)
     difficulty_changed = Signal(str, DifficultyRating)
 
+    def request_edit(self, row: int) -> None:
+        """Request editing the entry at *row* (same as context menu Edit word)."""
+        if row < 0 or row >= len(self._entries):
+            return
+        self.edit_requested.emit(self._entries[row].lemma)
+
+    def request_delete(self, row: int) -> None:
+        """Request deleting the entry at *row* (same as context menu Delete)."""
+        if row < 0 or row >= len(self._entries):
+            return
+        self.delete_requested.emit(self._entries[row].lemma)
+
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("vocabulary_browse_table")

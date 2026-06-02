@@ -119,9 +119,7 @@ def test_browse_difficulty_survives_table_refresh(qtbot, tmp_path: Path) -> None
     assert entry.difficulty_rating == DifficultyRating.WELL
 
 
-def test_edit_via_context_menu_updates_store(
-    qtbot, tmp_path: Path, monkeypatch
-) -> None:
+def test_edit_via_context_menu_updates_store(qtbot, tmp_path: Path) -> None:
     data_root = tmp_path / "LexiFlow"
     _seed_language(data_root)
     store = VocabularyStore(data_root, "es")
@@ -149,7 +147,6 @@ def test_edit_via_context_menu_updates_store(
         trigger_browse_context_menu(
             window,
             row=0,
-            monkeypatch=monkeypatch,
             action_text="Edit word",
         )
 
