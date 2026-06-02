@@ -6,8 +6,8 @@ from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import (
     QDialog,
     QPushButton,
+    QTabBar,
     QTableWidget,
-    QTabWidget,
 )
 
 
@@ -17,8 +17,8 @@ def jobs_panel_table(dialog: QDialog) -> QTableWidget:
     return table
 
 
-def jobs_panel_tabs(dialog: QDialog) -> QTabWidget:
-    tabs = dialog.findChild(QTabWidget, "jobs_panel_tabs")
+def jobs_panel_tabs(dialog: QDialog) -> QTabBar:
+    tabs = dialog.findChild(QTabBar, "jobs_panel_tabs")
     assert tabs is not None
     return tabs
 

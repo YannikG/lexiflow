@@ -4,9 +4,6 @@ from __future__ import annotations
 
 import pytest
 from lexiflow_core.config.settings import Settings
-from lexiflow_core.library.library_coordinator import LibraryCoordinator
-from lexiflow_core.library.models import CreateTextRequest
-from lexiflow_core.library.text_repository import TextRepository
 from lexiflow_ui.main_window import MainWindow
 from lexiflow_ui.worker_supervisor import WorkerSupervisor
 from PySide6.QtGui import QKeySequence
@@ -71,7 +68,7 @@ def test_add_text_action_opens_dialog(
         return None
 
     monkeypatch.setattr(
-        "lexiflow_ui.main_window.open_add_text_dialog",
+        "lexiflow_ui.main_window._texts.open_add_text_dialog",
         fake_open,
     )
     supervisor = WorkerSupervisor(data_root=tmp_path)
@@ -90,6 +87,10 @@ def test_add_text_action_opens_dialog(
 
 
 def test_texts_ui_updates_after_text_exists(qtbot, tmp_path) -> None:
+    from lexiflow_core.library.library_coordinator import LibraryCoordinator
+    from lexiflow_core.library.models import CreateTextRequest
+    from lexiflow_core.library.text_repository import TextRepository
+
     data_root = tmp_path / "LexiFlow"
     coordinator, index = LibraryCoordinator.open(data_root)
     del coordinator

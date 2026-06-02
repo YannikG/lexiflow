@@ -158,8 +158,10 @@ def test_jobs_panel_poll_updates_running_status(qtbot, tmp_path: Path) -> None:
     claimed = jobs.claim_next()
     assert claimed is not None
     qtbot.waitUntil(
-        lambda: table.item(0, 1) is not None
-        and table.item(0, 1).text() == JobStatus.RUNNING.value,
+        lambda: (
+            table.item(0, 1) is not None
+            and table.item(0, 1).text() == JobStatus.RUNNING.value
+        ),
         timeout=3000,
     )
 

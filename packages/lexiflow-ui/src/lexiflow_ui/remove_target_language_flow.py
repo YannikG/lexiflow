@@ -25,7 +25,7 @@ def offer_remove_target_language(
     """Offer export, confirm removal, and wipe the target language folder."""
     export_first = QMessageBox.question(
         parent,
-        "Remove target language",
+        "Delete language",
         (
             f"Export vocabulary for {language_code} before removing the language? "
             "All texts and data for this language will be deleted."
@@ -53,7 +53,7 @@ def offer_remove_target_language(
         )
     confirm = QMessageBox.warning(
         parent,
-        "Remove target language",
+        "Delete language",
         (
             f"This permanently deletes all texts, vocabulary, and metadata for "
             f"{language_code}. This cannot be undone."
@@ -80,7 +80,7 @@ def offer_remove_target_language(
     except (RemoveTargetLanguageError, OSError) as exc:
         QMessageBox.warning(
             parent,
-            "Remove target language",
+            "Delete language",
             f"Failed to remove target language: {exc}",
         )
         return None

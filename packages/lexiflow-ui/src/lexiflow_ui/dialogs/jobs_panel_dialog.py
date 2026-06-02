@@ -14,9 +14,9 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QPushButton,
+    QTabBar,
     QTableWidget,
     QTableWidgetItem,
-    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -53,11 +53,11 @@ class JobsPanelDialog(QDialog):
 
         layout = QVBoxLayout(self)
 
-        self._tabs = QTabWidget(self)
+        self._tabs = QTabBar(self)
         self._tabs.setObjectName("jobs_panel_tabs")
-        self._tabs.addTab(QWidget(), "Running / pending")
-        self._tabs.addTab(QWidget(), "Success")
-        self._tabs.addTab(QWidget(), "Failed")
+        self._tabs.addTab("Running / pending")
+        self._tabs.addTab("Success")
+        self._tabs.addTab("Failed")
         layout.addWidget(self._tabs)
 
         self._table = QTableWidget(self)
@@ -65,16 +65,14 @@ class JobsPanelDialog(QDialog):
         self._table.setColumnCount(len(JOB_TABLE_HEADERS))
         self._table.setHorizontalHeaderLabels(list(JOB_TABLE_HEADERS))
         header = self._table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
-        for column in (2, 3, 4, 5):
-            header.setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
+        for column in range(len(JOB_TABLE_HEADERS)):
+            header.setSectionResizeMode(column, QHeaderView.ResizeMode.Stretch)
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self._table.verticalHeader().setVisible(False)
         self._table.itemSelectionChanged.connect(self._on_selection_changed)
         self._table.cellDoubleClicked.connect(self._on_cell_double_clicked)
-        layout.addWidget(self._table)
+        layout.addWidget(self._table, stretch=1)
 
         button_row = QHBoxLayout()
         button_row.addStretch(1)

@@ -10,7 +10,106 @@ from lexiflow_ui.library_options_flow import rebuild_library_index
 from lexiflow_ui.main_window import MainWindow
 from lexiflow_ui.worker_supervisor import WorkerSupervisor
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QPushButton, QTabWidget
+from PySide6.QtWidgets import QMenu, QPushButton, QTabWidget
+
+
+def _menu_action_labels(menu: QMenu) -> list[str]:
+    return [
+        action.text()
+        for action in menu.actions()
+        if action.text() and not action.isSeparator()
+    ]
+
+
+def test_library_and_options_menu_layout(qtbot, tmp_path) -> None:
+    supervisor = WorkerSupervisor(data_root=tmp_path)
+    window = MainWindow(
+        supervisor=supervisor,
+        settings=Settings(active_target_language="es", native_language="en"),
+    )
+    qtbot.addWidget(window)
+
+    top_level: list[str] = []
+    library_labels: list[str] = []
+    options_labels: list[str] = []
+    for action in window.menuBar().actions():
+        menu = action.menu()
+        if menu is None:
+            continue
+        label = action.text().replace("&", "")
+        top_level.append(label)
+        labels = _menu_action_labels(menu)
+        if label == "Library":
+            library_labels = labels
+        elif label == "Options":
+            options_labels = labels
+
+    assert top_level == ["Texts", "Library", "Settings", "Options"]
+    assert library_labels == ["Switch language…", "Trash…"]
+    assert options_labels == [
+        "Export library…",
+        "Restore library to new folder…",
+        "Replace current library…",
+        "Rebuild library index",
+        "Export vocabulary…",
+        "Import vocabulary…",
+        "Delete language…",
+    ]
+
+
+def test_delete_language_opens_switch_language_dialog(
+    qtbot, tmp_path, monkeypatch
+) -> None:
+    opened: list[bool] = []
+
+    def fake_remove(*_args: object, **_kwargs: object) -> Settings:
+        return Settings(active_target_language=None, native_language="en")
+
+    supervisor = WorkerSupervisor(data_root=tmp_path)
+    window = MainWindow(
+        supervisor=supervisor,
+        settings=Settings(active_target_language="es", native_language="en"),
+    )
+    qtbot.addWidget(window)
+    monkeypatch.setattr(
+        "lexiflow_ui.main_window._shell_dialogs.offer_remove_target_language",
+        fake_remove,
+    )
+    monkeypatch.setattr(
+        window,
+        "_open_switch_language_dialog",
+        lambda: opened.append(True),
+    )
+
+    window._remove_target_language()
+
+    assert opened == [True]
+
+
+def test_delete_language_does_not_open_switch_dialog_when_cancelled(
+    qtbot, tmp_path, monkeypatch
+) -> None:
+    opened: list[bool] = []
+
+    supervisor = WorkerSupervisor(data_root=tmp_path)
+    window = MainWindow(
+        supervisor=supervisor,
+        settings=Settings(active_target_language="es", native_language="en"),
+    )
+    qtbot.addWidget(window)
+    monkeypatch.setattr(
+        "lexiflow_ui.main_window._shell_dialogs.offer_remove_target_language",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        window,
+        "_open_switch_language_dialog",
+        lambda: opened.append(True),
+    )
+
+    window._remove_target_language()
+
+    assert opened == []
 
 
 def test_rebuild_library_index_from_options(qtbot, tmp_path, monkeypatch) -> None:
@@ -109,7 +208,10 @@ def test_library_menu_opens_trash_dialog(qtbot, tmp_path, monkeypatch) -> None:
     def fake_open(_parent, **_kwargs: object) -> None:
         opened.append(True)
 
-    monkeypatch.setattr("lexiflow_ui.main_window.open_trash_dialog", fake_open)
+    monkeypatch.setattr(
+        "lexiflow_ui.main_window._shell_dialogs.open_trash_dialog",
+        fake_open,
+    )
     supervisor = WorkerSupervisor(data_root=tmp_path)
     window = MainWindow(
         supervisor=supervisor,
