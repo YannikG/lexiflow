@@ -13,7 +13,13 @@ from lexiflow_ui.lemma_suggestions import (
     LemmaSuggestions,
 )
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QDialogButtonBox, QLineEdit, QProgressBar, QPushButton, QTextEdit
+from PySide6.QtWidgets import (
+    QDialogButtonBox,
+    QLineEdit,
+    QProgressBar,
+    QPushButton,
+    QTextEdit,
+)
 
 
 def _immediate_async_fill(
