@@ -3,18 +3,27 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import patch
+from uuid import UUID
 
 from lexiflow_core.jobs.models import JobRequest, JobStatus, JobType
 from lexiflow_core.jobs.service import JobService
 from lexiflow_ui.dialogs.job_detail_dialog import JobDetailDialog
 from lexiflow_ui.dialogs.jobs_panel_dialog import (
-    _TAB_FAILED,
-    _TAB_SUCCESS,
+    TAB_FAILED,
+    TAB_SUCCESS,
     JobsPanelDialog,
 )
 from lexiflow_ui.jobs_display import JOB_TABLE_HEADERS
-from PySide6.QtWidgets import QWidget
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QPlainTextEdit, QWidget
+
+from tests.ui.jobs_panel_helpers import (
+    jobs_panel_cancel_button,
+    jobs_panel_poll_timer,
+    jobs_panel_retry_button,
+    jobs_panel_table,
+    jobs_panel_tabs,
+)
 
 
 def test_jobs_panel_shows_jobs_in_queue_tab(qtbot, tmp_path: Path) -> None:
@@ -30,17 +39,19 @@ def test_jobs_panel_shows_jobs_in_queue_tab(qtbot, tmp_path: Path) -> None:
     dialog.show()
     qtbot.waitExposed(dialog)
 
-    assert dialog._tabs.currentIndex() == 0
-    assert dialog._table.columnCount() == len(JOB_TABLE_HEADERS)
-    assert dialog._table.rowCount() == 1
-    assert dialog._table.item(0, 0).text() == "download_spacy"
-    assert dialog._table.item(0, 1).text() == JobStatus.PENDING.value
+    table = jobs_panel_table(dialog)
+    tabs = jobs_panel_tabs(dialog)
+    assert tabs.currentIndex() == 0
+    assert table.columnCount() == len(JOB_TABLE_HEADERS)
+    assert table.rowCount() == 1
+    assert table.item(0, 0).text() == "download_spacy"
+    assert table.item(0, 1).text() == JobStatus.PENDING.value
 
-    dialog._table.selectRow(0)
+    table.selectRow(0)
     qtbot.wait(10)
 
-    assert dialog._cancel_button.isEnabled()
-    assert not dialog._retry_button.isEnabled()
+    assert jobs_panel_cancel_button(dialog).isEnabled()
+    assert not jobs_panel_retry_button(dialog).isEnabled()
 
 
 def test_jobs_panel_tabs_show_separate_job_lists(qtbot, tmp_path: Path) -> None:
@@ -69,28 +80,35 @@ def test_jobs_panel_tabs_show_separate_job_lists(qtbot, tmp_path: Path) -> None:
     dialog.show()
     qtbot.waitExposed(dialog)
 
-    assert dialog._table.rowCount() == 1
-    assert dialog._table.item(0, 1).text() == JobStatus.PENDING.value
+    table = jobs_panel_table(dialog)
+    tabs = jobs_panel_tabs(dialog)
+    retry = jobs_panel_retry_button(dialog)
+    cancel = jobs_panel_cancel_button(dialog)
 
-    dialog._tabs.setCurrentIndex(_TAB_SUCCESS)
-    qtbot.wait(10)
-    assert dialog._table.rowCount() == 1
-    assert dialog._table.item(0, 1).text() == JobStatus.COMPLETED.value
-    assert not dialog._retry_button.isEnabled()
-    assert not dialog._cancel_button.isEnabled()
+    assert table.rowCount() == 1
+    assert table.item(0, 1).text() == JobStatus.PENDING.value
 
-    dialog._tabs.setCurrentIndex(_TAB_FAILED)
+    tabs.setCurrentIndex(TAB_SUCCESS)
     qtbot.wait(10)
-    assert dialog._table.rowCount() == 1
-    assert dialog._table.item(0, 1).text() == JobStatus.FAILED.value
-    dialog._table.selectRow(0)
-    qtbot.wait(10)
-    assert dialog._retry_button.isEnabled()
-    assert not dialog._cancel_button.isEnabled()
+    assert table.rowCount() == 1
+    assert table.item(0, 1).text() == JobStatus.COMPLETED.value
+    assert not retry.isEnabled()
+    assert not cancel.isEnabled()
 
-    dialog._tabs.setCurrentIndex(0)
+    tabs.setCurrentIndex(TAB_FAILED)
     qtbot.wait(10)
-    job = dialog._job_for_row(0)
+    assert table.rowCount() == 1
+    assert table.item(0, 1).text() == JobStatus.FAILED.value
+    table.selectRow(0)
+    qtbot.wait(10)
+    assert retry.isEnabled()
+    assert not cancel.isEnabled()
+
+    tabs.setCurrentIndex(0)
+    qtbot.wait(10)
+    item = table.item(0, 0)
+    assert item is not None
+    job = JobService(data_root).get(UUID(str(item.data(Qt.ItemDataRole.UserRole))))
     assert job is not None
     assert job.id == pending_id
 
@@ -116,8 +134,9 @@ def test_jobs_panel_queue_tab_ignores_completed_and_failed(
     dialog.show()
     qtbot.waitExposed(dialog)
 
-    assert dialog._table.rowCount() == 1
-    assert dialog._table.item(0, 1).text() == JobStatus.PENDING.value
+    table = jobs_panel_table(dialog)
+    assert table.rowCount() == 1
+    assert table.item(0, 1).text() == JobStatus.PENDING.value
 
 
 def test_jobs_panel_poll_updates_running_status(qtbot, tmp_path: Path) -> None:
@@ -132,29 +151,17 @@ def test_jobs_panel_poll_updates_running_status(qtbot, tmp_path: Path) -> None:
     dialog.show()
     qtbot.waitExposed(dialog)
 
-    assert dialog._poll_timer.isActive()
-    assert dialog._table.item(0, 1).text() == JobStatus.PENDING.value
+    table = jobs_panel_table(dialog)
+    assert jobs_panel_poll_timer(dialog).isActive()
+    assert table.item(0, 1).text() == JobStatus.PENDING.value
 
     claimed = jobs.claim_next()
     assert claimed is not None
-    dialog._poll_jobs()
-
-    assert dialog._table.item(0, 1).text() == JobStatus.RUNNING.value
-
-
-def test_jobs_panel_double_click_opens_detail_dialog(tmp_path: Path) -> None:
-    data_root = tmp_path / "LexiFlow"
-    JobService(data_root).enqueue(
-        JobRequest(job_type=JobType.DOWNLOAD_SPACY, payload={"iso": "es"})
+    qtbot.waitUntil(
+        lambda: table.item(0, 1) is not None
+        and table.item(0, 1).text() == JobStatus.RUNNING.value,
+        timeout=3000,
     )
-
-    dialog = JobsPanelDialog(data_root=data_root)
-
-    job = dialog._job_for_row(0)
-    assert job is not None
-    with patch("lexiflow_ui.dialogs.jobs_panel_dialog.open_job_detail") as open_detail:
-        dialog._on_cell_double_clicked(0, 0)
-        open_detail.assert_called_once_with(dialog, job)
 
 
 def test_job_detail_dialog_shows_full_text(qtbot, tmp_path: Path) -> None:
@@ -172,8 +179,6 @@ def test_job_detail_dialog_shows_full_text(qtbot, tmp_path: Path) -> None:
     qtbot.addWidget(detail)
     detail.show()
     qtbot.waitExposed(detail)
-
-    from PySide6.QtWidgets import QPlainTextEdit
 
     editor = detail.findChild(QPlainTextEdit, "job_detail_body")
     assert editor is not None

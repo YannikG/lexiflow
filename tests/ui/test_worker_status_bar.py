@@ -9,7 +9,7 @@ from lexiflow_core.jobs.service import JobService
 from lexiflow_ui.widgets.worker_status import WorkerStatusBar
 
 
-def test_pending_count_excludes_completed_jobs(tmp_path: Path) -> None:
+def test_queued_count_excludes_completed_and_failed(tmp_path: Path) -> None:
     jobs = JobService(tmp_path)
     completed_id = jobs.enqueue(
         JobRequest(job_type=JobType.CLEANUP, payload={"text_id": "a"})
@@ -23,4 +23,4 @@ def test_pending_count_excludes_completed_jobs(tmp_path: Path) -> None:
     bar = WorkerStatusBar.__new__(WorkerStatusBar)
     bar._data_root = tmp_path
 
-    assert bar._pending_count() == 2
+    assert bar._queued_count() == 2

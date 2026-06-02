@@ -49,12 +49,7 @@ def confirm_application_quit(
     choice = box.exec()
 
     if choice == int(wait_button):
-        _shutdown_supervisors(
-            worker_supervisor=worker_supervisor,
-            llama_supervisor=llama_supervisor,
-            wait=True,
-        )
-        return True
+        return False
     if choice == int(quit_button):
         job_service.recover_on_startup()
         _shutdown_supervisors(

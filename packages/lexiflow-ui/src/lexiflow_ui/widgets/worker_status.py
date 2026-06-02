@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 
-from lexiflow_core.jobs.models import JobStatus
 from lexiflow_core.jobs.service import JobService
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QMouseEvent
@@ -56,19 +55,15 @@ class WorkerStatusBar(QStatusBar):
 
     def refresh(self) -> None:
         base = format_background_status(self._supervisor, self._llama_supervisor)
-        pending = self._pending_count()
-        if pending > 0 and self._on_open_jobs is not None:
-            suffix = "job" if pending == 1 else "jobs"
-            self._set_message(f"{base} — {pending} pending {suffix} (click for panel)")
+        queued = self._queued_count()
+        if queued > 0 and self._on_open_jobs is not None:
+            suffix = "job" if queued == 1 else "jobs"
+            self._set_message(f"{base} — {queued} queued {suffix} (click for panel)")
             return
         self._set_message(base)
 
-    def _pending_count(self) -> int:
-        return sum(
-            1
-            for job in JobService(self._data_root).list_jobs()
-            if job.status == JobStatus.PENDING
-        )
+    def _queued_count(self) -> int:
+        return len(JobService(self._data_root).list_queue_jobs(limit=50))
 
     def _panel_has_jobs(self) -> bool:
         return any(

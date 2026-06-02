@@ -24,9 +24,9 @@ from PySide6.QtWidgets import (
 from lexiflow_ui.dialogs.job_detail_dialog import open_job_detail
 from lexiflow_ui.jobs_display import JOB_TABLE_HEADERS, job_table_cell_texts
 
-_TAB_QUEUE = 0
-_TAB_SUCCESS = 1
-_TAB_FAILED = 2
+TAB_QUEUE = 0
+TAB_SUCCESS = 1
+TAB_FAILED = 2
 
 _POLL_INTERVAL_MS = 1000
 
@@ -95,6 +95,7 @@ class JobsPanelDialog(QDialog):
         self._tabs.currentChanged.connect(self._on_tab_changed)
 
         self._poll_timer = QTimer(self)
+        self._poll_timer.setObjectName("jobs_panel_poll_timer")
         self._poll_timer.setInterval(_POLL_INTERVAL_MS)
         self._poll_timer.timeout.connect(self._poll_jobs)
 
@@ -109,9 +110,9 @@ class JobsPanelDialog(QDialog):
         self._refresh_table()
 
     def _jobs_for_tab(self, tab_index: int) -> list[JobRecord]:
-        if tab_index == _TAB_QUEUE:
+        if tab_index == TAB_QUEUE:
             return self._job_service.list_queue_jobs(limit=50)
-        if tab_index == _TAB_SUCCESS:
+        if tab_index == TAB_SUCCESS:
             return self._job_service.list_completed_jobs()
         return self._job_service.list_failed_jobs(limit=20)
 
@@ -171,10 +172,10 @@ class JobsPanelDialog(QDialog):
             return
         self._selected_id = job.id
         self._retry_button.setEnabled(
-            self._tabs.currentIndex() == _TAB_FAILED and job.status == JobStatus.FAILED
+            self._tabs.currentIndex() == TAB_FAILED and job.status == JobStatus.FAILED
         )
         self._cancel_button.setEnabled(
-            self._tabs.currentIndex() == _TAB_QUEUE
+            self._tabs.currentIndex() == TAB_QUEUE
             and job.status in (JobStatus.PENDING, JobStatus.RUNNING)
         )
 
@@ -188,7 +189,7 @@ class JobsPanelDialog(QDialog):
         if self._selected_id is None:
             return
         self._job_service.retry(self._selected_id)
-        self._tabs.setCurrentIndex(_TAB_QUEUE)
+        self._tabs.setCurrentIndex(TAB_QUEUE)
         self._refresh_table()
 
     def _cancel_selected(self) -> None:
