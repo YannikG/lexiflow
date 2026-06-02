@@ -45,15 +45,17 @@ def resolve_lemma_suggestions(
     via_llm_only: bool = False,
 ) -> LemmaSuggestions:
     """Resolve lemma fields via spaCy or a background lemma job."""
+    spacy_result = None
     if not via_llm_only:
         spacy_result = resolve_lemma_with_spacy(data_root, language_code, surface_form)
-        if spacy_result is not None and spacy_result.translation.strip():
-            return LemmaSuggestions(
-                lemma=spacy_result.lemma,
-                translation=spacy_result.translation,
-                explanation=spacy_result.explanation,
-                word_category=spacy_result.word_category,
-            )
+        if spacy_result is not None and spacy_result.lemma.strip():
+            if spacy_result.translation.strip():
+                return LemmaSuggestions(
+                    lemma=spacy_result.lemma,
+                    translation=spacy_result.translation,
+                    explanation=spacy_result.explanation,
+                    word_category=spacy_result.word_category,
+                )
     job_service = JobService(data_root)
     enqueue_lemma_job(
         job_service,
@@ -67,16 +69,25 @@ def resolve_lemma_suggestions(
     completed = wait_for_lemma_result(data_root, surface_form=surface_form)
     if completed is None:
         return LemmaSuggestions(
-            lemma="",
+            lemma=spacy_result.lemma if spacy_result is not None else "",
             translation="",
-            explanation="",
-            word_category=WordCategory.OTHER,
+            explanation=spacy_result.explanation if spacy_result is not None else "",
+            word_category=(
+                spacy_result.word_category
+                if spacy_result is not None
+                else WordCategory.OTHER
+            ),
         )
+    llm_lemma = str(completed.get("lemma", "")).strip()
+    llm_category = parse_word_category(completed.get("category"))
+    word_category = llm_category
+    if completed.get("category") is None and spacy_result is not None:
+        word_category = spacy_result.word_category
     return LemmaSuggestions(
-        lemma=str(completed.get("lemma", "")),
+        lemma=llm_lemma or (spacy_result.lemma if spacy_result is not None else ""),
         translation=str(completed.get("translation", "")),
         explanation=str(completed.get("explanation", "")),
-        word_category=parse_word_category(completed.get("category")),
+        word_category=word_category,
     )
 
 

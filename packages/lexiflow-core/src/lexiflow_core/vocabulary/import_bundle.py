@@ -12,6 +12,7 @@ from pathlib import Path
 from lexiflow_core.config.paths import vocabulary_db_path
 from lexiflow_core.db.connection import connect_sqlite
 from lexiflow_core.vectors.setup import ensure_vocabulary_db
+from lexiflow_core.vectors.sqlite_vec import load_sqlite_vec
 from lexiflow_core.vocabulary.export import EXPORT_FORMAT, EXPORT_VERSION
 
 
@@ -126,7 +127,9 @@ def _merge_databases(
     overwrite: bool,
 ) -> VocabularyImportResult:
     source = connect_sqlite(source_db)
+    load_sqlite_vec(source)
     target = connect_sqlite(target_db)
+    load_sqlite_vec(target)
     imported = 0
     skipped = 0
     overwritten = 0
@@ -140,16 +143,16 @@ def _merge_databases(
             ORDER BY lemma
             """
         ).fetchall()
-        for row in rows:
-            lemma = str(row[0])
-            existing = target.execute(
-                "SELECT 1 FROM vocabulary_entries WHERE lemma = ?",
-                (lemma,),
-            ).fetchone()
-            if existing is not None and not overwrite:
-                skipped += 1
-                continue
-            with target:
+        with target:
+            for row in rows:
+                lemma = str(row[0])
+                existing = target.execute(
+                    "SELECT 1 FROM vocabulary_entries WHERE lemma = ?",
+                    (lemma,),
+                ).fetchone()
+                if existing is not None and not overwrite:
+                    skipped += 1
+                    continue
                 if existing is not None:
                     target.execute(
                         "DELETE FROM vocabulary_entries WHERE lemma = ?",

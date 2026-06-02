@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from enum import StrEnum
 from pathlib import Path
 from typing import Literal
@@ -57,4 +58,5 @@ def wait_for_lemma_result(
             return None
         if app is not None:
             app.processEvents()
+        time.sleep(0.1)
     return None

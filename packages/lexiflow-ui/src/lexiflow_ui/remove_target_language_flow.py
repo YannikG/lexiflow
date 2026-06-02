@@ -6,7 +6,10 @@ from pathlib import Path
 
 from lexiflow_core.config.settings import Settings
 from lexiflow_core.config.settings_store import SettingsStore
-from lexiflow_core.languages.remove_target import remove_target_language
+from lexiflow_core.languages.remove_target import (
+    RemoveTargetLanguageError,
+    remove_target_language,
+)
 from lexiflow_core.vocabulary.export import export_vocabulary_zip
 from PySide6.QtWidgets import QFileDialog, QInputDialog, QMessageBox, QWidget
 
@@ -41,12 +44,13 @@ def offer_remove_target_language(
             f"vocabulary-{language_code}.zip",
             "Zip archives (*.zip)",
         )
-        if path:
-            export_vocabulary_zip(
-                Path(path),
-                data_root=data_root,
-                language_code=language_code,
-            )
+        if not path:
+            return None
+        export_vocabulary_zip(
+            Path(path),
+            data_root=data_root,
+            language_code=language_code,
+        )
     confirm = QMessageBox.warning(
         parent,
         "Remove target language",
@@ -66,9 +70,17 @@ def offer_remove_target_language(
     )
     if not ok or typed.strip() != language_code:
         return None
-    return remove_target_language(
-        data_root,
-        language_code,
-        settings_store=settings_store,
-        settings=settings,
-    )
+    try:
+        return remove_target_language(
+            data_root,
+            language_code,
+            settings_store=settings_store,
+            settings=settings,
+        )
+    except (RemoveTargetLanguageError, OSError) as exc:
+        QMessageBox.warning(
+            parent,
+            "Remove target language",
+            f"Failed to remove target language: {exc}",
+        )
+        return None

@@ -120,3 +120,43 @@ def test_remove_target_exports_when_requested(
 
     assert updated is not None
     assert export_path.is_file()
+
+
+def test_remove_target_aborts_when_export_dialog_cancelled(
+    qtbot, tmp_path: Path, monkeypatch
+) -> None:
+    data_root = tmp_path / "LexiFlow"
+    LanguageStore(data_root).add_target("es", CEFRLevel.A2)
+    config_dir = tmp_path / "config"
+    settings_store = SettingsStore(config_dir)
+    settings = Settings(
+        data_root=data_root,
+        native_language="en",
+        active_target_language="es",
+        onboarding_complete=True,
+    )
+    settings_store.save(settings)
+
+    monkeypatch.setattr(
+        QMessageBox,
+        "question",
+        lambda *_args, **_kwargs: QMessageBox.StandardButton.Yes,
+    )
+    monkeypatch.setattr(
+        QFileDialog,
+        "getSaveFileName",
+        lambda *_args, **_kwargs: ("", "Zip archives (*.zip)"),
+    )
+
+    parent = QWidget()
+    qtbot.addWidget(parent)
+    updated = offer_remove_target_language(
+        parent,
+        data_root=data_root,
+        language_code="es",
+        settings=settings,
+        settings_store=settings_store,
+    )
+
+    assert updated is None
+    assert language_data_root(data_root, "es").exists()
