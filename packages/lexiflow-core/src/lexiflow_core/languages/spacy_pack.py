@@ -5,7 +5,7 @@ from __future__ import annotations
 import shutil
 from collections.abc import Callable
 from pathlib import Path
-from typing import Protocol
+from typing import Protocol, cast
 
 from lexiflow_core.vocabulary.lemma_resolution import (
     spacy_pack_available,
@@ -74,8 +74,8 @@ def install_spacy_pack(
 
 def _default_load_after_download(model_name: str) -> _SupportsToDisk:
     import spacy  # type: ignore[import-not-found]
-    from spacy.cli import download as spacy_download
+    from spacy.cli import download as spacy_download  # type: ignore[import-not-found]
 
     if not spacy.util.is_package(model_name):
         spacy_download(model_name)
-    return spacy.load(model_name)
+    return cast(_SupportsToDisk, spacy.load(model_name))
