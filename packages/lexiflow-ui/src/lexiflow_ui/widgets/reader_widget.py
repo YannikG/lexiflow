@@ -73,6 +73,7 @@ from lexiflow_ui.unsaved_changes import (
     confirm_leave_dirty_editor,
     fields_differ_from_snapshot,
 )
+from lexiflow_ui.widgets.vocabulary_delete_undo_banner import VocabularyDeleteUndoBanner
 from lexiflow_ui.widgets.word_panel import WordPanel
 from lexiflow_ui.worker_supervisor import WorkerSupervisor
 
@@ -212,9 +213,17 @@ class ReaderWidget(QWidget):
         self._generation_banner.hide()
         read_layout.addWidget(self._generation_banner)
         read_layout.addWidget(self._read_pane, stretch=1)
+        self._delete_undo_banner = VocabularyDeleteUndoBanner(
+            data_root=self._data_root,
+            language_code=self._reader_language_code,
+            parent=read_page,
+        )
+        self._delete_undo_banner.restored.connect(self._on_vocabulary_delete_restored)
+        read_layout.addWidget(self._delete_undo_banner)
         self._word_panel = WordPanel(read_page)
         self._word_panel.add_requested.connect(self._add_new_word)
         self._word_panel.edit_requested.connect(self._edit_learned_word)
+        self._word_panel.delete_requested.connect(self._delete_learned_word)
         read_layout.addWidget(self._word_panel, stretch=0)
 
         edit_page = QWidget(self)
@@ -772,5 +781,36 @@ class ReaderWidget(QWidget):
             )
             if self._supervisor is not None:
                 self._supervisor.ensure_running()
+        self._refresh_word_panel()
+        self.vocabulary_changed.emit()
+
+    def _delete_learned_word(self, entry: VocabularyEntry) -> None:
+        if self._record is None or self._data_root is None:
+            return
+        confirm = QMessageBox.question(
+            self,
+            "Delete word",
+            f'Delete "{entry.lemma}" from vocabulary?',
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+        store = VocabularyStore(self._data_root, self._record.target_language)
+        try:
+            snapshot = store.delete_entry(entry.lemma)
+        except VocabularyStoreError as error:
+            QMessageBox.warning(self, "Delete word", str(error))
+            return
+        self._delete_undo_banner.offer(snapshot)
+        self._refresh_word_panel()
+        self.vocabulary_changed.emit()
+
+    def _reader_language_code(self) -> str | None:
+        if self._record is None:
+            return None
+        return self._record.target_language
+
+    def _on_vocabulary_delete_restored(self) -> None:
         self._refresh_word_panel()
         self.vocabulary_changed.emit()

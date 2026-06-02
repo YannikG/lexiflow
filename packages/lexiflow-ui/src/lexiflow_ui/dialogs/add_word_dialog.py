@@ -11,7 +11,7 @@ from lexiflow_core.vocabulary.models import (
     WordCategory,
 )
 from PySide6.QtCore import QElapsedTimer, QTimer
-from PySide6.QtGui import QShowEvent
+from PySide6.QtGui import QCloseEvent, QShowEvent
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -190,6 +190,25 @@ class AddWordDialog(QDialog):
         ):
             self._auto_fill_done = True
             QTimer.singleShot(0, self._start_lemma_fill)
+
+    def reject(self) -> None:
+        self._abort_lemma_fill()
+        super().reject()
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        self._abort_lemma_fill()
+        super().closeEvent(event)
+
+    def _abort_lemma_fill(self) -> None:
+        if self._fill_timer is not None:
+            self._fill_timer.stop()
+            self._fill_timer = None
+        if (
+            self._async_lemma_fill is not None
+            and self._async_lemma_fill.cancel is not None
+            and self._pending_surface
+        ):
+            self._async_lemma_fill.cancel(self._pending_surface)
 
     def _start_lemma_fill(self) -> None:
         if self._async_lemma_fill is None or self._fill_in_progress:

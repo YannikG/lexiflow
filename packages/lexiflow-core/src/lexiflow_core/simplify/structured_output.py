@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from lexiflow_core.languages.models import CEFRLevel
+from lexiflow_core.vocabulary.explanation_text import normalize_usage_explanation
 from lexiflow_core.vocabulary.lemma_form import normalize_lemma, parse_word_category
 from lexiflow_core.vocabulary.models import WordCategory
 
@@ -118,7 +119,7 @@ def _parse_new_word(raw: object, *, language_code: str) -> SimplifyNewWord:
     return SimplifyNewWord(
         lemma=normalized,
         gloss=gloss.strip(),
-        explanation=explanation.strip(),
+        explanation=normalize_usage_explanation(explanation),
         level=level,
         category=category,
     )

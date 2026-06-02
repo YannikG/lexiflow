@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from lexiflow_core.jobs.models import JobRecord
+from lexiflow_core.jobs.models import JobId, JobRecord, JobStatus
 from lexiflow_core.jobs.service import JobService
 from lexiflow_core.llm.prompt_languages import prompt_language_label
 from lexiflow_core.llm.prompts import render_prompt
@@ -35,6 +35,11 @@ def _payload_strings(job: JobRecord) -> tuple[str, str, str, str]:
     )
 
 
+def _job_was_cancelled(job_service: JobService, job_id: JobId) -> bool:
+    record = job_service.get(job_id)
+    return record is None or record.status == JobStatus.CANCELLED
+
+
 def handle_lemma(
     job: JobRecord,
     *,
@@ -42,6 +47,8 @@ def handle_lemma(
     llm: LLMProvider,
 ) -> None:
     """Infer lemma, translation, and explanation for a highlighted surface form."""
+    if _job_was_cancelled(job_service, job.id):
+        return
     try:
         target_language, surface_form, native_language, context = _payload_strings(job)
     except ValueError as exc:
@@ -65,6 +72,9 @@ def handle_lemma(
         return
     except Exception as exc:
         job_service.fail(job.id, str(exc))
+        return
+
+    if _job_was_cancelled(job_service, job.id):
         return
 
     job_service.complete(

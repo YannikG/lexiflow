@@ -37,9 +37,13 @@ class JobService:
         with self._store() as store:
             return store.list_jobs(limit=limit)
 
+    def get(self, job_id: JobId) -> JobRecord | None:
+        with self._store() as store:
+            return store.get(job_id)
+
     def cancel(self, job_id: JobId) -> None:
         with self._store() as store:
-            store.cancel_pending(job_id)
+            store.cancel_active(job_id)
 
     def retry(self, job_id: JobId) -> None:
         with self._store() as store:

@@ -38,7 +38,7 @@ def test_delete_via_context_menu_removes_entry(
     store = VocabularyStore(data_root, "es")
     assert not store.has_lemma("correr")
 
-    undo_banner = window.findChild(QWidget, "vocabulary_delete_undo_banner")
+    undo_banner = window._vocabulary.findChild(QWidget, "vocabulary_delete_undo_banner")
     assert undo_banner is not None
     assert undo_banner.isVisible()
 
@@ -62,7 +62,9 @@ def test_delete_undo_restores_entry(qtbot, tmp_path: Path, monkeypatch) -> None:
     store = VocabularyStore(data_root, "es")
     assert not store.has_lemma("correr")
 
-    undo_button = window.findChild(QPushButton, "vocabulary_delete_undo_button")
+    undo_button = window._vocabulary.findChild(
+        QPushButton, "vocabulary_delete_undo_button"
+    )
     assert undo_button is not None
     qtbot.mouseClick(undo_button, Qt.MouseButton.LeftButton)
 
@@ -71,7 +73,7 @@ def test_delete_undo_restores_entry(qtbot, tmp_path: Path, monkeypatch) -> None:
     assert entry is not None
     assert entry.translation == "to run"
 
-    undo_banner = window.findChild(QWidget, "vocabulary_delete_undo_banner")
+    undo_banner = window._vocabulary.findChild(QWidget, "vocabulary_delete_undo_banner")
     assert undo_banner is not None
     assert not undo_banner.isVisible()
     assert store.get("correr") is not None

@@ -6,6 +6,7 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
+from lexiflow_core.vocabulary.explanation_text import normalize_usage_explanation
 from lexiflow_core.vocabulary.lemma_form import normalize_lemma, parse_word_category
 from lexiflow_core.vocabulary.models import WordCategory
 
@@ -62,6 +63,6 @@ def parse_lemma_output(raw: str, *, language_code: str) -> LemmaInferenceResult:
     return LemmaInferenceResult(
         lemma=normalized,
         translation=translation.strip(),
-        explanation=explanation.strip(),
+        explanation=normalize_usage_explanation(explanation),
         word_category=category,
     )

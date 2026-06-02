@@ -8,9 +8,9 @@ The toolbar has separate **Vocabulary** and **Study** navigation modes for the *
 
 `VocabularyWidget` is browse-only:
 
-- `VocabularyBrowseTable`: lemma, translation, explanation, level, difficulty combo
+- `VocabularyBrowseTable`: lemma, translation, explanation, level, difficulty combo; pages to fill the viewport (no vertical scrollbar)
 - Right-click row context menu: **Edit word**, **Delete**
-- Delete asks for confirmation
+- Delete asks for confirmation, then shows the shared **delete undo window**
 - Search filters lemma, translation, explanation
 - Sort: recent, alphabetical, level, difficulty
 - **Add word**, **Export**, **Import** vocabulary zip bundles
@@ -27,6 +27,7 @@ The toolbar has separate **Vocabulary** and **Study** navigation modes for the *
 ## Reader integration
 
 - Context menu **Add word** on translated and simplified tabs
+- Learned tab: right-click **Edit word** or **Delete** (same confirmation and **delete undo window** as Browse)
 - `reader_add_word.open_highlight_add_dialog` enqueues `JobType.LEMMA` when spaCy is unavailable
 - Successful add enqueues vocabulary embed and emits `vocabulary_changed`
 

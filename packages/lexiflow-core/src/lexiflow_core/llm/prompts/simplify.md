@@ -16,7 +16,7 @@ Respond with JSON only. Fields:
 - new_words: array of objects with:
   - lemma: dictionary form in {target_language_label} with correct target-language spelling (German nouns MUST be capitalized)
   - gloss: short meaning in {native_language_label} only
-  - explanation: one sentence in {native_language_label} only
+  - explanation: one short sentence in {native_language_label} describing how the word is used. Write directly, not meta phrasing such as "This word refers to..." or "This means...".
   - level: CEFR band (A1, A2, B1, B2, C1, C2)
   - category: one of noun, verb, adjective, adverb, pronoun, preposition, conjunction, interjection, other
 

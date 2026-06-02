@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from lexiflow_core.languages.models import CEFRLevel
 from lexiflow_core.vocabulary.models import WordCategory
 from lexiflow_ui.dialogs.add_word_dialog import AddWordDialog
@@ -10,7 +12,8 @@ from lexiflow_ui.lemma_suggestions import (
     AsyncLemmaFill,
     LemmaSuggestions,
 )
-from PySide6.QtWidgets import QDialogButtonBox, QLineEdit, QProgressBar, QTextEdit
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QDialogButtonBox, QLineEdit, QProgressBar, QPushButton, QTextEdit
 
 
 def _immediate_async_fill(
@@ -84,10 +87,13 @@ def test_add_word_dialog_shows_loading_indicator_while_filling(qtbot) -> None:
     def poll(_surface: str) -> LemmaSuggestions | None:
         return None
 
+    def cancel(_surface: str) -> None:
+        return
+
     dialog = AddWordDialog(
         default_level=CEFRLevel.A2,
         lemma="corriendo",
-        async_lemma_fill=AsyncLemmaFill(begin=begin, poll=poll),
+        async_lemma_fill=AsyncLemmaFill(begin=begin, poll=poll, cancel=cancel),
         auto_fill_on_open=True,
     )
     qtbot.addWidget(dialog)
@@ -97,6 +103,40 @@ def test_add_word_dialog_shows_loading_indicator_while_filling(qtbot) -> None:
     loading_bar = dialog.findChild(QProgressBar, "add_word_fill_loading_bar")
     assert loading_bar is not None
     assert loading_bar.isVisible()
+
+
+def test_add_word_dialog_cancel_cancels_lemma_job(qtbot, tmp_path: Path) -> None:
+    from lexiflow_core.jobs.models import JobStatus
+    from lexiflow_core.jobs.service import JobService
+    from lexiflow_ui.lemma_suggestions import make_async_lemma_fill
+
+    data_root = tmp_path / "LexiFlow"
+    async_fill = make_async_lemma_fill(
+        data_root,
+        language_code="es",
+        native_language="en",
+        supervisor=None,
+    )
+    dialog = AddWordDialog(
+        default_level=CEFRLevel.A2,
+        lemma="corriendo",
+        async_lemma_fill=async_fill,
+        auto_fill_on_open=True,
+    )
+    qtbot.addWidget(dialog)
+    dialog.show()
+    qtbot.wait(LEMMA_FILL_POLL_MS + 50)
+
+    cancel_button = next(
+        button
+        for button in dialog.findChildren(QPushButton)
+        if button.text() == "Cancel"
+    )
+    qtbot.mouseClick(cancel_button, Qt.MouseButton.LeftButton)
+
+    jobs = JobService(data_root).list_jobs()
+    assert len(jobs) == 1
+    assert jobs[0].status == JobStatus.CANCELLED
 
 
 def test_edit_word_dialog_allows_editing_translation_and_explanation(qtbot) -> None:

@@ -13,12 +13,8 @@ from lexiflow_core.vocabulary.import_bundle import (
     import_vocabulary_zip,
 )
 from lexiflow_core.vocabulary.models import DifficultyRating, VocabularySort
-from lexiflow_core.vocabulary.store import (
-    DeletedVocabularyEntry,
-    VocabularyStore,
-    VocabularyStoreError,
-)
-from PySide6.QtCore import QTimer, Signal
+from lexiflow_core.vocabulary.store import VocabularyStore, VocabularyStoreError
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
@@ -39,9 +35,8 @@ from lexiflow_ui.add_word_flow import (
 from lexiflow_ui.dialogs.add_word_dialog import AddWordForm
 from lexiflow_ui.widgets.empty_state import EmptyStateWidget
 from lexiflow_ui.widgets.vocabulary_browse_table import VocabularyBrowseTable
+from lexiflow_ui.widgets.vocabulary_delete_undo_banner import VocabularyDeleteUndoBanner
 from lexiflow_ui.worker_supervisor import WorkerSupervisor
-
-DELETE_UNDO_WINDOW_MS = 8_000
 
 
 class VocabularyWidget(QWidget):
@@ -60,10 +55,6 @@ class VocabularyWidget(QWidget):
         self._data_root = data_root
         self._settings = settings
         self._supervisor = supervisor
-        self._delete_undo_snapshot: DeletedVocabularyEntry | None = None
-        self._delete_undo_timer = QTimer(self)
-        self._delete_undo_timer.setSingleShot(True)
-        self._delete_undo_timer.timeout.connect(self._clear_delete_undo)
 
         root = QVBoxLayout(self)
         root.setContentsMargins(16, 16, 16, 16)
@@ -103,24 +94,12 @@ class VocabularyWidget(QWidget):
 
         root.addLayout(toolbar)
 
-        self._delete_undo_banner = QWidget(self)
-        self._delete_undo_banner.setObjectName("vocabulary_delete_undo_banner")
-        undo_layout = QHBoxLayout(self._delete_undo_banner)
-        undo_layout.setContentsMargins(0, 0, 0, 0)
-        self._delete_undo_label = QPushButton(
-            "Word deleted.",
-            self._delete_undo_banner,
+        self._delete_undo_banner = VocabularyDeleteUndoBanner(
+            data_root=self._data_root,
+            language_code=lambda: self._settings.active_target_language,
+            parent=self,
         )
-        self._delete_undo_label.setObjectName("vocabulary_delete_undo_label")
-        self._delete_undo_label.setFlat(True)
-        self._delete_undo_label.setEnabled(False)
-        undo_layout.addWidget(self._delete_undo_label)
-        self._delete_undo_button = QPushButton("Undo", self._delete_undo_banner)
-        self._delete_undo_button.setObjectName("vocabulary_delete_undo_button")
-        self._delete_undo_button.clicked.connect(self._undo_delete)
-        undo_layout.addWidget(self._delete_undo_button)
-        undo_layout.addStretch(1)
-        self._delete_undo_banner.hide()
+        self._delete_undo_banner.restored.connect(self._on_delete_restored)
         root.addWidget(self._delete_undo_banner)
 
         self._stack = QStackedWidget(self)
@@ -241,32 +220,11 @@ class VocabularyWidget(QWidget):
         except VocabularyStoreError as error:
             QMessageBox.warning(self, "Vocabulary", str(error))
             return
-        self._show_delete_undo(snapshot)
+        self._delete_undo_banner.offer(snapshot)
         self.vocabulary_changed.emit()
         self.refresh()
 
-    def _show_delete_undo(self, snapshot: DeletedVocabularyEntry) -> None:
-        self._delete_undo_snapshot = snapshot
-        self._delete_undo_banner.show()
-        self._delete_undo_timer.start(DELETE_UNDO_WINDOW_MS)
-
-    def _clear_delete_undo(self) -> None:
-        self._delete_undo_snapshot = None
-        self._delete_undo_banner.hide()
-
-    def _undo_delete(self) -> None:
-        language = self._settings.active_target_language
-        snapshot = self._delete_undo_snapshot
-        if language is None or snapshot is None:
-            return
-        store = VocabularyStore(self._data_root, language)
-        try:
-            store.restore_entry(snapshot)
-        except VocabularyStoreError as error:
-            QMessageBox.warning(self, "Vocabulary", str(error))
-            return
-        self._delete_undo_timer.stop()
-        self._clear_delete_undo()
+    def _on_delete_restored(self) -> None:
         self.vocabulary_changed.emit()
         self.refresh()
 

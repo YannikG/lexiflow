@@ -10,7 +10,7 @@ LexiFlow persists background work in `queue.sqlite` under the user library `.app
 | Running | Currently executing |
 | Completed | Finished successfully; result stored |
 | Failed | Error recorded; manual retry only |
-| Cancelled | User cancelled while pending; terminal |
+| Cancelled | User cancelled while pending or running; terminal |
 
 On startup, **Running** jobs return to **Pending** and are picked up automatically. `run_worker_loop` calls recovery before claiming work so direct callers get the same behaviour as the worker CLI. **Failed** and **Cancelled** jobs are not auto-retried. **Pending** jobs remain pending.
 

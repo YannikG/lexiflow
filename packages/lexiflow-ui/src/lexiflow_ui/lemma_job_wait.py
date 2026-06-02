@@ -12,12 +12,13 @@ from lexiflow_core.jobs.service import JobService
 from PySide6.QtCore import QElapsedTimer
 from PySide6.QtWidgets import QApplication
 
-LemmaJobPoll = dict[str, object] | Literal["pending", "failed"]
+LemmaJobPoll = dict[str, object] | Literal["pending", "failed", "cancelled"]
 
 
 class LemmaJobPollState(StrEnum):
     PENDING = "pending"
     FAILED = "failed"
+    CANCELLED = "cancelled"
 
 
 def find_lemma_job_result(
@@ -36,6 +37,8 @@ def find_lemma_job_result(
             return job.result
         if job.status == JobStatus.FAILED:
             return LemmaJobPollState.FAILED.value
+        if job.status == JobStatus.CANCELLED:
+            return LemmaJobPollState.CANCELLED.value
         return LemmaJobPollState.PENDING.value
     return LemmaJobPollState.PENDING.value
 

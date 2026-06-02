@@ -41,6 +41,19 @@ class WordPanel(QWidget):
 
     add_requested = Signal(NewWordSuggestion)
     edit_requested = Signal(VocabularyEntry)
+    delete_requested = Signal(VocabularyEntry)
+
+    def request_edit_learned(self, row: int) -> None:
+        """Request editing the learned entry at *row*."""
+        if row < 0 or row >= len(self._learned_entries):
+            return
+        self.edit_requested.emit(self._learned_entries[row])
+
+    def request_delete_learned(self, row: int) -> None:
+        """Request deleting the learned entry at *row*."""
+        if row < 0 or row >= len(self._learned_entries):
+            return
+        self.delete_requested.emit(self._learned_entries[row])
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -185,6 +198,9 @@ class WordPanel(QWidget):
             return
         menu = QMenu(self)
         edit_action = menu.addAction("Edit word")
+        delete_action = menu.addAction("Delete")
         chosen = menu.exec(self._learned_table.viewport().mapToGlobal(position))
         if chosen is edit_action:
             self.edit_requested.emit(entry)
+        elif chosen is delete_action:
+            self.delete_requested.emit(entry)

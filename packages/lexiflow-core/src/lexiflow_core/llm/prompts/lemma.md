@@ -10,5 +10,5 @@ Write translation and explanation in {native_language_label} only. Do not use {t
 Return JSON with:
 - lemma: dictionary form in {target_language_label}. Follow target-language spelling rules (German nouns MUST start with a capital letter; verbs, adjectives, and other non-nouns use lowercase).
 - translation: short meaning in {native_language_label} only
-- explanation: one sentence in {native_language_label} only explaining usage
+- explanation: one short sentence in {native_language_label} describing how the word is used. Write directly (for example "Used when greeting someone"), not meta phrasing such as "This word refers to..." or "This means...".
 - category: one of noun, verb, adjective, adverb, pronoun, preposition, conjunction, interjection, other

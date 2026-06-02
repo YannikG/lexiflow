@@ -15,7 +15,8 @@ from lexiflow_core.vocabulary.models import (
 from lexiflow_core.vocabulary.store import VocabularyStore
 from lexiflow_ui.dialogs.add_word_dialog import EditWordForm
 from lexiflow_ui.widgets.vocabulary_browse_table import VocabularyBrowseTable
-from PySide6.QtWidgets import QComboBox, QTableWidget
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QComboBox, QPushButton, QTableWidget
 
 from tests.ui.test_vocabulary_study import _open_vocabulary_window, _seed_language
 from tests.ui.vocabulary_helpers import trigger_browse_context_menu
@@ -179,3 +180,42 @@ def test_sort_combo_reorders_browse_table(qtbot, tmp_path: Path) -> None:
     assert grid.item(1, 0) is not None
     assert grid.item(0, 0).text() == "apple"
     assert grid.item(1, 0).text() == "zebra"
+
+
+def _browse_entries(count: int) -> tuple[VocabularyEntry, ...]:
+    return tuple(
+        VocabularyEntry(
+            lemma=f"word{i:02d}",
+            translation=f"meaning {i}",
+            explanation="",
+            level_when_learned=CEFRLevel.A1,
+            difficulty_rating=DifficultyRating.HARD,
+            word_category=WordCategory.NOUN,
+        )
+        for i in range(count)
+    )
+
+
+def test_browse_table_paginates_without_scrollbar(qtbot) -> None:
+    table = VocabularyBrowseTable()
+    qtbot.addWidget(table)
+    table.resize(900, 180)
+    entries = _browse_entries(24)
+    table.set_entries(entries)
+    table.show()
+    qtbot.wait(50)
+
+    grid = table.findChild(QTableWidget, "vocabulary_browse_grid")
+    assert grid is not None
+    assert grid.verticalScrollBarPolicy() == Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+    assert grid.rowCount() < len(entries)
+    assert grid.item(0, 0) is not None
+    assert grid.item(0, 0).text() == "word00"
+
+    next_button = table.findChild(QPushButton, "vocabulary_browse_page_next")
+    assert next_button is not None
+    assert next_button.isEnabled()
+    qtbot.mouseClick(next_button, Qt.MouseButton.LeftButton)
+
+    assert grid.item(0, 0) is not None
+    assert grid.item(0, 0).text() != "word00"

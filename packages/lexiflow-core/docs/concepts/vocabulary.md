@@ -16,7 +16,7 @@ Lemma spelling follows target-language rules: German nouns are capitalized; othe
 | Mode | Behavior |
 |------|----------|
 | **Study** | Shuffled flashcards; translation hidden until **Reveal**; **Got it** (**promote fluency**) enabled only after reveal; hidden at **mastered** (easy). |
-| **Browse** | Full list with search, sort, inline difficulty edit, delete with **delete undo window**. |
+| **Browse** | Full list with search, sort, inline difficulty edit, viewport paging (no scrollbar), delete with **delete undo window**. |
 
 ## Export and import
 
@@ -41,7 +41,8 @@ Double-click a row in the vocabulary browse table or reader word panel to open a
 | `lexiflow_core.vocabulary.import_bundle` | `import_vocabulary_zip` |
 | `lexiflow_core.vocabulary.lemma_form` | `normalize_lemma`, `parse_word_category` |
 | `lexiflow_core.vocabulary.lemma_resolution` | spaCy sync path |
-| `lexiflow_core.jobs.lemma_queue` | `enqueue_lemma_job` |
+| `lexiflow_core.vocabulary.explanation_text` | `normalize_usage_explanation` |
+| `lexiflow_core.jobs.lemma_queue` | `enqueue_lemma_job`, `find_active_lemma_job`, `cancel_lemma_job` |
 | `lexiflow_core.languages.remove_target` | Wipe language folder |
 
 ## Package boundary

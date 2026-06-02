@@ -96,3 +96,49 @@ def test_find_lemma_job_result_returns_pending_without_blocking(tmp_path: Path) 
         find_lemma_job_result(data_root, surface_form="corriendo")
         == LemmaJobPollState.PENDING.value
     )
+
+
+def test_async_lemma_fill_poll_handles_completed_job_dict(tmp_path: Path) -> None:
+    import json
+
+    from lexiflow_core.jobs.lemma_queue import enqueue_lemma_job
+    from lexiflow_core.jobs.runner import run_worker_loop
+    from lexiflow_core.jobs.service import JobService
+    from lexiflow_core.llm.fake import FakeLLM
+    from lexiflow_ui.lemma_suggestions import make_async_lemma_fill
+
+    data_root = tmp_path / "LexiFlow"
+    job_service = JobService(data_root)
+    enqueue_lemma_job(
+        job_service,
+        language_code="es",
+        surface_form="corriendo",
+        native_language="en",
+    )
+    run_worker_loop(
+        job_service,
+        FakeLLM(
+            responses=[
+                json.dumps(
+                    {
+                        "lemma": "correr",
+                        "translation": "to run",
+                        "explanation": "Movement at speed.",
+                        "category": "verb",
+                    }
+                )
+            ]
+        ),
+        data_root=data_root,
+    )
+    async_fill = make_async_lemma_fill(
+        data_root,
+        language_code="es",
+        native_language="en",
+        supervisor=None,
+    )
+    suggestions = async_fill.poll("corriendo")
+
+    assert suggestions is not None
+    assert suggestions.lemma == "correr"
+    assert suggestions.translation == "to run"

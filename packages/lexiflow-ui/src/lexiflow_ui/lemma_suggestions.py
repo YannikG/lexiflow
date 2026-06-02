@@ -6,7 +6,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from lexiflow_core.jobs.lemma_queue import enqueue_lemma_job
+from lexiflow_core.jobs.lemma_queue import cancel_lemma_job, enqueue_lemma_job
 from lexiflow_core.jobs.service import JobService
 from lexiflow_core.vocabulary.lemma_form import parse_word_category
 from lexiflow_core.vocabulary.lemma_resolution import resolve_lemma_with_spacy
@@ -31,6 +31,7 @@ class LemmaSuggestions:
 class AsyncLemmaFill:
     begin: Callable[[str], None]
     poll: Callable[[str], LemmaSuggestions | None]
+    cancel: Callable[[str], None] | None = None
 
 
 def _merge_llm_with_spacy(
@@ -100,7 +101,12 @@ def make_async_lemma_fill(
         polled = find_lemma_job_result(data_root, surface_form=normalized)
         if polled == LemmaJobPollState.PENDING.value:
             return None
-        if polled == LemmaJobPollState.FAILED.value or not isinstance(polled, dict):
+        if isinstance(polled, dict):
+            return _merge_llm_with_spacy(polled, spacy_hints.get(normalized))
+        if polled in (
+            LemmaJobPollState.FAILED.value,
+            LemmaJobPollState.CANCELLED.value,
+        ):
             hint = spacy_hints.get(normalized)
             if hint is not None:
                 return hint
@@ -110,6 +116,14 @@ def make_async_lemma_fill(
                 explanation="",
                 word_category=WordCategory.OTHER,
             )
-        return _merge_llm_with_spacy(polled, spacy_hints.get(normalized))
+        return LemmaSuggestions(
+            lemma="",
+            translation="",
+            explanation="",
+            word_category=WordCategory.OTHER,
+        )
 
-    return AsyncLemmaFill(begin=begin, poll=poll)
+    def cancel(surface_form: str) -> None:
+        cancel_lemma_job(data_root, surface_form=surface_form)
+
+    return AsyncLemmaFill(begin=begin, poll=poll, cancel=cancel)

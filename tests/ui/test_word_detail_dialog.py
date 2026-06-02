@@ -140,3 +140,22 @@ def test_word_panel_double_click_opens_detail_for_new_and_learned(
 
     learned_table.cellDoubleClicked.emit(0, 0)
     assert opened_entries == [entry]
+
+
+def test_word_panel_learned_delete_emits_signal(qtbot) -> None:
+    panel = WordPanel()
+    qtbot.addWidget(panel)
+    entry = VocabularyEntry(
+        lemma="correr",
+        translation="to run",
+        explanation="On foot.",
+        level_when_learned=CEFRLevel.A1,
+        difficulty_rating=DifficultyRating.EASY,
+        word_category=WordCategory.VERB,
+    )
+    panel.set_content(new_words=(), learned_words=(entry,))
+
+    with qtbot.waitSignal(panel.delete_requested, timeout=1000) as blocker:
+        panel.request_delete_learned(0)
+
+    assert blocker.args == [entry]

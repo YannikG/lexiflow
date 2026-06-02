@@ -4,10 +4,14 @@ from __future__ import annotations
 
 from lexiflow_core.vocabulary.models import DifficultyRating, VocabularyEntry
 from PySide6.QtCore import QPoint, Qt, Signal
+from PySide6.QtGui import QResizeEvent, QShowEvent
 from PySide6.QtWidgets import (
     QComboBox,
+    QHBoxLayout,
     QHeaderView,
+    QLabel,
     QMenu,
+    QPushButton,
     QSizePolicy,
     QTableWidget,
     QTableWidgetItem,
@@ -17,6 +21,8 @@ from PySide6.QtWidgets import (
 
 from lexiflow_ui.dialogs.word_detail_dialog import open_vocabulary_entry_detail
 from lexiflow_ui.word_category_labels import word_category_label
+
+_DEFAULT_PAGE_SIZE = 12
 
 _DIFFICULTY_LABELS = {
     DifficultyRating.HARD: "Hard",
@@ -51,16 +57,18 @@ class VocabularyBrowseTable(QWidget):
     difficulty_changed = Signal(str, DifficultyRating)
 
     def request_edit(self, row: int) -> None:
-        """Request editing the entry at *row* (same as context menu Edit word)."""
-        if row < 0 or row >= len(self._entries):
+        """Request editing the entry at *row* on the current page."""
+        entry = self._entry_for_table_row(row)
+        if entry is None:
             return
-        self.edit_requested.emit(self._entries[row].lemma)
+        self.edit_requested.emit(entry.lemma)
 
     def request_delete(self, row: int) -> None:
-        """Request deleting the entry at *row* (same as context menu Delete)."""
-        if row < 0 or row >= len(self._entries):
+        """Request deleting the entry at *row* on the current page."""
+        entry = self._entry_for_table_row(row)
+        if entry is None:
             return
-        self.delete_requested.emit(self._entries[row].lemma)
+        self.delete_requested.emit(entry.lemma)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -70,8 +78,13 @@ class VocabularyBrowseTable(QWidget):
             QSizePolicy.Policy.Expanding,
         )
         self._entries: tuple[VocabularyEntry, ...] = ()
+        self._page = 0
+        self._page_size = _DEFAULT_PAGE_SIZE
 
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+
         self._table = QTableWidget(self)
         self._table.setObjectName("vocabulary_browse_grid")
         self._table.setSizePolicy(
@@ -91,15 +104,75 @@ class VocabularyBrowseTable(QWidget):
         header.setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self._table.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
         self._table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self._table.customContextMenuRequested.connect(self._show_context_menu)
         self._table.cellDoubleClicked.connect(self._on_cell_double_clicked)
         layout.addWidget(self._table, stretch=1)
 
+        pager = QHBoxLayout()
+        pager.setContentsMargins(0, 0, 0, 0)
+        self._prev_button = QPushButton("Previous", self)
+        self._prev_button.setObjectName("vocabulary_browse_page_prev")
+        self._prev_button.clicked.connect(self._go_to_previous_page)
+        self._page_label = QLabel(self)
+        self._page_label.setObjectName("vocabulary_browse_page_label")
+        self._next_button = QPushButton("Next", self)
+        self._next_button.setObjectName("vocabulary_browse_page_next")
+        self._next_button.clicked.connect(self._go_to_next_page)
+        pager.addStretch(1)
+        pager.addWidget(self._prev_button)
+        pager.addWidget(self._page_label)
+        pager.addWidget(self._next_button)
+        pager.addStretch(1)
+        layout.addLayout(pager)
+
+    def showEvent(self, event: QShowEvent) -> None:
+        super().showEvent(event)
+        self._recalculate_page_size()
+        self._render_page()
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        super().resizeEvent(event)
+        previous_size = self._page_size
+        self._recalculate_page_size()
+        if self._page_size != previous_size:
+            self._render_page()
+
     def set_entries(self, entries: tuple[VocabularyEntry, ...]) -> None:
         self._entries = entries
-        self._table.setRowCount(len(entries))
-        for row, entry in enumerate(entries):
+        self._page = 0
+        self._recalculate_page_size()
+        self._render_page()
+
+    def _recalculate_page_size(self) -> None:
+        viewport_height = self._table.viewport().height()
+        if viewport_height <= 0:
+            return
+        row_height = self._table.verticalHeader().defaultSectionSize()
+        if self._table.rowCount() > 0:
+            row_height = max(row_height, self._table.rowHeight(0))
+        self._page_size = max(1, viewport_height // row_height)
+
+    def _page_count(self) -> int:
+        if not self._entries:
+            return 1
+        return max(1, (len(self._entries) + self._page_size - 1) // self._page_size)
+
+    def _clamp_page(self) -> None:
+        self._page = min(self._page, self._page_count() - 1)
+
+    def _page_entries(self) -> tuple[VocabularyEntry, ...]:
+        self._clamp_page()
+        start = self._page * self._page_size
+        return self._entries[start : start + self._page_size]
+
+    def _render_page(self) -> None:
+        page_entries = self._page_entries()
+        self._table.setRowCount(len(page_entries))
+        for row, entry in enumerate(page_entries):
             self._table.setItem(row, 0, QTableWidgetItem(entry.lemma))
             self._table.setItem(
                 row, 1, QTableWidgetItem(word_category_label(entry.word_category))
@@ -124,20 +197,50 @@ class VocabularyBrowseTable(QWidget):
                 )
             )
             self._table.setCellWidget(row, 5, combo)
+        self._update_pager()
+
+    def _update_pager(self) -> None:
+        page_count = self._page_count()
+        self._page_label.setText(f"Page {self._page + 1} of {page_count}")
+        self._prev_button.setEnabled(self._page > 0)
+        self._next_button.setEnabled(self._page + 1 < page_count)
+        show_pager = len(self._entries) > self._page_size
+        self._prev_button.setVisible(show_pager)
+        self._page_label.setVisible(show_pager)
+        self._next_button.setVisible(show_pager)
+
+    def _go_to_previous_page(self) -> None:
+        if self._page <= 0:
+            return
+        self._page -= 1
+        self._render_page()
+
+    def _go_to_next_page(self) -> None:
+        if self._page + 1 >= self._page_count():
+            return
+        self._page += 1
+        self._render_page()
+
+    def _global_row(self, table_row: int) -> int:
+        return self._page * self._page_size + table_row
+
+    def _entry_for_table_row(self, table_row: int) -> VocabularyEntry | None:
+        global_row = self._global_row(table_row)
+        if global_row < 0 or global_row >= len(self._entries):
+            return None
+        return self._entries[global_row]
 
     def _entry_at_position(self, position: QPoint) -> VocabularyEntry | None:
         index = self._table.indexAt(position)
         if not index.isValid():
             return None
-        row = index.row()
-        if row < 0 or row >= len(self._entries):
-            return None
-        return self._entries[row]
+        return self._entry_for_table_row(index.row())
 
     def _on_cell_double_clicked(self, row: int, _column: int) -> None:
-        if row < 0 or row >= len(self._entries):
+        entry = self._entry_for_table_row(row)
+        if entry is None:
             return
-        open_vocabulary_entry_detail(self._entries[row], parent=self)
+        open_vocabulary_entry_detail(entry, parent=self)
 
     def _show_context_menu(self, position: QPoint) -> None:
         entry = self._entry_at_position(position)

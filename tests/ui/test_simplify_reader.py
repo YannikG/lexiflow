@@ -23,6 +23,7 @@ from lexiflow_core.vocabulary.store import VocabularyStore
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox,
+    QMessageBox,
     QPushButton,
     QTableWidget,
     QTextBrowser,
@@ -208,6 +209,51 @@ def test_word_panel_learned_tab_shows_manually_added_word_in_text(
     assert learned_table.rowCount() == 1
     assert learned_table.item(0, 0) is not None
     assert learned_table.item(0, 0).text() == "simple"
+
+
+def test_word_panel_learned_delete_removes_entry_from_store(
+    qtbot, tmp_path: Path, monkeypatch
+) -> None:
+    from lexiflow_ui.widgets.word_panel import WordPanel
+
+    data_root = tmp_path / "LexiFlow"
+    _seed_simplified_with_suggestions(data_root)
+    VocabularyStore(data_root, "es").add_entry(
+        lemma="simple",
+        translation="simple",
+        explanation="",
+        level_when_learned=CEFRLevel.A2,
+        word_category=WordCategory.ADJECTIVE,
+    )
+    monkeypatch.setattr(
+        QMessageBox,
+        "question",
+        lambda *args, **kwargs: QMessageBox.StandardButton.Yes,
+    )
+    window = _open_reader_window(qtbot, data_root)
+    _click_sidebar_text(qtbot, window)
+
+    simplified_tab = window.reader.findChild(QPushButton, "reader_tab_simplified")
+    assert simplified_tab is not None
+    qtbot.mouseClick(simplified_tab, Qt.MouseButton.LeftButton)
+    qtbot.wait(50)
+
+    panel = window.reader.findChild(WordPanel, "word_panel")
+    assert panel is not None
+    panel.request_delete_learned(0)
+
+    store = VocabularyStore(data_root, "es")
+    assert not store.has_lemma("simple")
+    learned_table = panel.findChild(QTableWidget, "word_panel_learned_table")
+    assert learned_table is not None
+    assert learned_table.rowCount() == 0
+
+    undo_button = window.reader.findChild(QPushButton, "vocabulary_delete_undo_button")
+    assert undo_button is not None
+    qtbot.mouseClick(undo_button, Qt.MouseButton.LeftButton)
+
+    assert store.has_lemma("simple")
+    assert learned_table.rowCount() == 1
 
 
 def test_word_panel_learned_tab_refreshes_after_vocabulary_changed(
