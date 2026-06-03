@@ -25,7 +25,7 @@ On startup, **Running** jobs return to **Pending** and are picked up automatical
 | `download_spacy` | spaCy language pack download (enqueued when a target language is added) |
 | `lemma` | Lemma, translation, and explanation inference for highlight-add |
 
-LLM job types share the one-at-a-time rule. `download_spacy` is persisted in phase 06; worker handling arrives in a later phase.
+LLM job types share the one-at-a-time rule. `download_spacy` installs a spaCy pipeline under `{data_root}/.app/spacy/{iso}/` via the worker (requires spaCy installed in the worker environment).
 
 ### Lemma
 

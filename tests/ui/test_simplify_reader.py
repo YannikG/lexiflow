@@ -5,24 +5,23 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from lexiflow_core.config.paths import variant_path
 from lexiflow_core.jobs.models import JobStatus, JobType
 from lexiflow_core.jobs.runner import run_worker_loop
 from lexiflow_core.jobs.service import JobService
 from lexiflow_core.languages.models import CEFRLevel
-from lexiflow_core.languages.store import LanguageStore
 from lexiflow_core.library.index import LibraryIndex
 from lexiflow_core.library.library_coordinator import LibraryCoordinator
 from lexiflow_core.library.models import CreateTextRequest
 from lexiflow_core.library.reader_tabs import TRANSLATED_TAB
 from lexiflow_core.library.text_repository import TextRepository
 from lexiflow_core.llm.fake import FakeLLM
-from lexiflow_core.simplify.suggestions_store import save_suggestions
+from lexiflow_core.simplify.suggestions_store import save_suggestions, suggestions_path
 from lexiflow_core.vocabulary.models import NewWordSuggestion, WordCategory
 from lexiflow_core.vocabulary.store import VocabularyStore
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QComboBox,
     QMessageBox,
     QPushButton,
     QTableWidget,
@@ -35,6 +34,20 @@ from tests.ui.test_reader import (
     _open_reader_window,
     _seed_reader_text,
 )
+
+
+def _simplified_level_tab(window, level: str = "A2") -> QPushButton:
+    object_name = f"reader_tab_simplified_{level.lower()}"
+    button = window.reader.findChild(QPushButton, object_name)
+    assert button is not None
+    return button
+
+
+def _patch_simplify_level(monkeypatch: pytest.MonkeyPatch, level: CEFRLevel) -> None:
+    monkeypatch.setattr(
+        "lexiflow_ui.widgets.reader_widget.open_simplify_level_dialog",
+        lambda *_args, **_kwargs: level,
+    )
 
 
 def _open_reader_window_without_worker(qtbot, data_root: Path):
@@ -67,15 +80,21 @@ def _open_reader_window_without_worker(qtbot, data_root: Path):
     return window
 
 
-def _valid_simplify_json(*, title: str = "Simple", body: str = "Texto simple.") -> str:
+def _valid_simplify_json(
+    *,
+    title: str = "Simple",
+    body: str = "Texto simple.",
+    lemma: str = "nadar",
+    gloss: str = "to swim",
+) -> str:
     return json.dumps(
         {
             "title": title,
             "body": body,
             "new_words": [
                 {
-                    "lemma": "nadar",
-                    "gloss": "to swim",
+                    "lemma": lemma,
+                    "gloss": gloss,
                     "explanation": "Move through water using limbs.",
                     "level": "A2",
                     "category": "verb",
@@ -129,7 +148,7 @@ def test_word_panel_shows_new_words_on_simplified_tab(qtbot, tmp_path) -> None:
     window = _open_reader_window(qtbot, data_root)
     _click_sidebar_text(qtbot, window)
 
-    simplified_tab = window.reader.findChild(QPushButton, "reader_tab_simplified")
+    simplified_tab = _simplified_level_tab(window)
     assert simplified_tab is not None
     qtbot.mouseClick(simplified_tab, Qt.MouseButton.LeftButton)
     qtbot.wait(50)
@@ -160,7 +179,7 @@ def test_word_panel_learned_tab_shows_vocabulary_entries(qtbot, tmp_path) -> Non
     window = _open_reader_window(qtbot, data_root)
     _click_sidebar_text(qtbot, window)
 
-    simplified_tab = window.reader.findChild(QPushButton, "reader_tab_simplified")
+    simplified_tab = _simplified_level_tab(window)
     assert simplified_tab is not None
     qtbot.mouseClick(simplified_tab, Qt.MouseButton.LeftButton)
     qtbot.wait(50)
@@ -193,7 +212,7 @@ def test_word_panel_learned_tab_shows_manually_added_word_in_text(
     window = _open_reader_window(qtbot, data_root)
     _click_sidebar_text(qtbot, window)
 
-    simplified_tab = window.reader.findChild(QPushButton, "reader_tab_simplified")
+    simplified_tab = _simplified_level_tab(window)
     assert simplified_tab is not None
     qtbot.mouseClick(simplified_tab, Qt.MouseButton.LeftButton)
     qtbot.wait(50)
@@ -233,7 +252,7 @@ def test_word_panel_learned_delete_removes_entry_from_store(
     window = _open_reader_window(qtbot, data_root)
     _click_sidebar_text(qtbot, window)
 
-    simplified_tab = window.reader.findChild(QPushButton, "reader_tab_simplified")
+    simplified_tab = _simplified_level_tab(window)
     assert simplified_tab is not None
     qtbot.mouseClick(simplified_tab, Qt.MouseButton.LeftButton)
     qtbot.wait(50)
@@ -264,7 +283,7 @@ def test_word_panel_learned_tab_refreshes_after_vocabulary_changed(
     window = _open_reader_window(qtbot, data_root)
     _click_sidebar_text(qtbot, window)
 
-    simplified_tab = window.reader.findChild(QPushButton, "reader_tab_simplified")
+    simplified_tab = _simplified_level_tab(window)
     assert simplified_tab is not None
     qtbot.mouseClick(simplified_tab, Qt.MouseButton.LeftButton)
     qtbot.wait(50)
@@ -286,16 +305,17 @@ def test_word_panel_learned_tab_refreshes_after_vocabulary_changed(
     assert learned_table.item(0, 0).text() == "simple"
 
 
-def test_simplify_button_enqueues_job(qtbot, tmp_path) -> None:
+def test_simplify_button_enqueues_job(
+    qtbot, tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     data_root = tmp_path / "LexiFlow"
     _seed_reader_text(data_root)
-    window = _open_reader_window(qtbot, data_root)
+    _patch_simplify_level(monkeypatch, CEFRLevel.A2)
+    window = _open_reader_window_without_worker(qtbot, data_root)
     _click_sidebar_text(qtbot, window)
 
-    level_combo = window.reader.findChild(QComboBox, "reader_simplify_level")
     simplify_button = window.reader.findChild(QPushButton, "reader_simplify_button")
-    assert level_combo is not None and simplify_button is not None
-    level_combo.setCurrentText("A2")
+    assert simplify_button is not None
     qtbot.mouseClick(simplify_button, Qt.MouseButton.LeftButton)
     qtbot.wait(50)
 
@@ -308,33 +328,67 @@ def test_simplify_button_enqueues_job(qtbot, tmp_path) -> None:
     assert jobs[0].payload["level"] == "A2"
 
 
-def test_simplify_level_picker_defaults_to_user_language_level(qtbot, tmp_path) -> None:
-    data_root = tmp_path / "LexiFlow"
-    LanguageStore(data_root).add_target("es", CEFRLevel.B1)
-    _seed_reader_text(data_root)
-    window = _open_reader_window(qtbot, data_root)
-    _click_sidebar_text(qtbot, window)
-
-    level_combo = window.reader.findChild(QComboBox, "reader_simplify_level")
-    assert level_combo is not None
-    assert level_combo.currentText() == "B1"
-
-
-def test_simplified_tab_syncs_simplify_level_picker(qtbot, tmp_path) -> None:
+def test_simplify_second_level_uses_dialog_while_on_other_simplified_tab(
+    qtbot, tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Choosing another level in the dialog creates that variant, not the active tab."""
     data_root = tmp_path / "LexiFlow"
     _seed_simplified_with_suggestions(data_root)
-    window = _open_reader_window(qtbot, data_root)
+    _patch_simplify_level(monkeypatch, CEFRLevel.B1)
+    window = _open_reader_window_without_worker(qtbot, data_root)
     _click_sidebar_text(qtbot, window)
 
-    level_combo = window.reader.findChild(QComboBox, "reader_simplify_level")
-    simplified_tab = window.reader.findChild(QPushButton, "reader_tab_simplified")
-    assert level_combo is not None and simplified_tab is not None
+    simplified_tab = _simplified_level_tab(window)
+    simplify_button = window.reader.findChild(QPushButton, "reader_simplify_button")
+    assert simplify_button is not None
 
-    level_combo.setCurrentText("B1")
     qtbot.mouseClick(simplified_tab, Qt.MouseButton.LeftButton)
     qtbot.wait(50)
 
-    assert level_combo.currentText() == "A2"
+    qtbot.mouseClick(simplify_button, Qt.MouseButton.LeftButton)
+    qtbot.wait(50)
+
+    jobs = [
+        job
+        for job in JobService(data_root).list_jobs()
+        if job.job_type == JobType.SIMPLIFY
+    ]
+    assert len(jobs) == 1
+    assert jobs[0].payload["level"] == "B1"
+    assert window.reader.active_tab_id == "simplified-b1"
+
+    b1_json = _valid_simplify_json(
+        title="Simple B1",
+        body="Corro cada dia.",
+        lemma="correr",
+        gloss="to run",
+    )
+    run_worker_loop(
+        JobService(data_root),
+        FakeLLM(response=b1_json),
+        data_root=data_root,
+    )
+    window._reader.reload_from_disk(focus_simplified_level=CEFRLevel.B1)
+    qtbot.wait(50)
+
+    index = LibraryIndex(data_root)
+    record = index.list_by_lang("es")[0]
+    folder = Path(record.folder)
+    assert variant_path(folder, "simplified-a2").is_file()
+    assert variant_path(folder, "simplified-b1").is_file()
+    assert suggestions_path(folder, "simplified-b1").is_file()
+    assert window.reader.active_tab_id == "simplified-b1"
+
+    assert _simplified_level_tab(window, "A2").isVisible()
+    assert _simplified_level_tab(window, "B1").isVisible()
+
+    panel = window.reader.findChild(QWidget, "word_panel")
+    assert panel is not None and panel.isVisible()
+    new_table = panel.findChild(QTableWidget, "word_panel_new_table")
+    assert new_table is not None
+    assert new_table.rowCount() == 1
+    assert new_table.item(0, 0) is not None
+    assert new_table.item(0, 0).text() == "correr"
 
 
 def _seed_simplified_a2_with_b2_suggestion(data_root: Path) -> None:
@@ -367,7 +421,7 @@ def test_word_panel_add_uses_suggestion_level_not_active_tab(qtbot, tmp_path) ->
     window = _open_reader_window(qtbot, data_root)
     _click_sidebar_text(qtbot, window)
 
-    simplified_tab = window.reader.findChild(QPushButton, "reader_tab_simplified")
+    simplified_tab = _simplified_level_tab(window)
     assert simplified_tab is not None
     qtbot.mouseClick(simplified_tab, Qt.MouseButton.LeftButton)
     qtbot.wait(50)
@@ -396,7 +450,7 @@ def test_new_words_add_persists_vocabulary_entry(qtbot, tmp_path) -> None:
     window = _open_reader_window(qtbot, data_root)
     _click_sidebar_text(qtbot, window)
 
-    simplified_tab = window.reader.findChild(QPushButton, "reader_tab_simplified")
+    simplified_tab = _simplified_level_tab(window)
     assert simplified_tab is not None
     qtbot.mouseClick(simplified_tab, Qt.MouseButton.LeftButton)
     qtbot.wait(50)
@@ -419,7 +473,7 @@ def test_new_words_add_enqueues_vocabulary_embed_job(qtbot, tmp_path) -> None:
     window = _open_reader_window(qtbot, data_root)
     _click_sidebar_text(qtbot, window)
 
-    simplified_tab = window.reader.findChild(QPushButton, "reader_tab_simplified")
+    simplified_tab = _simplified_level_tab(window)
     assert simplified_tab is not None
     qtbot.mouseClick(simplified_tab, Qt.MouseButton.LeftButton)
     qtbot.wait(50)
@@ -450,9 +504,12 @@ def test_translated_tab_shows_placeholder_when_variant_missing(qtbot, tmp_path) 
     assert "not available yet" in read_pane.toPlainText().lower()
 
 
-def test_simplify_click_shows_pending_tab_before_worker_runs(qtbot, tmp_path) -> None:
+def test_simplify_click_shows_pending_tab_before_worker_runs(
+    qtbot, tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     data_root = tmp_path / "LexiFlow"
     _seed_reader_text(data_root)
+    _patch_simplify_level(monkeypatch, CEFRLevel.A2)
     window = _open_reader_window_without_worker(qtbot, data_root)
     _click_sidebar_text(qtbot, window)
 
@@ -461,8 +518,7 @@ def test_simplify_click_shows_pending_tab_before_worker_runs(qtbot, tmp_path) ->
     qtbot.mouseClick(simplify_button, Qt.MouseButton.LeftButton)
     qtbot.wait(50)
 
-    simplified_tab = window.reader.findChild(QPushButton, "reader_tab_simplified")
-    assert simplified_tab is not None
+    simplified_tab = _simplified_level_tab(window)
     assert simplified_tab.isVisible()
     assert window.reader.active_tab_id == "simplified-a2"
     read_pane = window.reader.findChild(QTextBrowser, "reader_read_pane")
@@ -474,9 +530,12 @@ def test_simplify_click_shows_pending_tab_before_worker_runs(qtbot, tmp_path) ->
     )
 
 
-def test_simplify_click_worker_completion_shows_simplified_tab(qtbot, tmp_path) -> None:
+def test_simplify_click_worker_completion_shows_simplified_tab(
+    qtbot, tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     data_root = tmp_path / "LexiFlow"
     _seed_reader_text(data_root)
+    _patch_simplify_level(monkeypatch, CEFRLevel.A2)
     window = _open_reader_window_without_worker(qtbot, data_root)
     _click_sidebar_text(qtbot, window)
 
@@ -488,7 +547,8 @@ def test_simplify_click_worker_completion_shows_simplified_tab(qtbot, tmp_path) 
     jobs = JobService(data_root)
     run_worker_loop(jobs, FakeLLM(response=_valid_simplify_json()), data_root=data_root)
 
-    qtbot.wait(700)
+    window._reader.reload_from_disk(focus_simplified_level=CEFRLevel.A2)
+    qtbot.wait(50)
 
     assert window.reader.active_tab_id == "simplified-a2"
     read_pane = window.reader.findChild(QTextBrowser, "reader_read_pane")
@@ -496,9 +556,12 @@ def test_simplify_click_worker_completion_shows_simplified_tab(qtbot, tmp_path) 
     assert "Texto simple" in read_pane.toPlainText()
 
 
-def test_simplify_click_worker_failure_hides_simplified_tab(qtbot, tmp_path) -> None:
+def test_simplify_click_worker_failure_hides_simplified_tab(
+    qtbot, tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     data_root = tmp_path / "LexiFlow"
     _seed_reader_text(data_root)
+    _patch_simplify_level(monkeypatch, CEFRLevel.A2)
     window = _open_reader_window_without_worker(qtbot, data_root)
     _click_sidebar_text(qtbot, window)
 
@@ -510,9 +573,10 @@ def test_simplify_click_worker_failure_hides_simplified_tab(qtbot, tmp_path) -> 
     jobs = JobService(data_root)
     run_worker_loop(jobs, FakeLLM(response="not json"), data_root=data_root)
 
-    qtbot.wait(700)
+    window._reader.reload_from_disk()
+    qtbot.wait(50)
 
-    simplified_tab = window.reader.findChild(QPushButton, "reader_tab_simplified")
+    simplified_tab = window.reader.findChild(QPushButton, "reader_tab_simplified_a2")
     assert simplified_tab is None or not simplified_tab.isVisible()
     failed = [
         job

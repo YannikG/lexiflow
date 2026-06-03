@@ -41,7 +41,7 @@ CEFR level is not encoded in folder paths. **Level** on groups or texts is forbi
 
 ## spaCy download job
 
-Adding a target language from onboarding enqueues `JobType.DOWNLOAD_SPACY` with payload `{"iso": "<code>"}`. The worker handler is wired in a later phase; persistence is established in phase 06.
+Adding a target language from onboarding enqueues `JobType.DOWNLOAD_SPACY` with payload `{"iso": "<code>"}`. The worker installs the pack under `{data_root}/.app/spacy/{iso}/`.
 
 ## Remove target language (phase 12)
 

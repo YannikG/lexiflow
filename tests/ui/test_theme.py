@@ -16,7 +16,7 @@ from PySide6.QtWidgets import QApplication, QTextBrowser
 
 # Shell modules listed in packages/lexiflow-ui/docs/concepts/ui-theme.md
 _SHELL_MODULE_PATHS = (
-    "main_window.py",
+    "main_window/window.py",
     "widgets/sidebar.py",
     "widgets/empty_state.py",
     "widgets/reader_widget.py",

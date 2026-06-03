@@ -171,7 +171,7 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Jobs panel** — Full list and controls for **background jobs**.
 
-**Worker status** — **Status bar** shows worker state (idle, running, loading models, offline), active job count, and **LLM toggle**.
+**Worker status** — **Status bar** shows worker state (idle, running, loading models, offline), active job count, and a link to the **jobs panel**.
 
 **Single instance** — Only one app instance per user session. Second launch offers open existing window or close. Prevents database and file contention. **Stale single-instance recovery** clears ghost locks after crash if needed.
 
@@ -207,7 +207,7 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Application shell** — Main window: toolbar, **sidebar**, content area, **status bar**, **navigation modes**.
 
-**Settings** — Post-onboarding configuration: languages, Ollama, Hugging Face token, data root, **Theme**, **Appearance**, models, backup, trash, logs, **about dialog**, **reset app**. Distinct from **onboarding flow**.
+**Settings** — Post-onboarding configuration dialog under **Options**: native language, **Provider mode** (native llama-server or **Ollama endpoint**), Hugging Face token, **Theme**, **Appearance** (reader font size), **Model updates**, and **reset app**. Library backup, trash, and **about dialog** live in **Options** / **Library** menus. **data root** remains in `settings.toml` (not yet editable in the dialog). Distinct from **onboarding flow**.
 
 **About dialog** — App version, **system requirements**, open logs, project and license info.
 
@@ -273,7 +273,7 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **App config directory** — Machine-local directory resolved at startup before **data root**. Holds `settings.toml` (**global settings**). Uses OS conventions (Application Support on macOS, AppData on Windows, XDG config on Linux).
 
-**Global settings** — Machine-local preferences in `settings.toml` under **app config directory**: native language, Ollama endpoint, **data root** pointer, LLM toggle, onboarding flags, theme. Read before opening the user library so **data root** override has no bootstrap chicken-and-egg.
+**Global settings** — Machine-local preferences in `settings.toml` under **app config directory**: native language, active target language, Ollama endpoint, optional Hugging Face token, **data root** pointer, reader font size, onboarding flags, **Theme**. Read before opening the user library so **data root** override has no bootstrap chicken-and-egg.
 
 **Library backup** — Export entire **data root** as zip. Does not include **global settings** (machine-local). Restore to new folder or replace current library with **strong confirmation**.
 
@@ -318,8 +318,6 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 **Reset app** — Wipes all local data and re-runs **onboarding flow**. **Strong confirmation** required.
 
 **Pinned model terms** — Native LLM weights may be subject to upstream licenses (e.g. Gemma) in addition to app Apache 2.0. Users accept terms via Hugging Face when models are fetched.
-
-**LLM toggle** — Force LLM off or allow auto-load from **status bar** or **settings**.
 
 **Model updates** — User-initiated check for newer pinned revisions. No silent auto-upgrade in v1.
 
@@ -407,7 +405,6 @@ Canonical terms (alphabetical):
 - LLM job UX
 - LLM provider
 - LLM structured output
-- LLM toggle
 - Language Learn App
 - Language auto-detect
 - Language catalog

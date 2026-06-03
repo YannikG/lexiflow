@@ -59,6 +59,7 @@ def run_worker_loop(
                 JobType.EMBED,
                 JobType.SIMPLIFY,
                 JobType.LEMMA,
+                JobType.DOWNLOAD_SPACY,
             ):
                 process_job(
                     job,

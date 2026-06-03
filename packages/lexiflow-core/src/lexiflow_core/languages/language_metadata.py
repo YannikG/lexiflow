@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from lexiflow_core.languages.models import CEFRLevel
+LANGUAGE_METADATA_VERSION = 1
 
 
 class LanguageMetadataError(Exception):
@@ -16,10 +16,12 @@ class LanguageMetadataError(Exception):
 
 @dataclass(frozen=True)
 class LanguageMetadata:
-    user_level: CEFRLevel
+    """Marker that a target language folder is registered."""
+
+    version: int = LANGUAGE_METADATA_VERSION
 
     def to_dict(self) -> dict[str, Any]:
-        return {"user_level": self.user_level.value}
+        return {"version": self.version}
 
 
 def save_language_metadata(path: Path, metadata: LanguageMetadata) -> None:
@@ -42,11 +44,10 @@ def load_language_metadata(path: Path) -> LanguageMetadata:
         raise LanguageMetadataError(f"invalid language metadata: {path}") from exc
     if not isinstance(raw, dict):
         raise LanguageMetadataError(f"invalid language metadata: {path}")
-    level_value = raw.get("user_level")
-    if not isinstance(level_value, str):
-        raise LanguageMetadataError("missing user_level in language metadata")
-    try:
-        user_level = CEFRLevel(level_value)
-    except ValueError as exc:
-        raise LanguageMetadataError(f"invalid user_level: {level_value}") from exc
-    return LanguageMetadata(user_level=user_level)
+    # Legacy files may contain only user_level; treat as registered target.
+    version = raw.get("version", LANGUAGE_METADATA_VERSION)
+    if not isinstance(version, int):
+        if "user_level" in raw:
+            return LanguageMetadata(version=LANGUAGE_METADATA_VERSION)
+        raise LanguageMetadataError("invalid version in language metadata")
+    return LanguageMetadata(version=version)

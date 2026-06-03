@@ -200,6 +200,71 @@ def test_recover_on_startup_moves_running_to_pending(
     assert jobs[0].started_at is None
 
 
+def test_list_queue_jobs_includes_pending_when_completed_history_is_large(
+    job_service: JobService,
+) -> None:
+    for index in range(25):
+        job_id = job_service.enqueue(
+            JobRequest(
+                job_type=JobType.EMBED,
+                payload={"prompt": f"hist-{index}"},
+            )
+        )
+        claimed = job_service.claim_next()
+        assert claimed is not None
+        job_service.complete(job_id, {"text": f"result-{index}"})
+        time.sleep(0.001)
+
+    pending_id = job_service.enqueue(
+        JobRequest(job_type=JobType.CLEANUP, payload={"text_id": "active"})
+    )
+
+    queue_jobs = job_service.list_queue_jobs()
+    statuses = {job.status for job in queue_jobs}
+    queue_ids = {job.id for job in queue_jobs}
+
+    assert JobStatus.PENDING in statuses
+    assert pending_id in queue_ids
+    assert JobStatus.COMPLETED not in statuses
+    assert JobStatus.FAILED not in statuses
+
+
+def test_list_completed_jobs_returns_only_completed(job_service: JobService) -> None:
+    completed_id = job_service.enqueue(
+        JobRequest(job_type=JobType.CLEANUP, payload={"text_id": "done"})
+    )
+    claimed = job_service.claim_next()
+    assert claimed is not None
+    job_service.complete(completed_id, {"ok": True})
+    job_service.enqueue(
+        JobRequest(job_type=JobType.CLEANUP, payload={"text_id": "wait"})
+    )
+
+    completed_jobs = job_service.list_completed_jobs()
+    statuses = {job.status for job in completed_jobs}
+
+    assert statuses == {JobStatus.COMPLETED}
+    assert completed_id in {job.id for job in completed_jobs}
+
+
+def test_list_failed_jobs_excludes_pending_and_running(job_service: JobService) -> None:
+    failed_id = job_service.enqueue(
+        JobRequest(job_type=JobType.DOWNLOAD_SPACY, payload={"iso": "de"})
+    )
+    claimed = job_service.claim_next()
+    assert claimed is not None
+    job_service.fail(failed_id, "download failed")
+    pending_id = job_service.enqueue(
+        JobRequest(job_type=JobType.CLEANUP, payload={"text_id": "wait"})
+    )
+
+    failed_jobs = job_service.list_failed_jobs()
+    failed_ids = {job.id for job in failed_jobs}
+
+    assert failed_id in failed_ids
+    assert pending_id not in failed_ids
+
+
 def test_list_jobs_prunes_completed_beyond_twenty(job_service: JobService) -> None:
     for index in range(25):
         job_id = job_service.enqueue(

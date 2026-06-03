@@ -49,6 +49,9 @@ class TextRepository:
     ) -> TextRecord:
         return self._coordinator.apply_translated_variant(text_id, translated_markdown)
 
+    def remove_simplified_variant(self, text_id: UUID, variant_name: str) -> TextRecord:
+        return self._coordinator.remove_simplified_variant(text_id, variant_name)
+
     def apply_simplified_variant(
         self,
         text_id: UUID,

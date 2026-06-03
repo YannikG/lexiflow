@@ -16,7 +16,7 @@ from lexiflow_core.vocabulary.store import VocabularyStore
 
 def test_remove_target_language_wipes_language_folder(tmp_path: Path) -> None:
     data_root = tmp_path / "LexiFlow"
-    add_target_with_spacy_download(data_root, "es", CEFRLevel.A2)
+    add_target_with_spacy_download(data_root, "es")
     VocabularyStore(data_root, "es").add_entry(
         lemma="correr",
         translation="to run",

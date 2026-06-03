@@ -48,7 +48,7 @@ class ServerProcess(Protocol):
 SHUTDOWN_WAIT_MS = 5000
 
 
-def _model_requires_hf_token(hf_model: str) -> bool:
+def model_requires_hf_token(hf_model: str) -> bool:
     return "gemma" in hf_model.lower()
 
 
@@ -126,7 +126,7 @@ class LlamaServerSupervisor(QObject):
             )
             self._set_state(LlamaServerState.OFFLINE)
             return
-        if _model_requires_hf_token(hf_model) and not self._huggingface_token:
+        if model_requires_hf_token(hf_model) and not self._huggingface_token:
             self._startup_error = hf_token_required_message()
             self._set_state(LlamaServerState.OFFLINE)
             return

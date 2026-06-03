@@ -6,8 +6,8 @@ from lexiflow_ui.widgets.vocabulary_browse_table import VocabularyBrowseTable
 from PySide6.QtWidgets import QTableWidget, QTextBrowser
 
 
-def select_word_in_reader(window, text: str = "Cuerpo") -> str:
-    reader = window.reader
+def select_word_in_reader(window_or_reader, text: str = "Cuerpo") -> str:
+    reader = getattr(window_or_reader, "reader", window_or_reader)
     pane = reader.findChild(QTextBrowser, "reader_read_pane")
     assert pane is not None
     haystack = pane.toPlainText()

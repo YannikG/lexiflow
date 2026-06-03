@@ -7,7 +7,7 @@
 
 - **Jobs panel** with Pending, Running, Failed, Completed history; Retry and Cancel
 - **Shutdown with active jobs**: Wait or Quit anyway
-- **Worker idle lifecycle** and **LLM toggle**; crash → **restart worker**
+- **Worker idle lifecycle**; crash → **restart worker**
 - **Settings**: Ollama, **Hugging Face token**, **data root**, **theme**, appearance
 - **Model updates** UI: wire `ModelStore.check_for_updates()` and edit `huggingface_token` (backend from phase 07)
 - **About dialog**: **system requirements**, version, logs

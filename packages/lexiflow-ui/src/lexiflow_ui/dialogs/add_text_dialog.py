@@ -5,17 +5,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from lexiflow_core.library.defaults import DEFAULT_TEXT_GROUP
 from lexiflow_core.library.document_title import (
     DocumentTitleError,
     normalize_document_title,
 )
-from lexiflow_core.library.group_repository import GroupRepository
-from lexiflow_core.library.index import LibraryIndex, ensure_library_index
+from lexiflow_core.library.index import ensure_library_index
 from lexiflow_core.text_pipeline.models import InputTab
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QButtonGroup,
-    QComboBox,
     QDialog,
     QDialogButtonBox,
     QFormLayout,
@@ -44,7 +43,6 @@ class AddTextDialog(QDialog):
         *,
         data_root: Path,
         target_language: str,
-        groups: list[str],
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -60,13 +58,6 @@ class AddTextDialog(QDialog):
         self._title.setObjectName("add_text_title")
         self._title.setPlaceholderText("Title")
         form.addRow("Title", self._title)
-
-        self._group = QComboBox(self)
-        self._group.setObjectName("add_text_group")
-        self._group.setEditable(True)
-        for name in groups:
-            self._group.addItem(name)
-        form.addRow("Group", self._group)
 
         self._source_url = QLineEdit(self)
         self._source_url.setObjectName("add_text_source_url")
@@ -120,8 +111,6 @@ class AddTextDialog(QDialog):
             normalize_document_title(self._title.text())
         except DocumentTitleError as error:
             return str(error)
-        if not self._group.currentText().strip():
-            return "Enter a group for this text."
         if not self._paste.toPlainText().strip():
             return "Paste or type content to save."
         return None
@@ -130,13 +119,12 @@ class AddTextDialog(QDialog):
         if self._validation_error() is not None:
             return None
         title = normalize_document_title(self._title.text())
-        group = self._group.currentText().strip()
         pasted = self._paste.toPlainText()
         url = self._source_url.text().strip() or None
         tab = InputTab.NATIVE if self._native_tab_btn.isChecked() else InputTab.TARGET
         return AddTextFormData(
             title=title,
-            group=group,
+            group=DEFAULT_TEXT_GROUP,
             pasted_content=pasted,
             input_tab=tab,
             source_url=url,
@@ -166,12 +154,9 @@ def open_add_text_dialog(
 ) -> AddTextFormData | None:
     """Show the add-text dialog and return form data when saved."""
     ensure_library_index(data_root)
-    index = LibraryIndex(data_root)
-    groups = GroupRepository(data_root, index).list_groups(target_language)
     dialog = AddTextDialog(
         data_root=data_root,
         target_language=target_language,
-        groups=groups,
         parent=parent,
     )
     if dialog.exec() != QDialog.DialogCode.Accepted:

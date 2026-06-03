@@ -4,6 +4,8 @@
 
 The **Application shell** is LexiFlow's main window frame: toolbar, **sidebar**, content area, **status bar**, and **navigation modes**. It is the desktop **Desktop shell** entry point users interact with after onboarding.
 
+Implementation: `lexiflow_ui.main_window` package (`window.py` plus mixins for menu, chrome, texts, jobs, navigation, and shell dialogs). Import `MainWindow` from `lexiflow_ui.main_window`.
+
 ## Package boundary
 
 | Package | Role |
@@ -46,7 +48,7 @@ The **Application shell** is LexiFlow's main window frame: toolbar, **sidebar**,
 - **Vocabulary** mode shows `VocabularyWidget` (browse table, search, export/import)
 - **Study** mode shows `StudyWidget` (flashcard deck)
 - Sidebar hidden in Vocabulary mode
-- Vocabulary menu → **Remove target language** with optional export-first flow
+- **Options** menu → vocabulary export/import and **Delete language** (optional export-first flow)
 - Reader **Add word** on translated/simplified tabs
 
 See [vocabulary-study.md](vocabulary-study.md).
@@ -56,11 +58,17 @@ See [vocabulary-study.md](vocabulary-study.md).
 - **Global search UI** toolbar field — see [global-search-ui.md](global-search-ui.md)
 - **Search hit navigation** opens reader on matching variant tab
 - Vocabulary browse **Find in texts** uses the same search rules
-- **Library** menu → **Trash…** for restore and empty, scoped to **active target language** (Texts and Vocabulary tabs)
-- **Options** menu → **library backup** export/restore/replace and **rebuild library index**
+- **Library** menu → **Switch language…** and **Trash…** (restore and empty, scoped to **active target language**)
+- **Options** menu → **library backup** export/restore/replace, **rebuild library index**, vocabulary export/import, and **Delete language**
+
+## Phase 14 (settings and jobs)
+
+- **Jobs panel** (status bar link): queue, success, and failed tabs; retry failed jobs; cancel queue jobs; poll while open
+- **Shutdown with active jobs**: wait or quit anyway (see [worker-supervision.md](worker-supervision.md))
+- **Library** menu → **Switch language…**; **Delete language…** under **Options** opens switch dialog after wipe
+- **Options** → **Settings…** (theme, native language, LLM provider, Ollama URL, HF token, reader font, model updates, reset) and **About LexiFlow…** (version and RAM)
 
 ## Deferred (later phases)
 
 - ~~Sidebar group/text tree~~ → [phase 17 UI cleanup](../../../../docs/roadmap/phases/phase-17-ui-cleanup/README.md)
-- ~~Active target language switcher (read-only label today)~~ → phase 17
-- Jobs panel, quit-with-jobs dialog, worker idle lifecycle (phase 14)
+- Drag between groups, text properties panel, in-app updates banner, full settings data root (phase 14 remainder)

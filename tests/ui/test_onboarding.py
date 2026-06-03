@@ -60,7 +60,6 @@ def _advance_wizard_to_finish(
     wizard.next()
     qtbot.wait(50)
     wizard.target_page.select_language("es")
-    wizard.target_page.select_level("A2")
     finish = wizard.button(QWizard.WizardButton.FinishButton)
     qtbot.mouseClick(finish, Qt.MouseButton.LeftButton)
     qtbot.wait(10)
@@ -234,7 +233,7 @@ def test_target_language_rejects_same_as_native(qtbot, tmp_path: Path) -> None:
     assert wizard.target_page.validatePage() is False
 
 
-def test_toolbar_shows_active_language_and_level(qtbot, tmp_path: Path) -> None:
+def test_toolbar_shows_active_language(qtbot, tmp_path: Path) -> None:
     from lexiflow_ui.worker_supervisor import WorkerSupervisor
 
     config_dir = tmp_path / "config"
@@ -260,8 +259,8 @@ def test_toolbar_shows_active_language_and_level(qtbot, tmp_path: Path) -> None:
     widget = window.active_target_language
     assert widget is not None
     label = widget.label().text()
-    assert "A2" in label
     assert "Spanish" in label
+    assert "(" not in label
 
 
 def test_active_target_language_shows_fallback_for_invalid_iso(
@@ -309,7 +308,6 @@ def test_ollama_path_goes_to_target_language(qtbot, tmp_path: Path) -> None:
     assert wizard.currentPage() is wizard.target_page
 
     wizard.target_page.select_language("es")
-    wizard.target_page.select_level("A2")
     finish = wizard.button(QWizard.WizardButton.FinishButton)
     qtbot.mouseClick(finish, Qt.MouseButton.LeftButton)
     qtbot.wait(10)

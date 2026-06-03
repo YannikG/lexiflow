@@ -5,13 +5,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from lexiflow_core.config.paths import variant_path
 from lexiflow_core.config.settings import Settings
 from lexiflow_core.jobs.embed_queue import (
     enqueue_translated_text_embed,
     enqueue_vocabulary_word_embed,
 )
 from lexiflow_core.jobs.service import JobService
+from lexiflow_core.jobs.simplify_queue import cancel_simplify_jobs
 from lexiflow_core.jobs.text_job_status import pending_simplified_variants
+from lexiflow_core.jobs.translate_queue import enqueue_retranslate
 from lexiflow_core.languages.models import CEFRLevel
 from lexiflow_core.library.document_title import (
     DocumentTitleError,
@@ -36,12 +39,11 @@ from lexiflow_core.simplify.new_words import (
 from lexiflow_core.simplify.suggestions_store import load_suggestions
 from lexiflow_core.vocabulary.models import NewWordSuggestion, VocabularyEntry
 from lexiflow_core.vocabulary.store import VocabularyStore, VocabularyStoreError
-from PySide6.QtCore import Qt, QUrl, Signal
+from PySide6.QtCore import QPoint, Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QFont
 from PySide6.QtWidgets import (
     QAbstractButton,
     QButtonGroup,
-    QComboBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -53,20 +55,24 @@ from PySide6.QtWidgets import (
     QSplitter,
     QStackedWidget,
     QTextBrowser,
-    QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
 from lexiflow_ui.add_word_flow import prompt_edit_word
+from lexiflow_ui.delete_simplify_flow import confirm_delete_simplification
 from lexiflow_ui.delete_text_flow import confirm_delete_text, delete_text_to_trash
+from lexiflow_ui.dialogs.simplify_level_dialog import open_simplify_level_dialog
 from lexiflow_ui.generation_status import generation_indicator
 from lexiflow_ui.llama_server_supervisor import LlamaServerSupervisor
 from lexiflow_ui.reader_add_word import can_add_word_from_tab, open_highlight_add_dialog
 from lexiflow_ui.reader_flow import markdown_for_reader_pane, variant_reader_state
+from lexiflow_ui.reader_selection import (
+    normalize_reader_selection,
+    surface_form_at_read_position,
+)
 from lexiflow_ui.simplify_flow import (
     confirm_simplify_without_translated,
-    default_simplify_level,
     submit_simplify,
 )
 from lexiflow_ui.unsaved_changes import (
@@ -76,6 +82,10 @@ from lexiflow_ui.unsaved_changes import (
 from lexiflow_ui.widgets.vocabulary_delete_undo_banner import VocabularyDeleteUndoBanner
 from lexiflow_ui.widgets.word_panel import WordPanel
 from lexiflow_ui.worker_supervisor import WorkerSupervisor
+
+
+def _simplified_tab_object_name(variant_name: str) -> str:
+    return f"reader_tab_{variant_name.replace('-', '_')}"
 
 
 @dataclass(frozen=True)
@@ -110,10 +120,11 @@ class ReaderWidget(QWidget):
         self._index: LibraryIndex | None = None
         self._settings: Settings | None = None
         self._active_tab = TRANSLATED_TAB
+        self._active_simplified_level: CEFRLevel | None = None
         self._simplified_variants: tuple[str, ...] = ()
         self._loaded_markdown: str | None = None
-        self._tab_buttons: dict[str, QPushButton | QToolButton] = {}
-        self._single_simplified_variant: str | None = None
+        self._tab_buttons: dict[str, QPushButton] = {}
+        self._simplified_tab_buttons: dict[str, QPushButton] = {}
         self._edit_snapshot: _EditSnapshot | None = None
         self._tab_button_group = QButtonGroup(self)
         self._tab_button_group.setExclusive(True)
@@ -155,29 +166,33 @@ class ReaderWidget(QWidget):
         )
         tab_row.addWidget(self._native_tab)
         tab_row.addWidget(self._translated_tab)
-        self._simplified_tab = self._make_tab_button(
-            "Simplified", "", "reader_tab_simplified"
+        self._simplified_tabs_host = QWidget(self)
+        self._simplified_tabs_host.setObjectName("reader_simplified_tabs")
+        self._simplified_tab_layout = QHBoxLayout(self._simplified_tabs_host)
+        self._simplified_tab_layout.setContentsMargins(0, 0, 0, 0)
+        self._simplified_tab_layout.setSpacing(4)
+        tab_row.addWidget(self._simplified_tabs_host)
+        tab_row.addStretch(1)
+        self._retranslate_button = QPushButton("Re-translate", self)
+        self._retranslate_button.setObjectName("reader_retranslate_button")
+        self._retranslate_button.clicked.connect(self._run_retranslate)
+        self._resimplify_button = QPushButton("Re-simplify", self)
+        self._resimplify_button.setObjectName("reader_resimplify_button")
+        self._resimplify_button.clicked.connect(self._run_resimplify)
+        self._delete_simplification_button = QPushButton("Delete simplification", self)
+        self._delete_simplification_button.setObjectName(
+            "reader_delete_simplification_button"
         )
-        self._simplified_tab.hide()
-        tab_row.addWidget(self._simplified_tab)
-        self._simplified_menu = QToolButton(self)
-        self._simplified_menu.setObjectName("reader_simplified_menu")
-        self._simplified_menu.setText("Simplified")
-        self._simplified_menu.setCheckable(True)
-        self._simplified_menu.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        self._register_tab_button(self._simplified_menu)
-        self._simplified_menu.hide()
-        tab_row.addWidget(self._simplified_menu)
-        self._simplify_level = QComboBox(self)
-        self._simplify_level.setObjectName("reader_simplify_level")
-        for level in CEFRLevel:
-            self._simplify_level.addItem(level.value, level)
+        self._delete_simplification_button.clicked.connect(
+            self._run_delete_simplification
+        )
         self._simplify_button = QPushButton("Simplify", self)
         self._simplify_button.setObjectName("reader_simplify_button")
         self._simplify_button.clicked.connect(self._run_simplify)
-        tab_row.addWidget(self._simplify_level)
+        tab_row.addWidget(self._retranslate_button)
+        tab_row.addWidget(self._resimplify_button)
+        tab_row.addWidget(self._delete_simplification_button)
         tab_row.addWidget(self._simplify_button)
-        tab_row.addStretch(1)
         root.addLayout(tab_row)
 
         self._mode_stack = QStackedWidget(self)
@@ -269,7 +284,6 @@ class ReaderWidget(QWidget):
         self._translated_tab.clicked.connect(
             lambda: self.request_select_tab(TRANSLATED_TAB)
         )
-        self._simplified_tab.clicked.connect(self._select_single_simplified_tab)
 
     @property
     def active_tab_id(self) -> str:
@@ -289,6 +303,22 @@ class ReaderWidget(QWidget):
 
     def leave_edit_mode_without_save(self) -> None:
         self._show_read_mode()
+
+    def close_open_text(self) -> None:
+        """Unload the current text (e.g. when the active target language changes)."""
+        self.leave_edit_mode_without_save()
+        self._record = None
+        self._repo = None
+        self._index = None
+        self._loaded_markdown = None
+        self._active_tab = TRANSLATED_TAB
+        self._active_simplified_level = None
+        self._simplified_variants = ()
+        self._configure_simplified_tabs()
+        self._library_title.clear()
+        self._read_pane.clear()
+        self._word_panel.clear()
+        self._hide_generation_banner()
 
     def confirm_leave_edit_mode(self, parent: QWidget | None = None) -> bool:
         """Return True when navigation may proceed away from edit mode."""
@@ -313,7 +343,6 @@ class ReaderWidget(QWidget):
         self._refresh_simplified_variants()
         self._configure_simplified_tabs()
         self._library_title.setText(record.title)
-        self._configure_simplify_level(record.target_language)
         self._update_source_url_controls()
         self._apply_reader_font()
         self._show_read_mode()
@@ -334,6 +363,7 @@ class ReaderWidget(QWidget):
         if self._record is None or self._repo is None:
             return
         self._active_tab = tab_id
+        self._active_simplified_level = level_from_simplified_variant(tab_id)
         self._update_tab_buttons()
         self._show_read_mode()
         markdown, status_message, edit_enabled = variant_reader_state(
@@ -355,7 +385,6 @@ class ReaderWidget(QWidget):
         self._edit_button.setEnabled(edit_enabled)
         rendered = markdown_for_reader_pane(markdown, document_title=None)
         self._read_pane.setMarkdown(rendered)
-        self._sync_simplify_level_picker()
         self._refresh_word_panel()
         self.tab_changed.emit(tab_id)
 
@@ -418,9 +447,6 @@ class ReaderWidget(QWidget):
         self._generation_banner.hide()
         self._generation_progress.hide()
 
-    def simplified_menu(self) -> QToolButton:
-        return self._simplified_menu
-
     def _register_tab_button(self, button: QAbstractButton) -> None:
         button.setCheckable(True)
         if button not in self._tab_button_group.buttons():
@@ -436,10 +462,6 @@ class ReaderWidget(QWidget):
             self._tab_buttons[tab_id] = button
         return button
 
-    def _select_single_simplified_tab(self) -> None:
-        if self._single_simplified_variant is not None:
-            self.request_select_tab(self._single_simplified_variant)
-
     def _refresh_simplified_variants(self) -> None:
         if self._record is None:
             self._simplified_variants = ()
@@ -453,45 +475,87 @@ class ReaderWidget(QWidget):
         self._simplified_variants = tuple(dict.fromkeys(merged))
 
     def _configure_simplified_tabs(self) -> None:
-        self._simplified_tab.hide()
-        self._simplified_menu.hide()
-        self._simplified_menu.setMenu(None)
-        self._single_simplified_variant = None
-        for variant in self._simplified_variants:
+        for variant, button in list(self._simplified_tab_buttons.items()):
+            self._tab_button_group.removeButton(button)
+            self._simplified_tab_layout.removeWidget(button)
             self._tab_buttons.pop(variant, None)
+            button.deleteLater()
+        self._simplified_tab_buttons.clear()
 
-        if not self._simplified_variants:
-            return
-
-        if len(self._simplified_variants) == 1:
-            variant = self._simplified_variants[0]
-            label = simplified_tab_label(variant)
-            self._single_simplified_variant = variant
-            self._simplified_tab.setText(f"Simplified ({label})")
-            self._simplified_tab.show()
-            self._tab_buttons[variant] = self._simplified_tab
-            return
-
-        menu = QMenu(self)
         for variant in self._simplified_variants:
             label = simplified_tab_label(variant)
-            action = menu.addAction(label)
-            action.triggered.connect(
+            button = QPushButton(label, self._simplified_tabs_host)
+            button.setObjectName(_simplified_tab_object_name(variant))
+            self._register_tab_button(button)
+            button.clicked.connect(
                 lambda _checked=False, tab=variant: self.request_select_tab(tab)
             )
-            self._tab_buttons[variant] = self._simplified_menu
-        self._simplified_menu.setMenu(menu)
-        self._simplified_menu.show()
+            self._simplified_tab_layout.addWidget(button)
+            self._simplified_tab_buttons[variant] = button
+            self._tab_buttons[variant] = button
 
     def _update_tab_buttons(self) -> None:
         for tab_id, button in self._tab_buttons.items():
-            if button is self._simplified_menu:
-                continue
             button.setChecked(tab_id == self._active_tab)
-        if self._simplified_menu.isVisible():
-            self._simplified_menu.setChecked(
-                self._active_tab in self._simplified_variants
+        self._update_reader_action_buttons()
+
+    def _update_reader_action_buttons(self) -> None:
+        on_translated = self._active_tab == TRANSLATED_TAB
+        on_simplified = self._active_simplified_level is not None
+        if on_translated:
+            self._retranslate_button.show()
+            self._simplify_button.show()
+        else:
+            self._retranslate_button.hide()
+            self._simplify_button.hide()
+        if on_simplified:
+            self._resimplify_button.show()
+            self._delete_simplification_button.show()
+            self._resimplify_button.setEnabled(self._can_resimplify_active_level())
+            self._delete_simplification_button.setEnabled(
+                self._can_delete_active_simplification()
             )
+        else:
+            self._resimplify_button.hide()
+            self._delete_simplification_button.hide()
+
+    def _can_resimplify_active_level(self) -> bool:
+        if self._active_simplified_level is None:
+            return False
+        on_disk = self._simplified_variant_on_disk()
+        pending = self._pending_simplify_for_active_tab()
+        return on_disk or pending
+
+    def _can_delete_active_simplification(self) -> bool:
+        if self._record is None or self._active_simplified_level is None:
+            return False
+        if self._simplified_variant_on_disk():
+            return True
+        return self._pending_simplify_for_active_tab()
+
+    def _simplified_variant_on_disk(self) -> bool:
+        if self._record is None:
+            return False
+        level = level_from_simplified_variant(self._active_tab)
+        if level is None:
+            return False
+        path = variant_path(Path(self._record.folder), self._active_tab)
+        return path.is_file()
+
+    def _pending_simplify_for_active_tab(self) -> bool:
+        if self._record is None or self._data_root is None:
+            return False
+        if self._active_tab not in self._simplified_variants:
+            return False
+        if self._simplified_variant_on_disk():
+            return False
+        jobs = JobService(self._data_root).list_jobs()
+        pending = pending_simplified_variants(jobs, text_id=self._record.id)
+        return self._active_tab in pending
+
+    def reload_font_from_settings(self, settings: Settings) -> None:
+        self._settings = settings
+        self._apply_reader_font()
 
     def _apply_reader_font(self) -> None:
         if self._settings is None:
@@ -596,33 +660,17 @@ class ReaderWidget(QWidget):
             return
         QDesktopServices.openUrl(QUrl(self._record.source_url))
 
-    def _configure_simplify_level(self, target_language: str) -> None:
-        if self._data_root is None:
-            return
-        if level_from_simplified_variant(self._active_tab) is not None:
-            self._sync_simplify_level_picker()
-            return
-        level = default_simplify_level(self._data_root, target_language)
-        index = self._simplify_level.findData(level)
-        if index >= 0:
-            self._simplify_level.setCurrentIndex(index)
-
-    def _sync_simplify_level_picker(self) -> None:
-        level = level_from_simplified_variant(self._active_tab)
-        if level is None:
-            return
-        index = self._simplify_level.findData(level)
-        if index >= 0:
-            self._simplify_level.setCurrentIndex(index)
-
-    def _selected_simplify_level(self) -> CEFRLevel:
-        tab_level = level_from_simplified_variant(self._active_tab)
-        if tab_level is not None:
-            return tab_level
-        level_value = self._simplify_level.currentData()
-        if isinstance(level_value, CEFRLevel):
-            return level_value
-        return CEFRLevel(self._simplify_level.currentText())
+    def _enqueue_simplify(self, level: CEFRLevel) -> None:
+        submit_simplify(
+            data_root=self._data_root,
+            text_id=self._record.id,
+            level=level,
+        )
+        variant = simplified_variant_name(level)
+        self._refresh_simplified_variants()
+        self._configure_simplified_tabs()
+        self.select_tab(variant)
+        self.simplify_submitted.emit()
 
     def _run_simplify(self) -> None:
         if (
@@ -639,16 +687,68 @@ class ReaderWidget(QWidget):
         except FileNotFoundError:
             confirm_simplify_without_translated(self)
             return
-        level = self._selected_simplify_level()
-        submit_simplify(
+        level = open_simplify_level_dialog(
+            self,
             data_root=self._data_root,
-            text_id=self._record.id,
-            level=level,
+            target_language=self._record.target_language,
         )
-        variant = simplified_variant_name(level)
+        if level is None:
+            return
+        self._enqueue_simplify(level)
+
+    def _run_resimplify(self) -> None:
+        if (
+            self._record is None
+            or self._repo is None
+            or self._data_root is None
+            or self._supervisor is None
+        ):
+            return
+        if not self.confirm_leave_edit_mode(self):
+            return
+        try:
+            self._repo.read_variant(self._record.id, TRANSLATED_TAB)
+        except FileNotFoundError:
+            confirm_simplify_without_translated(self)
+            return
+        level = self._active_simplified_level
+        if level is None or not self._can_resimplify_active_level():
+            return
+        self._enqueue_simplify(level)
+
+    def _run_delete_simplification(self) -> None:
+        if self._record is None or self._repo is None or self._data_root is None:
+            return
+        if not self.confirm_leave_edit_mode(self):
+            return
+        level = self._active_simplified_level
+        if level is None or not self._can_delete_active_simplification():
+            return
+        label = simplified_tab_label(self._active_tab)
+        if not confirm_delete_simplification(self, level_label=label):
+            return
+        variant_name = self._active_tab
+        if self._simplified_variant_on_disk():
+            updated = self._repo.remove_simplified_variant(
+                self._record.id, variant_name
+            )
+            self._record = updated
+        cancel_simplify_jobs(
+            JobService(self._data_root),
+            self._record.id,
+            level.value,
+        )
         self._refresh_simplified_variants()
         self._configure_simplified_tabs()
-        self.select_tab(variant)
+        self.select_tab(TRANSLATED_TAB)
+        self.text_saved.emit()
+
+    def _run_retranslate(self) -> None:
+        if self._record is None or self._data_root is None:
+            return
+        if not self.confirm_leave_edit_mode(self):
+            return
+        enqueue_retranslate(JobService(self._data_root), self._record.id)
         self.simplify_submitted.emit()
 
     def _delete_text(self) -> None:
@@ -704,22 +804,26 @@ class ReaderWidget(QWidget):
     def _show_read_context_menu(self, position: object) -> None:
         if self._record is None or not can_add_word_from_tab(self._active_tab):
             return
-        from PySide6.QtCore import QPoint
-
         if not isinstance(position, QPoint):
             return
+        surface_form = surface_form_at_read_position(self._read_pane, position)
         menu = QMenu(self)
         add_action = menu.addAction("Add word")
-        chosen = menu.exec(self._read_pane.mapToGlobal(position))
-        if chosen is not add_action:
-            return
-        self.request_add_word_from_selection()
+        if surface_form:
+            add_action.triggered.connect(
+                lambda _checked=False, form=surface_form: self._highlight_add_word(
+                    surface_form=form
+                )
+            )
+        else:
+            add_action.setEnabled(False)
+        menu.exec(self._read_pane.mapToGlobal(position))
 
     def request_add_word_from_selection(self) -> bool:
         """Add the current reader selection to vocabulary."""
         return self._highlight_add_word()
 
-    def _highlight_add_word(self) -> bool:
+    def _highlight_add_word(self, *, surface_form: str | None = None) -> bool:
         if (
             self._record is None
             or self._data_root is None
@@ -727,9 +831,10 @@ class ReaderWidget(QWidget):
             or self._settings.native_language is None
         ):
             return False
-        surface_form = (
-            self._read_pane.textCursor().selectedText().replace("\u2029", " ").strip()
-        )
+        if surface_form is None:
+            surface_form = normalize_reader_selection(
+                self._read_pane.textCursor().selectedText()
+            )
         saved = open_highlight_add_dialog(
             self,
             data_root=self._data_root,

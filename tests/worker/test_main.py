@@ -163,13 +163,13 @@ def test_main_completes_simplify_job_with_fake_llm(tmp_path: Path) -> None:
     assert jobs[0].job_type == JobType.SIMPLIFY
 
 
-def test_main_fails_simplify_job_when_llm_disabled(tmp_path: Path) -> None:
+def test_main_fails_simplify_job_when_llm_unavailable(tmp_path: Path) -> None:
     from lexiflow_core.config.paths import variant_path
     from lexiflow_core.jobs.simplify_queue import enqueue_simplify
     from lexiflow_core.library.library_coordinator import LibraryCoordinator
     from lexiflow_core.library.models import CreateTextRequest
     from lexiflow_core.library.text_repository import TextRepository
-    from lexiflow_core.llm.disabled import DisabledLLM
+    from lexiflow_core.llm.unavailable import UnavailableLLM
 
     data_root = tmp_path / "LexiFlow"
     coordinator, index = LibraryCoordinator.open(data_root)
@@ -188,7 +188,10 @@ def test_main_fails_simplify_job_when_llm_disabled(tmp_path: Path) -> None:
     job_service = JobService(data_root)
     enqueue_simplify(job_service, record.id, "A2")
 
-    with patch("lexiflow_worker.main.resolve_llm", return_value=DisabledLLM()):
+    with patch(
+        "lexiflow_worker.main.resolve_llm",
+        return_value=UnavailableLLM("Native LLM is not ready."),
+    ):
         assert main(["--data-root", str(data_root)]) == 0
 
     assert not variant_path(Path(record.folder), "simplified-a2").exists()

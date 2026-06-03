@@ -17,14 +17,13 @@ _TOKEN_FILES: dict[EffectiveTheme, str] = {
 TAB_PUSH_BUTTON_IDS = (
     "reader_tab_native",
     "reader_tab_translated",
-    "reader_tab_simplified",
     "add_text_tab_native",
     "add_text_tab_target",
 )
 
 _TAB_SELECTORS = tuple(
     f"QPushButton#{object_name}" for object_name in TAB_PUSH_BUTTON_IDS
-) + ("QToolButton#reader_simplified_menu",)
+) + ('QPushButton[objectName^="reader_tab_simplified_"]',)
 
 
 def _tab_selectors(*, pseudo: str | None = None) -> str:
@@ -63,6 +62,19 @@ def build_theme_stylesheet(effective: EffectiveTheme) -> str:
         "QPushButton#empty_state_action",
         "QPushButton#trash_empty_button",
         "QPushButton#trash_close_button",
+        "QPushButton#jobs_panel_close_button",
+        "QPushButton#reader_retranslate_button",
+        "QPushButton#reader_resimplify_button",
+        "QPushButton#reader_delete_simplification_button",
+        "QPushButton#switch_language_add_button",
+        "QPushButton#switch_language_cancel_button",
+        "QPushButton#settings_change_native_language",
+        "QPushButton#settings_test_ollama",
+        "QPushButton#settings_hf_token_link",
+        "QPushButton#settings_check_updates",
+        "QPushButton#settings_download_updates",
+        "QPushButton#settings_reset_button",
+        "QPushButton#settings_cancel_button",
     )
     secondary_selectors = ",\n".join(secondary_buttons)
     tab_selectors = _tab_selectors()
@@ -197,6 +209,13 @@ QStatusBar {{
   border-top: 1px solid {color("statusBar.border")};
 }}
 
+QStatusBar QLabel,
+QLabel#worker_status_message {{
+  color: {color("statusBar.foreground")};
+  background: transparent;
+  padding: 2px 4px;
+}}
+
 QPushButton {{
   background-color: {color("button.background")};
   color: {color("button.foreground")};
@@ -306,7 +325,8 @@ QLabel#vocabulary_study_explanation {{
 }}
 
 QTableWidget#word_panel_new_table,
-QTableWidget#word_panel_learned_table {{
+QTableWidget#word_panel_learned_table,
+QTableWidget#jobs_panel_table {{
   background-color: {color("reader.panelBackground")};
   border: none;
   gridline-color: {color("reader.border")};
@@ -315,7 +335,8 @@ QTableWidget#word_panel_learned_table {{
 QTextBrowser#reader_read_pane QScrollBar:vertical,
 QTextBrowser#reader_edit_preview_pane QScrollBar:vertical,
 QTableWidget#word_panel_new_table QScrollBar:vertical,
-QTableWidget#word_panel_learned_table QScrollBar:vertical {{
+QTableWidget#word_panel_learned_table QScrollBar:vertical,
+QTableWidget#jobs_panel_table QScrollBar:vertical {{
   background: {color("reader.scrollbarBackground")};
   width: 10px;
   margin: 0;
@@ -324,7 +345,8 @@ QTableWidget#word_panel_learned_table QScrollBar:vertical {{
 QTextBrowser#reader_read_pane QScrollBar::handle:vertical,
 QTextBrowser#reader_edit_preview_pane QScrollBar::handle:vertical,
 QTableWidget#word_panel_new_table QScrollBar::handle:vertical,
-QTableWidget#word_panel_learned_table QScrollBar::handle:vertical {{
+QTableWidget#word_panel_learned_table QScrollBar::handle:vertical,
+QTableWidget#jobs_panel_table QScrollBar::handle:vertical {{
   background: {color("reader.scrollbarThumb")};
   min-height: 24px;
   border-radius: 4px;
@@ -333,14 +355,16 @@ QTableWidget#word_panel_learned_table QScrollBar::handle:vertical {{
 QTextBrowser#reader_read_pane QScrollBar::handle:vertical:hover,
 QTextBrowser#reader_edit_preview_pane QScrollBar::handle:vertical:hover,
 QTableWidget#word_panel_new_table QScrollBar::handle:vertical:hover,
-QTableWidget#word_panel_learned_table QScrollBar::handle:vertical:hover {{
+QTableWidget#word_panel_learned_table QScrollBar::handle:vertical:hover,
+QTableWidget#jobs_panel_table QScrollBar::handle:vertical:hover {{
   background: {color("reader.scrollbarThumbHover")};
 }}
 
 QTextBrowser#reader_read_pane QScrollBar:horizontal,
 QTextBrowser#reader_edit_preview_pane QScrollBar:horizontal,
 QTableWidget#word_panel_new_table QScrollBar:horizontal,
-QTableWidget#word_panel_learned_table QScrollBar:horizontal {{
+QTableWidget#word_panel_learned_table QScrollBar:horizontal,
+QTableWidget#jobs_panel_table QScrollBar:horizontal {{
   background: {color("reader.scrollbarBackground")};
   height: 10px;
   margin: 0;
@@ -349,7 +373,8 @@ QTableWidget#word_panel_learned_table QScrollBar:horizontal {{
 QTextBrowser#reader_read_pane QScrollBar::handle:horizontal,
 QTextBrowser#reader_edit_preview_pane QScrollBar::handle:horizontal,
 QTableWidget#word_panel_new_table QScrollBar::handle:horizontal,
-QTableWidget#word_panel_learned_table QScrollBar::handle:horizontal {{
+QTableWidget#word_panel_learned_table QScrollBar::handle:horizontal,
+QTableWidget#jobs_panel_table QScrollBar::handle:horizontal {{
   background: {color("reader.scrollbarThumb")};
   min-width: 24px;
   border-radius: 4px;
@@ -358,7 +383,8 @@ QTableWidget#word_panel_learned_table QScrollBar::handle:horizontal {{
 QTextBrowser#reader_read_pane QScrollBar::handle:horizontal:hover,
 QTextBrowser#reader_edit_preview_pane QScrollBar::handle:horizontal:hover,
 QTableWidget#word_panel_new_table QScrollBar::handle:horizontal:hover,
-QTableWidget#word_panel_learned_table QScrollBar::handle:horizontal:hover {{
+QTableWidget#word_panel_learned_table QScrollBar::handle:horizontal:hover,
+QTableWidget#jobs_panel_table QScrollBar::handle:horizontal:hover {{
   background: {color("reader.scrollbarThumbHover")};
 }}
 
@@ -377,7 +403,11 @@ QTableWidget#word_panel_new_table QScrollBar::sub-page,
 QTableWidget#word_panel_learned_table QScrollBar::add-line,
 QTableWidget#word_panel_learned_table QScrollBar::sub-line,
 QTableWidget#word_panel_learned_table QScrollBar::add-page,
-QTableWidget#word_panel_learned_table QScrollBar::sub-page {{
+QTableWidget#word_panel_learned_table QScrollBar::sub-page,
+QTableWidget#jobs_panel_table QScrollBar::add-line,
+QTableWidget#jobs_panel_table QScrollBar::sub-line,
+QTableWidget#jobs_panel_table QScrollBar::add-page,
+QTableWidget#jobs_panel_table QScrollBar::sub-page {{
   background: none;
   border: none;
 }}

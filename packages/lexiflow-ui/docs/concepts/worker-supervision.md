@@ -17,7 +17,7 @@ The UI process spawns and supervises a separate **worker process** that consumes
 | **offline** | No worker process spawned |
 | **idle** | Worker process running (stub: no IPC yet) |
 
-Later phases add **running**, **loading models**, job counts, crash restart, and idle shutdown (ADR-0003, phase 14).
+Phase 14 adds **running** job counts on the status bar, **crash restart** prompt, and **idle shutdown** after a timeout when the queue is empty (ADR-0003).
 
 ## API
 
@@ -28,6 +28,12 @@ Later phases add **running**, **loading models**, job counts, crash restart, and
 - `state` — current `WorkerState`
 
 Phase 05 does not auto-spawn at startup; lazy spawn on first AI job is wired when the UI enqueues jobs.
+
+## Phase 14
+
+- `WorkerSupervisor` stops the worker after idle timeout when no pending or running jobs remain
+- Unexpected worker exit shows a **restart worker** dialog
+- Application quit with active jobs uses `confirm_application_quit` (wait or quit anyway)
 
 ## Package boundary
 

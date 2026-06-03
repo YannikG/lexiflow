@@ -14,6 +14,8 @@ import sys
 
 import pytest
 from _pytest.config import Config
+from PySide6.QtCore import QTimer
+from PySide6.QtWidgets import QApplication
 
 PACKAGE_COVERAGE_FLOORS: list[tuple[str, int]] = [
     ("*/lexiflow_core/*", 80),
@@ -23,6 +25,12 @@ PACKAGE_COVERAGE_FLOORS: list[tuple[str, int]] = [
 
 @pytest.hookimpl(trylast=True)
 def pytest_sessionfinish(session: Config, exitstatus: int) -> None:
+    app = QApplication.instance()
+    if app is not None:
+        for timer in app.findChildren(QTimer):
+            timer.stop()
+        app.processEvents()
+
     if exitstatus != pytest.ExitCode.OK:
         return
     if session.config.pluginmanager.get_plugin("_cov") is None:
