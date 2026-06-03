@@ -48,9 +48,8 @@ class WorkerStatusBar(QStatusBar):
             event.button() == Qt.MouseButton.LeftButton
             and self._on_open_jobs is not None
         ):
-            if self._panel_has_jobs():
-                self._on_open_jobs()
-                return
+            self._on_open_jobs()
+            return
         super().mousePressEvent(event)
 
     def refresh(self) -> None:

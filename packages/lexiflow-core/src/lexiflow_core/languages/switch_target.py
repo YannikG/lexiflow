@@ -25,6 +25,11 @@ def switch_active_target(
     store = LanguageStore(data_root)
     if not store.has_target(target_language):
         raise SwitchTargetLanguageError(f"target language not found: {target_language}")
+    native = settings.native_language
+    if native is not None and target_language == native:
+        raise SwitchTargetLanguageError(
+            "target language must differ from the native language"
+        )
     updated = replace(settings, active_target_language=target_language)
     try:
         settings_store.save(updated)

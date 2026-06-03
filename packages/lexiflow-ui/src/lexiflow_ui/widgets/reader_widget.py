@@ -811,7 +811,9 @@ class ReaderWidget(QWidget):
         add_action = menu.addAction("Add word")
         if surface_form:
             add_action.triggered.connect(
-                lambda *, form=surface_form: self._highlight_add_word(surface_form=form)
+                lambda _checked=False, form=surface_form: self._highlight_add_word(
+                    surface_form=form
+                )
             )
         else:
             add_action.setEnabled(False)

@@ -66,7 +66,10 @@ def install_spacy_pack(
         raise SpacyPackError(message) from exc
 
     if dest.exists():
-        shutil.rmtree(dest)
+        if dest.is_dir():
+            shutil.rmtree(dest)
+        else:
+            dest.unlink()
     dest.parent.mkdir(parents=True, exist_ok=True)
     nlp.to_disk(dest)
     return dest

@@ -15,6 +15,7 @@ from lexiflow_core.models.requirements import NATIVE_LLM_ID
 from lexiflow_core.models.store import ModelStore, ModelStoreError, UpdateAvailable
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
+    QApplication,
     QComboBox,
     QDialog,
     QDialogButtonBox,
@@ -365,16 +366,21 @@ class SettingsDialog(QDialog):
             )
             return
         self._model_store.set_huggingface_token(token)
-        progress = QProgressDialog("Downloading models", "Please wait…", 0, 0, self)
+        progress = QProgressDialog("Downloading models", None, 0, 0, self)
         progress.setWindowModality(Qt.WindowModality.WindowModal)
         progress.setMinimumDuration(0)
+        progress.setCancelButton(None)
         progress.show()
+
+        def on_progress(_value: float) -> None:
+            QApplication.processEvents()
+
         try:
             for item in self._pending_updates:
                 progress.setLabelText(f"Downloading {item.artifact_id}…")
                 self._model_store.upgrade_artifact(
                     item.artifact_id,
-                    on_progress=lambda _value: None,
+                    on_progress=on_progress,
                 )
         except ModelStoreError as exc:
             progress.close()

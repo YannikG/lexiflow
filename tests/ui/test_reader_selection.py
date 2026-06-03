@@ -85,7 +85,7 @@ def test_context_menu_add_word_keeps_surface_after_selection_cleared(
         menu = QMenu(reader)
         add_action = menu.addAction("Add word")
         add_action.triggered.connect(
-            lambda *, form=surface_at_open: reader._highlight_add_word(
+            lambda _checked=False, form=surface_at_open: reader._highlight_add_word(
                 surface_form=form
             )
         )
