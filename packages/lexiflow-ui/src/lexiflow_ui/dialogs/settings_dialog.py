@@ -39,7 +39,7 @@ from lexiflow_ui.dialogs.native_language_dialog import (
     NativeLanguageDialog,
     language_display_name,
 )
-from lexiflow_ui.llama_server_supervisor import _model_requires_hf_token
+from lexiflow_ui.llama_server_supervisor import model_requires_hf_token
 from lexiflow_ui.onboarding.hf_browser import open_url
 from lexiflow_ui.onboarding.llm_config_page import DEFAULT_OLLAMA_URL, HF_TOKEN_URL
 from lexiflow_ui.onboarding.llm_mode_page import LlmMode
@@ -347,7 +347,7 @@ class SettingsDialog(QDialog):
         for item in self._pending_updates:
             if item.artifact_id == NATIVE_LLM_ID:
                 try:
-                    if _model_requires_hf_token(pinned_llama_hf_model()):
+                    if model_requires_hf_token(pinned_llama_hf_model()):
                         return True
                 except RuntimeError:
                     return True
@@ -434,19 +434,6 @@ class SettingsDialog(QDialog):
         return updated.huggingface_token != self._initial_settings.huggingface_token
 
     def _save(self) -> None:
-        if (
-            self._pending_native_language is not None
-            and self._initial_settings.active_target_language is not None
-            and self._pending_native_language
-            == self._initial_settings.active_target_language
-        ):
-            QMessageBox.warning(
-                self,
-                "Native language",
-                "Native language must differ from the active target language.",
-            )
-            return
-
         theme_value = self._theme.currentData()
         theme: Theme = theme_value if isinstance(theme_value, str) else "system"  # type: ignore[assignment]
         if self._selected_llm_mode() == LlmMode.OLLAMA:

@@ -66,7 +66,7 @@ See [vocabulary-study.md](vocabulary-study.md).
 - **Jobs panel** (status bar link): queue, success, and failed tabs; retry failed jobs; cancel queue jobs; poll while open
 - **Shutdown with active jobs**: wait or quit anyway (see [worker-supervision.md](worker-supervision.md))
 - **Library** menu → **Switch language…**; **Delete language…** under **Options** opens switch dialog after wipe
-- **Settings** and **About** menu entries (partial: theme, Ollama, HF token, reader font; about version and RAM)
+- **Options** → **Settings…** (theme, native language, LLM provider, Ollama URL, HF token, reader font, model updates, reset) and **About LexiFlow…** (version and RAM)
 
 ## Deferred (later phases)
 

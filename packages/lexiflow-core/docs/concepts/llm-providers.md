@@ -1,6 +1,6 @@
 # LLM providers
 
-LexiFlow routes translate, cleanup, and simplify jobs through a single **LLM provider** protocol. The worker resolves the active provider from **global settings** and runtime availability (llama-server binary, Ollama URL, or LLM toggle).
+LexiFlow routes translate, cleanup, and simplify jobs through a single **LLM provider** protocol. The worker resolves the active provider from **global settings** and runtime availability (llama-server binary or Ollama URL).
 
 ## Provider mode
 
@@ -8,8 +8,6 @@ There are exactly two LLM backends:
 
 - **Native llama-server** (default): LexiFlow supervises a local `llama-server` process. The language model is pinned in `models.lock` as `llama_hf_model` and loaded by llama-server from Hugging Face via `-hf`. No torch or transformers in the Python environment.
 - **Ollama endpoint** (advanced): when `ollama_url` is set in `settings.toml`, all LLM jobs use `OllamaLLM` (HTTP `POST /api/generate`). LexiFlow does not manage the Ollama process. Users must pull a compatible model locally (see Ollama docs for tags).
-
-**LLM toggle** off (`llm_enabled = false`): `DisabledLLM` fails jobs with a clear message.
 
 **Native path without llama-server binary**: `UnavailableLLM` with install guidance (`llama-server` on PATH or `LEXIFLOW_LLAMA_SERVER_BIN`).
 
