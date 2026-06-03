@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
 from lexiflow_ui.main_window import MainWindow
 from lexiflow_ui.worker_supervisor import WorkerState, WorkerSupervisor
 
@@ -81,8 +82,14 @@ def test_shutdown_waits_for_worker(tmp_path: Path) -> None:
 
 
 def test_main_window_close_shuts_down_supervisor_when_queue_empty(
-    qtbot, tmp_path: Path
+    qtbot, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    from lexiflow_ui.shutdown_flow import confirm_application_quit
+
+    monkeypatch.setattr(
+        "lexiflow_ui.main_window.window.confirm_application_quit",
+        confirm_application_quit,
+    )
     FakeProcess.instances.clear()
     FakeProcess.shutdown_calls.clear()
     supervisor = WorkerSupervisor(
@@ -98,7 +105,16 @@ def test_main_window_close_shuts_down_supervisor_when_queue_empty(
     qtbot.waitUntil(lambda: "wait" in FakeProcess.shutdown_calls, timeout=2000)
 
 
-def test_main_window_close_without_worker_is_clean(qtbot, tmp_path: Path) -> None:
+def test_main_window_close_without_worker_is_clean(
+    qtbot, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from lexiflow_ui.shutdown_flow import confirm_application_quit
+
+    monkeypatch.setattr(
+        "lexiflow_ui.main_window.window.confirm_application_quit",
+        confirm_application_quit,
+    )
+
     class RecordingSupervisor(WorkerSupervisor):
         shutdown_calls: list[bool] = []
 

@@ -70,6 +70,7 @@ class MainWindowTextsMixin:
 
     def _close_open_text(self: MainWindow) -> None:
         self._open_text_id = None
+        self._stop_job_poll_timer()
         self._reader.close_open_text()
 
     def _show_texts_placeholder(self: MainWindow) -> None:
@@ -104,6 +105,7 @@ class MainWindowTextsMixin:
             return
         self._open_text_id = text_id
         self._texts_stack.setCurrentWidget(self._reader)
+        self._start_job_poll_timer()
 
     def _open_reader_for_search_hit(
         self: MainWindow,
@@ -131,6 +133,7 @@ class MainWindowTextsMixin:
         self._sidebar.select_text(hit.text_id)
         self._texts_stack.setCurrentWidget(self._reader)
         self._reader.scroll_to_match(query)
+        self._start_job_poll_timer()
 
     def _on_library_search_hit(self: MainWindow, hit: SearchHit) -> None:
         self._open_reader_for_search_hit(

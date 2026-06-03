@@ -212,7 +212,7 @@ def test_theme_stylesheet_targets_tab_object_names() -> None:
     stylesheet = build_theme_stylesheet("dark")
     assert "QPushButton#reader_tab_native" in stylesheet
     assert "QPushButton#add_text_tab_target" in stylesheet
-    assert "objectName^=" not in stylesheet
+    assert 'objectName^="reader_tab_simplified_"' in stylesheet
     assert "QPushButton#reader_tab_native:checked" in stylesheet
     assert "QPushButton#reader_tab_translated:checked" in stylesheet
     assert stylesheet.count(":checked") >= 6

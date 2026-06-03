@@ -20,6 +20,13 @@ if TYPE_CHECKING:
 class MainWindowJobsMixin:
     """Polls job queue and refreshes the reader when text jobs complete."""
 
+    def _start_job_poll_timer(self: MainWindow) -> None:
+        if not self._job_poll_timer.isActive():
+            self._job_poll_timer.start()
+
+    def _stop_job_poll_timer(self: MainWindow) -> None:
+        self._job_poll_timer.stop()
+
     def _on_simplify_submitted(self: MainWindow) -> None:
         self._ensure_background_workers(JobService(self._data_root))
         self._schedule_reader_refresh()
@@ -53,11 +60,11 @@ class MainWindowJobsMixin:
         self._supervisor.ensure_running()
 
     def _poll_background_jobs(self: MainWindow) -> None:
+        if self._open_text_id is None:
+            return
         job_service = JobService(self._data_root)
         self._ensure_background_workers(job_service)
         self._supervisor.note_queue_activity()
-        if self._open_text_id is None:
-            return
         open_text = str(self._open_text_id)
         reload_reader = False
         refresh_sidebar = False

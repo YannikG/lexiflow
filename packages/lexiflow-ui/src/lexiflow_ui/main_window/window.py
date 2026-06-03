@@ -89,12 +89,11 @@ class MainWindow(
         self._open_text_id: UUID | None = None
         self._seen_completed_job_ids: set[UUID] = set()
         self._seen_failed_job_ids: set[UUID] = set()
-        self._refresh_texts_ui()
-        self._show_navigation_mode("texts")
         self._job_poll_timer = QTimer(self)
         self._job_poll_timer.setInterval(1000)
         self._job_poll_timer.timeout.connect(self._poll_background_jobs)
-        self._job_poll_timer.start()
+        self._refresh_texts_ui()
+        self._show_navigation_mode("texts")
 
     @property
     def active_target_language(self) -> ActiveTargetLanguageWidget | None:
@@ -146,7 +145,6 @@ class MainWindow(
         if not self._confirm_leave_editing_surfaces():
             event.ignore()
             return
-        self._job_poll_timer.stop()
         job_service = JobService(self._data_root)
         if not confirm_application_quit(
             self,
@@ -156,4 +154,5 @@ class MainWindow(
         ):
             event.ignore()
             return
+        self._job_poll_timer.stop()
         super().closeEvent(event)
