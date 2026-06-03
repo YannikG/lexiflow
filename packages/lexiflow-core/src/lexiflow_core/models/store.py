@@ -145,3 +145,18 @@ class ModelStore:
                     )
                 )
         return updates
+
+    def upgrade_artifact(
+        self,
+        artifact_id: str,
+        on_progress: Callable[[float], None],
+        *,
+        on_log_line: Callable[[str], None] | None = None,
+    ) -> Path:
+        """Re-download an artifact when the installed revision differs from the pin."""
+        self.remove_installed(artifact_id)
+        return self.ensure_installed(
+            artifact_id,
+            on_progress,
+            on_log_line=on_log_line,
+        )

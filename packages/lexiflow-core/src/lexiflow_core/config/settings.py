@@ -22,6 +22,5 @@ class Settings:
     ollama_url: str | None = None
     llama_server_url: str = "http://127.0.0.1:8080"
     huggingface_token: str | None = None
-    llm_enabled: bool = True
     theme: Theme = "system"
     reader_font_size: int = 14

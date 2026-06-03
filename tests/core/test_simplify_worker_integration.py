@@ -16,8 +16,8 @@ from lexiflow_core.library.index import LibraryIndex
 from lexiflow_core.library.library_coordinator import LibraryCoordinator
 from lexiflow_core.library.models import CreateTextRequest
 from lexiflow_core.library.text_repository import TextRepository
-from lexiflow_core.llm.disabled import DisabledLLM
 from lexiflow_core.llm.fake import FakeLLM
+from lexiflow_core.llm.unavailable import UnavailableLLM
 from lexiflow_core.simplify.suggestions_store import load_suggestions
 
 
@@ -106,7 +106,7 @@ def test_worker_fails_simplify_without_translated_variant(
     assert "translated" in job.error_message.lower()
 
 
-def test_worker_fails_simplify_when_llm_disabled(
+def test_worker_fails_simplify_when_llm_unavailable(
     simplify_pipeline: tuple[JobService, TextRepository, LibraryIndex, UUID, Path],
 ) -> None:
     jobs, repo, _index, text_id, data_root = simplify_pipeline
@@ -114,13 +114,17 @@ def test_worker_fails_simplify_when_llm_disabled(
     folder = Path(record.folder)
 
     enqueue_simplify(jobs, text_id, "A2")
-    run_worker_loop(jobs, DisabledLLM(), data_root=data_root)
+    run_worker_loop(
+        jobs,
+        UnavailableLLM("Native LLM is not ready."),
+        data_root=data_root,
+    )
 
     assert not variant_path(folder, "simplified-a2").exists()
     job = jobs.list_jobs()[0]
     assert job.status == JobStatus.FAILED
     assert job.error_message is not None
-    assert "disabled" in job.error_message.lower()
+    assert "not ready" in job.error_message.lower()
 
 
 def test_worker_fails_simplify_on_invalid_llm_json(

@@ -44,9 +44,12 @@ def test_library_and_options_menu_layout(qtbot, tmp_path) -> None:
         elif label == "Options":
             options_labels = labels
 
-    assert top_level == ["Texts", "Library", "Settings", "Options"]
+    assert top_level == ["Texts", "Library", "Options"]
     assert library_labels == ["Switch language…", "Trash…"]
+    assert options_labels[0] == "Settings…"
+    assert options_labels[-1] == "About LexiFlow…"
     assert options_labels == [
+        "Settings…",
         "Export library…",
         "Restore library to new folder…",
         "Replace current library…",
@@ -54,6 +57,7 @@ def test_library_and_options_menu_layout(qtbot, tmp_path) -> None:
         "Export vocabulary…",
         "Import vocabulary…",
         "Delete language…",
+        "About LexiFlow…",
     ]
 
 

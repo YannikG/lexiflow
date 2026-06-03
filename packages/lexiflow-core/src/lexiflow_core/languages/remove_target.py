@@ -43,7 +43,6 @@ def remove_target_language(
         onboarding_complete=settings.onboarding_complete,
         ollama_url=settings.ollama_url,
         huggingface_token=settings.huggingface_token,
-        llm_enabled=settings.llm_enabled,
         theme=settings.theme,
         reader_font_size=settings.reader_font_size,
         llama_server_url=settings.llama_server_url,

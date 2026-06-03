@@ -68,7 +68,6 @@ def complete_language_onboarding(
         onboarding_complete=settings.onboarding_complete,
         ollama_url=settings.ollama_url,
         huggingface_token=settings.huggingface_token,
-        llm_enabled=settings.llm_enabled,
         theme=settings.theme,
     )
     try:
@@ -92,7 +91,6 @@ def finalize_onboarding(
         onboarding_complete=True,
         ollama_url=settings.ollama_url,
         huggingface_token=settings.huggingface_token,
-        llm_enabled=settings.llm_enabled,
         theme=settings.theme,
     )
     try:

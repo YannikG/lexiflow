@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from lexiflow_core.config.settings import Settings
-from lexiflow_core.llm.disabled import DisabledLLM
 from lexiflow_core.llm.llama_server import LlamaServerLLM
 from lexiflow_core.llm.ollama import OllamaLLM
 from lexiflow_core.llm.resolution import resolve_llm
@@ -19,14 +18,6 @@ def test_resolve_llm_returns_ollama_when_url_set(tmp_path: Path) -> None:
 
     assert isinstance(provider, OllamaLLM)
     assert provider.base_url == "http://127.0.0.1:11434"
-
-
-def test_resolve_llm_returns_disabled_when_llm_off(tmp_path: Path) -> None:
-    settings = Settings(llm_enabled=False, ollama_url="http://127.0.0.1:11434")
-
-    provider = resolve_llm(settings)
-
-    assert isinstance(provider, DisabledLLM)
 
 
 def test_resolve_llm_returns_llama_server_when_native_ready(

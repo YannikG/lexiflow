@@ -111,7 +111,7 @@ def pinned_llama_hf_model() -> str:
 
 def native_llm_operational(settings: Settings) -> tuple[bool, str | None]:
     """Return whether native llama-server inference can run."""
-    if settings.ollama_url or not settings.llm_enabled:
+    if settings.ollama_url:
         return True, None
     if llama_server_binary() is None:
         return False, _BINARY_HINT

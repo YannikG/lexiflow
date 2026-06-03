@@ -68,6 +68,13 @@ def build_theme_stylesheet(effective: EffectiveTheme) -> str:
         "QPushButton#reader_delete_simplification_button",
         "QPushButton#switch_language_add_button",
         "QPushButton#switch_language_cancel_button",
+        "QPushButton#settings_change_native_language",
+        "QPushButton#settings_test_ollama",
+        "QPushButton#settings_hf_token_link",
+        "QPushButton#settings_check_updates",
+        "QPushButton#settings_download_updates",
+        "QPushButton#settings_reset_button",
+        "QPushButton#settings_cancel_button",
     )
     secondary_selectors = ",\n".join(secondary_buttons)
     tab_selectors = _tab_selectors()

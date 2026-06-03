@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 
 import lexiflow_core
 from lexiflow_core.config.settings import Settings
+from lexiflow_core.models.huggingface_downloader import HuggingFaceModelDownloader
+from lexiflow_core.models.store import ModelStore
 from PySide6.QtWidgets import QMessageBox
 
 from lexiflow_ui.dialogs.jobs_panel_dialog import open_jobs_panel
@@ -28,18 +30,28 @@ class MainWindowShellDialogsMixin:
     """Opens shell dialogs and applies settings / library changes."""
 
     def _open_settings_dialog(self: MainWindow) -> None:
+        if not self._confirm_leave_editing_surfaces():
+            return
         from lexiflow_core.config.settings_store import SettingsStore
         from PySide6.QtWidgets import QApplication
 
         from lexiflow_ui.dialogs.settings_dialog import open_settings_dialog
 
         app = QApplication.instance()
+        model_store = ModelStore(
+            self._data_root,
+            downloader=HuggingFaceModelDownloader(),
+            huggingface_token=self._settings.huggingface_token,
+        )
         open_settings_dialog(
             self,
             app=app,
             settings=self._settings,
             settings_store=SettingsStore(),
             data_root=self._data_root,
+            model_store=model_store,
+            worker_supervisor=self._supervisor,
+            llama_supervisor=self._llama_supervisor,
             on_saved=self._on_settings_saved,
         )
 
