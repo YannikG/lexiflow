@@ -22,7 +22,10 @@ case "$PLATFORM" in
   macos-arm64|macos-x64)
     bash packaging/scripts/build_dmg.sh
     ;;
-  windows)
+  windows|windows-arm64)
+    if [[ "$PLATFORM" == "windows-arm64" ]]; then
+      export LF_INSTALLER_ARCH=arm64
+    fi
     powershell -File packaging/scripts/build_msi.ps1
     ;;
   *)

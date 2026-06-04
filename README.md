@@ -9,7 +9,8 @@ Download the latest release for your platform from [GitHub Releases](https://git
 | Platform | Artifact |
 |----------|----------|
 | macOS (Apple Silicon) | `.dmg` |
-| Windows 10+ | `.msi` |
+| Windows 10+ (x64) | `.msi` |
+| Windows 10+ (ARM64) | `-arm64.msi` |
 | Linux x86_64 | `.AppImage` |
 
 Verify downloads with the `checksums.txt` SHA256 file attached to each release.

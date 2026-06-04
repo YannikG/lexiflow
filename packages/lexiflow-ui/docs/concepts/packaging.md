@@ -35,7 +35,6 @@ Model weights are **not** bundled in the installer ([common-language.md](../../.
 Build-time script `packaging/scripts/sync_version.py` sets `lexiflow_core.__version__`:
 
 - **Release tag** (`vX.Y.Z`) → exact tag version
-- **PR / main CI** → `{latest_git_tag_or_pyproject}.dev{GITHUB_RUN_NUMBER}` when `LF_SYNC_CI_DEV=1` (packaging jobs only)
 - **Local dev** → root `pyproject.toml`
 
 After a release, CI syncs `pyproject.toml` on `main` to match the tag.
@@ -50,12 +49,12 @@ uv run pyinstaller packaging/lexiflow.spec --noconfirm
 bash packaging/scripts/smoke_bundle.sh
 ```
 
-Platform installers: `bash packaging/scripts/build_installer.sh linux|macos-arm64|windows`
+Platform installers: `bash packaging/scripts/build_installer.sh linux|macos-arm64|windows|windows-arm64`
 
 ## CI
 
-- **PR / main:** `build-linux` job in `.github/workflows/ci.yml` builds and smokes the Linux onedir bundle.
-- **Release tag:** `.github/workflows/release.yml` builds DMG, MSI, and AppImage; publishes SHA256 checksums.
+- **PR / main:** lint, mypy, and pytest only (`.github/workflows/ci.yml`). No PyInstaller build on every PR.
+- **Release tag:** `.github/workflows/release.yml` builds the onedir bundle on each platform (Linux x86_64, macOS arm64, Windows x64, Windows arm64), produces DMG, MSI, and AppImage, and publishes SHA256 checksums.
 
 ## Out of scope (v1)
 

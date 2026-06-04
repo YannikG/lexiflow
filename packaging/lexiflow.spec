@@ -21,7 +21,12 @@ PLATFORM_BIN_KEYS = {
         "macos-arm64" if platform.machine().lower() in {"arm64", "aarch64"} else "macos-x64",
         "llama-server",
     ),
-    "win32": ("windows", "llama-server.exe"),
+    "win32": (
+        "windows-arm64"
+        if platform.machine().lower() in {"arm64", "aarch64"}
+        else "windows",
+        "llama-server.exe",
+    ),
 }
 
 

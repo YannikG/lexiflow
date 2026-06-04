@@ -10,7 +10,12 @@ $Version = if ($env:WIX_VERSION) {
 } else {
   "0.0.0.0"
 }
-$MsiPath = Join-Path $Root "dist\LexiFlow-$($env:LF_VERSION).msi"
+$MsiName = if ($env:LF_INSTALLER_ARCH) {
+  "LexiFlow-$($env:LF_VERSION)-$($env:LF_INSTALLER_ARCH).msi"
+} else {
+  "LexiFlow-$($env:LF_VERSION).msi"
+}
+$MsiPath = Join-Path $Root "dist\$MsiName"
 $WxsPath = Join-Path $Root "packaging\wix\LexiFlow.wxs"
 $HarvestPath = Join-Path $Root "packaging\wix\Harvest.wxs"
 $WixObjDir = Join-Path $Root "packaging\wix\obj"

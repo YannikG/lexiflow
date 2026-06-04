@@ -30,7 +30,7 @@ def _platform_key() -> str:
     if system == "Darwin":
         return "macos-arm64" if machine in {"arm64", "aarch64"} else "macos-x64"
     if system == "Windows":
-        return "windows"
+        return "windows-arm64" if machine in {"arm64", "aarch64"} else "windows"
     raise RuntimeError(f"unsupported platform for llama-server fetch: {system}")
 
 
@@ -44,6 +44,8 @@ def _asset_name(release: str, platform_key: str) -> tuple[str, str]:
         return f"llama-{tag}-bin-macos-x64.tar.gz", "tar.gz"
     if platform_key == "windows":
         return f"llama-{tag}-bin-win-cpu-x64.zip", "zip"
+    if platform_key == "windows-arm64":
+        return f"llama-{tag}-bin-win-cpu-arm64.zip", "zip"
     raise RuntimeError(f"unknown platform key: {platform_key}")
 
 
@@ -95,7 +97,7 @@ def fetch_llama_server(
     target_dir = (
         output_dir if output_dir is not None else root / "packaging" / "bin" / key
     )
-    binary_name = "llama-server.exe" if key == "windows" else "llama-server"
+    binary_name = "llama-server.exe" if key.startswith("windows") else "llama-server"
     destination = target_dir / binary_name
     with tempfile.TemporaryDirectory() as temp_dir:
         archive = Path(temp_dir) / asset_name
@@ -112,7 +114,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--platform",
-        choices=["linux", "macos-arm64", "macos-x64", "windows"],
+        choices=["linux", "macos-arm64", "macos-x64", "windows", "windows-arm64"],
         default=None,
     )
     parser.add_argument("--release", default=None)

@@ -18,7 +18,7 @@ PySide6, optional `sentence-transformers` (embeddings), and a native `llama-serv
 3. **Frozen worker spawn** — `build_worker_command` uses `[executable, "--worker", ...]` when `sys.frozen`; dev keeps `python -m lexiflow_worker`.
 4. **Bundled llama-server** — CI downloads pinned llama.cpp prebuilts into `packaging/bin/<platform>/`; spec copies to `bin/` in the bundle; `llama_server_binary()` resolves `{sys._MEIPASS}/bin/llama-server` before PATH.
 5. **Release dependency group** — root `pyproject.toml` `[dependency-groups] release` adds `pyinstaller`, `sentence-transformers` (+ torch transitively). PR pytest stays fake-only; no real models in CI unit tests.
-6. **Version sync** — `packaging/scripts/sync_version.py` writes `lexiflow_core.__version__` from the release tag, an automatic CI dev suffix on PR builds, or `pyproject.toml` locally. Release workflow syncs `pyproject.toml` back to `main` after publish.
+6. **Version sync** — `packaging/scripts/sync_version.py` writes `lexiflow_core.__version__` from the release tag or `pyproject.toml` locally. Release workflow syncs `pyproject.toml` back to `main` after publish.
 7. **Installers** — Linux AppImage, macOS DMG, Windows MSI (WiX + heat harvest). Unsigned in v1.
 8. **Release CI** — tag `v*` triggers `.github/workflows/release.yml`; SHA256 checksums published per asset.
 
@@ -35,7 +35,7 @@ PySide6, optional `sentence-transformers` (embeddings), and a native `llama-serv
 
 - README documents end-user install, Gatekeeper/SmartScreen friction, and first-run model download (weights not bundled).
 - `packaging/bin/` and `dist/` are gitignored; CI fetches llama-server per job.
-- macOS/Windows full installer builds run on tag only; PR CI builds and smokes Linux bundle only.
+- All platform bundle and installer builds run on release tag only; PR CI stays lint, mypy, and pytest.
 - Code signing and notarization remain post-v1 ([common-language.md](../../common-language.md) **Code signing roadmap**).
 
 ## References
