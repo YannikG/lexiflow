@@ -36,7 +36,8 @@ def _write_minimal_sqlite_vec_amalgamation(work_dir: Path) -> None:
 
 
 def _write_minimal_sqlite_amalgamation_zip(archive: Path) -> None:
-    sqlite_dir = archive.parent / "sqlite-amalgamation-3450300"
+    prepare = _load_prepare_sqlite_vec_windows_arm64()
+    sqlite_dir = archive.parent / prepare.SQLITE_AMALGAMATION_DIR
     sqlite_dir.mkdir()
     (sqlite_dir / "sqlite3ext.h").write_text("/* ext */\n", encoding="utf-8")
     (sqlite_dir / "sqlite3.h").write_text("/* sqlite3 */\n", encoding="utf-8")
@@ -91,3 +92,10 @@ def test_prepare_windows_arm64_build_tree_layout(tmp_path: Path, monkeypatch) ->
     assert (work_dir / "sqlite-vec.c").is_file()
     assert (work_dir / "sqlite-vec.h").is_file()
     assert (work_dir / "vendor" / "sqlite3ext.h").is_file()
+
+
+def test_official_amalgamation_zip_has_flat_root_layout() -> None:
+    prepare = _load_prepare_sqlite_vec_windows_arm64()
+    root_files = prepare.official_amalgamation_root_files()
+    assert "sqlite-vec.c" in root_files
+    assert "sqlite-vec.h" in root_files

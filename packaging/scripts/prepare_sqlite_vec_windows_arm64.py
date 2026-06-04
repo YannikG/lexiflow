@@ -3,17 +3,32 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
+import io
 import shutil
 import urllib.request
 import zipfile
 from pathlib import Path
 
-SQLITE_VEC_VERSION = "0.1.9"
-SQLITE_VEC_AMALGAMATION_URL = (
-    "https://github.com/asg017/sqlite-vec/releases/download/"
-    f"v{SQLITE_VEC_VERSION}/sqlite-vec-{SQLITE_VEC_VERSION}-amalgamation.zip"
-)
+# Matches upstream scripts/vendor.sh (sqlite-vec v0.1.9).
 SQLITE_AMALGAMATION_URL = "https://www.sqlite.org/2024/sqlite-amalgamation-3450300.zip"
+SQLITE_AMALGAMATION_DIR = "sqlite-amalgamation-3450300"
+
+
+def _load_fetch_sqlite_vec():
+    script = Path(__file__).resolve().parent / "fetch_sqlite_vec.py"
+    spec = importlib.util.spec_from_file_location("lexiflow_fetch_sqlite_vec", script)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_fetch = _load_fetch_sqlite_vec()
+SQLITE_VEC_VERSION = _fetch.SQLITE_VEC_VERSION
+SQLITE_VEC_AMALGAMATION_URL = (
+    f"{_fetch.GITHUB_RELEASE_BASE}/sqlite-vec-{SQLITE_VEC_VERSION}-amalgamation.zip"
+)
 
 
 def _download(url: str, destination: Path) -> None:
@@ -31,7 +46,7 @@ def vendor_sqlite_amalgamation(vendor_dir: Path, *, scratch_dir: Path) -> None:
     _download(SQLITE_AMALGAMATION_URL, archive)
     with zipfile.ZipFile(archive, "r") as zip_archive:
         zip_archive.extractall(scratch_dir)
-    extracted = scratch_dir / "sqlite-amalgamation-3450300"
+    extracted = scratch_dir / SQLITE_AMALGAMATION_DIR
     if not extracted.is_dir():
         raise FileNotFoundError("sqlite amalgamation directory missing after extract")
     vendor_dir.mkdir(parents=True, exist_ok=True)
@@ -62,6 +77,18 @@ def prepare_windows_arm64_build_tree(work_dir: Path) -> Path:
     vendor_sqlite_amalgamation(work_dir / "vendor", scratch_dir=scratch)
     shutil.rmtree(scratch)
     return work_dir
+
+
+def official_amalgamation_root_files() -> set[str]:
+    """Return top-level file names in the published sqlite-vec amalgamation zip."""
+    request = urllib.request.Request(
+        SQLITE_VEC_AMALGAMATION_URL,
+        headers={"User-Agent": "LexiFlow-packaging"},
+    )
+    with urllib.request.urlopen(request, timeout=120) as response:
+        payload = response.read()
+    with zipfile.ZipFile(io.BytesIO(payload), "r") as zip_archive:
+        return {name for name in zip_archive.namelist() if "/" not in name}
 
 
 def main(argv: list[str] | None = None) -> int:

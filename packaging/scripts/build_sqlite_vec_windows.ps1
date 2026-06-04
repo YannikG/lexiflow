@@ -1,10 +1,9 @@
 # Build sqlite-vec vec0.dll for Windows ARM64 from official amalgamation + SQLite headers.
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$Version = "0.1.9"
 $VendorDir = Join-Path $Root "packaging\vendor\sqlite_vec\sqlite_vec"
 $DestDll = Join-Path $VendorDir "vec0.arm64.dll"
-$WorkDir = Join-Path $env:TEMP "sqlite-vec-arm64-build-$Version"
+$WorkDir = Join-Path $env:TEMP "sqlite-vec-arm64-build"
 
 New-Item -ItemType Directory -Force -Path $VendorDir | Out-Null
 
