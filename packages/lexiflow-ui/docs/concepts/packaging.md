@@ -39,7 +39,7 @@ Build-time script `packaging/scripts/sync_version.py` sets `lexiflow_core.__vers
 - **Release tag** (`vX.Y.Z`) → exact tag version
 - **Local dev** → root `pyproject.toml`
 
-Before tagging a release, bump `pyproject.toml` on `main` via PR; the release build reads the tag version at CI time and does not push back to `main`.
+**Automated release path:** merge feature work to `main` → `prepare-release` opens a `release/vX.Y.Z` bump PR (auto when `pyproject.toml` lags the latest tag, or via **Actions → prepare-release → Run workflow**). Merge that PR → `tag-release` pushes `vX.Y.Z` → `release.yml` builds installers. No direct push to `main` and no manual tag for the default flow.
 
 ## Local build (maintainers)
 
@@ -63,6 +63,8 @@ Platform installers: `bash packaging/scripts/build_installer.sh linux|macos-arm6
 ## CI
 
 - **PR / main:** lint, mypy, and pytest (`.github/workflows/ci.yml`). Linux test job runs `fetch_sqlite_vec.py --platform linux` before `uv sync`. No PyInstaller build on every PR.
+- **Prepare release:** `.github/workflows/prepare-release.yml` opens the version-bump PR.
+- **Tag release:** `.github/workflows/tag-release.yml` tags `v*` when a `release/*` PR merges.
 - **Release tag:** `.github/workflows/release.yml` builds Linux AppImage, macOS DMG, and Windows x64 MSI (Windows ARM64 MSI temporarily disabled; see issue #40). Publishes SHA256 checksums.
 
 ## Out of scope (v1)
