@@ -41,6 +41,25 @@ uv run pytest
 
 All must pass before merge. Coverage floors: 80% core, 60% ui (see ADR-0001).
 
+## Release (maintainers)
+
+1. Merge phase work to `main`.
+2. Bump `version` in root [pyproject.toml](pyproject.toml) if needed.
+3. Tag `vX.Y.Z` on `main` and push the tag.
+4. [release.yml](.github/workflows/release.yml) builds DMG, MSI, and AppImage and publishes a GitHub Release with SHA256 checksums.
+
+Local packaging smoke:
+
+```bash
+uv sync --group release
+uv run python packaging/scripts/sync_version.py
+uv run python packaging/scripts/fetch_llama_server.py --platform linux
+uv run pyinstaller packaging/lexiflow.spec --noconfirm
+bash packaging/scripts/smoke_bundle.sh
+```
+
+See [packaging concept doc](packages/lexiflow-ui/docs/concepts/packaging.md) and [ADR-0008](docs/adr/0008-pyinstaller-release-bundle.md).
+
 ## Agents
 
 Read [AGENTS.md](AGENTS.md) before automated contributions.

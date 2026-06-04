@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=LexiFlow
+Comment=Learn languages by reading real texts
+Exec=LexiFlow
+Icon=lexiflow
+Categories=Education;
+Terminal=false

@@ -22,3 +22,5 @@ We aim to acknowledge reports within 7 days. Fixes are prioritized by severity.
 ## Scope
 
 LexiFlow is a local desktop app. Reports about third-party models (Gemma, Hugging Face, Ollama) should go to those projects unless LexiFlow's integration introduces a distinct vulnerability.
+
+**v1 releases are unsigned** on macOS and Windows. Verify downloads using the SHA256 checksums published with each GitHub Release. Code signing is planned post-v1 if needed ([common-language.md](common-language.md) **Code signing roadmap**).

@@ -5,11 +5,13 @@ description = "PySide6 application shell for LexiFlow"
 requires-python = ">=3.12,<3.14"
 dependencies = [
     "lexiflow-core",
+    "lexiflow-worker",
     "PySide6>=6.8",
 ]
 
 [tool.uv.sources]
 lexiflow-core = { workspace = true }
+lexiflow-worker = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]
@@ -20,3 +22,6 @@ packages = ["src/lexiflow_ui"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "src/lexiflow_ui/themes" = "lexiflow_ui/themes"
+
+[project.scripts]
+lexiflow = "lexiflow_ui.launcher:main"
