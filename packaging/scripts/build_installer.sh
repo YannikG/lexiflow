@@ -10,6 +10,7 @@ VERSION="$(uv run python packaging/scripts/sync_version.py)"
 export LF_EXPECTED_VERSION="$VERSION"
 export LF_VERSION="$VERSION"
 
+uv run python packaging/scripts/generate_icons.py
 uv run python packaging/scripts/fetch_llama_server.py --platform "$PLATFORM"
 uv run pyinstaller packaging/lexiflow.spec --noconfirm
 bash packaging/scripts/smoke_bundle.sh

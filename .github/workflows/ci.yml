@@ -93,6 +93,7 @@ jobs:
           VERSION="$(uv run python packaging/scripts/sync_version.py)"
           echo "LF_VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "LF_EXPECTED_VERSION=$VERSION" >> "$GITHUB_ENV"
+          uv run python packaging/scripts/generate_icons.py
           uv run python packaging/scripts/fetch_llama_server.py --platform linux
       - name: Build PyInstaller bundle
         run: uv run pyinstaller packaging/lexiflow.spec --noconfirm

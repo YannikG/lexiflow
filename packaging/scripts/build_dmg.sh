@@ -16,7 +16,11 @@ fi
 
 rm -rf "$STAGE" "$DMG"
 mkdir -p "$STAGE"
-cp -a "$BUNDLE_DIR" "$STAGE/LexiFlow"
+if [[ -d "$BUNDLE_DIR/LexiFlow.app" ]]; then
+  cp -a "$BUNDLE_DIR/LexiFlow.app" "$STAGE/"
+else
+  cp -a "$BUNDLE_DIR" "$STAGE/LexiFlow"
+fi
 
 if command -v create-dmg >/dev/null 2>&1; then
   create-dmg \
@@ -25,7 +29,7 @@ if command -v create-dmg >/dev/null 2>&1; then
     --window-size 600 400 \
     --icon-size 100 \
     "$DMG" \
-    "$STAGE/LexiFlow"
+    "$STAGE"
 else
   hdiutil create -volname "LexiFlow" -srcfolder "$STAGE" -ov -format UDZO "$DMG"
 fi

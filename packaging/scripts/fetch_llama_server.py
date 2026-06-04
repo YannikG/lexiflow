@@ -14,8 +14,8 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-DEFAULT_RELEASE = "b4690"
-GITHUB_RELEASE_BASE = "https://github.com/ggerganov/llama.cpp/releases/download"
+DEFAULT_RELEASE = "b9500"
+GITHUB_RELEASE_BASE = "https://github.com/ggml-org/llama.cpp/releases/download"
 
 
 def _repo_root() -> Path:
@@ -37,13 +37,13 @@ def _platform_key() -> str:
 def _asset_name(release: str, platform_key: str) -> tuple[str, str]:
     tag = release if release.startswith("b") else f"b{release}"
     if platform_key == "linux":
-        return f"llama-{tag}-bin-linux-x64.tar.gz", "tar.gz"
+        return f"llama-{tag}-bin-ubuntu-x64.tar.gz", "tar.gz"
     if platform_key == "macos-arm64":
         return f"llama-{tag}-bin-macos-arm64.tar.gz", "tar.gz"
     if platform_key == "macos-x64":
         return f"llama-{tag}-bin-macos-x64.tar.gz", "tar.gz"
     if platform_key == "windows":
-        return f"llama-{tag}-bin-win-x64.zip", "zip"
+        return f"llama-{tag}-bin-win-cpu-x64.zip", "zip"
     raise RuntimeError(f"unknown platform key: {platform_key}")
 
 
@@ -51,19 +51,19 @@ def _download(url: str, destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     request = urllib.request.Request(url, headers={"User-Agent": "LexiFlow-packaging"})
     with urllib.request.urlopen(request, timeout=120) as response:
-        destination.write_bytes(response.read())
+        with destination.open("wb") as handle:
+            while chunk := response.read(8192):
+                handle.write(chunk)
 
 
 def _extract_llama_server(archive: Path, archive_type: str, destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
-    binary_name = (
-        "llama-server.exe" if platform.system() == "Windows" else "llama-server"
-    )
+    binary_name = destination.name
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
         if archive_type == "tar.gz":
             with tarfile.open(archive, "r:gz") as tar:
-                tar.extractall(temp_path)
+                tar.extractall(temp_path, filter="data")
         else:
             with zipfile.ZipFile(archive, "r") as zf:
                 zf.extractall(temp_path)
@@ -71,7 +71,7 @@ def _extract_llama_server(archive: Path, archive_type: str, destination: Path) -
         if not matches:
             raise FileNotFoundError(f"{binary_name} not found in {archive}")
         shutil.copy2(matches[0], destination)
-    if platform.system() != "Windows":
+    if not destination.name.endswith(".exe"):
         mode = destination.stat().st_mode
         destination.chmod(mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 

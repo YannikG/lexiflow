@@ -19,7 +19,7 @@ def resolve_build_version(*, repo_root: Path) -> str:
     """Return version from GITHUB_REF_NAME (vX.Y.Z) or root pyproject.toml."""
     ref_name = os.environ.get("GITHUB_REF_NAME", "").strip()
     if ref_name.startswith("v") and ref_name[1:]:
-        return ref_name.lstrip("v")
+        return ref_name.removeprefix("v")
     return _read_pyproject_version(repo_root)
 
 

@@ -86,7 +86,9 @@ jobs:
 
       - name: Fetch llama-server
         shell: bash
-        run: uv run python packaging/scripts/fetch_llama_server.py --platform "${{ matrix.fetch_platform }}"
+        run: |
+          uv run python packaging/scripts/generate_icons.py
+          uv run python packaging/scripts/fetch_llama_server.py --platform "${{ matrix.fetch_platform }}"
 
       - name: Build PyInstaller bundle
         run: uv run pyinstaller packaging/lexiflow.spec --noconfirm

@@ -182,7 +182,9 @@ def test_llama_server_binary_uses_bundled_path_when_frozen(
 ) -> None:
     import sys
 
-    bundled = tmp_path / "bin" / "llama-server"
+    from lexiflow_core.llm.llama_server import _llama_server_executable_name
+
+    bundled = tmp_path / "bin" / _llama_server_executable_name()
     bundled.parent.mkdir()
     bundled.write_text("")
     bundled.chmod(0o755)
