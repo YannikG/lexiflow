@@ -49,6 +49,18 @@ def _ci_dev_version(repo_root: Path) -> str | None:
     return f"{base}.dev{run_number}"
 
 
+def read_pyproject_version(*, repo_root: Path | None = None) -> str:
+    """Read ``version`` from root ``pyproject.toml`` (query, no writes)."""
+    root = repo_root if repo_root is not None else Path(__file__).resolve().parents[2]
+    return _read_pyproject_version(root)
+
+
+def latest_git_tag_version(*, repo_root: Path | None = None) -> str | None:
+    """Return the latest ``v*`` tag version without the ``v`` prefix, if any."""
+    root = repo_root if repo_root is not None else Path(__file__).resolve().parents[2]
+    return _latest_git_tag_version(root)
+
+
 def resolve_build_version(*, repo_root: Path) -> str:
     """Return version from release tag, CI dev build, or pyproject.toml."""
     ref_name = os.environ.get("GITHUB_REF_NAME", "").strip()
@@ -117,7 +129,17 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Also write resolved version to root pyproject.toml",
     )
+    parser.add_argument(
+        "--resolve-only",
+        action="store_true",
+        help="Print resolved version without writing any files",
+    )
     args = parser.parse_args(argv)
+    root = Path(__file__).resolve().parents[2]
+    if args.resolve_only:
+        version = resolve_build_version(repo_root=root)
+        print(version)
+        return 0
     version = sync_version(write_pyproject=args.write_pyproject)
     print(version)
     return 0

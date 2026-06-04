@@ -16,6 +16,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: prepare-release
+  cancel-in-progress: true
+
 permissions:
   contents: write
   pull-requests: write
@@ -43,7 +47,8 @@ jobs:
           fi
           MSG="${{ github.event.head_commit.message }}"
           if [[ "$MSG" =~ ^chore:\ release\ v ]] \
-            || [[ "$MSG" =~ ^Merge\ pull\ request.*release/ ]]; then
+            || [[ "$MSG" =~ ^Merge\ pull\ request.*release/ ]] \
+            || [[ "$MSG" == *release/v* ]]; then
             echo "run=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -73,28 +78,20 @@ jobs:
             echo "open=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Compute next version
-        if: steps.gate.outputs.run == 'true' && steps.existing.outputs.open != 'true'
-        id: version
-        run: |
-          VERSION="$(uv run python packaging/scripts/bump_version.py --bump "${{ steps.gate.outputs.bump }}")"
-          echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "Next release version: ${VERSION}"
-
       - name: Create release bump PR
         if: steps.gate.outputs.run == 'true' && steps.existing.outputs.open != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          VERSION="${{ steps.version.outputs.value }}"
+          BUMP="${{ steps.gate.outputs.bump }}"
+          VERSION="$(uv run python packaging/scripts/bump_version.py --bump "${BUMP}" --write)"
           BRANCH="release/v${VERSION}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          uv run python packaging/scripts/bump_version.py --bump "${{ steps.gate.outputs.bump }}" --write
           git add pyproject.toml packages/lexiflow-core/src/lexiflow_core/__init__.py
           git checkout -b "${BRANCH}"
           git commit -m "chore: release v${VERSION}"
-          git push origin "${BRANCH}"
+          git push -u origin "${BRANCH}"
           gh pr create \
             --base main \
             --head "${BRANCH}" \
@@ -102,7 +99,7 @@ jobs:
             --body "$(cat <<EOF
 ## Release v${VERSION}
 
-Automated version bump (${{ steps.gate.outputs.bump }}).
+Automated version bump (${BUMP}).
 
 **Merge this PR to tag \`v${VERSION}\` and start the release build** (\`.github/workflows/release.yml\`).
 

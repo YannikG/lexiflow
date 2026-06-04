@@ -43,9 +43,10 @@ All must pass before merge. Coverage floors: 80% core, 60% ui (see ADR-0001).
 
 ## Release (maintainers)
 
-1. Merge phase work to `main`.
-2. Tag `vX.Y.Z` on `main` and push the tag. The tag is the release version; no manual `pyproject.toml` edit is required.
-3. [release.yml](.github/workflows/release.yml) builds DMG, MSI (x64 and ARM64), and AppImage, publishes a GitHub Release with SHA256 checksums, and syncs `pyproject.toml` + `lexiflow_core.__version__` back to `main`.
+1. Merge feature work to `main`.
+2. **Prepare release:** [prepare-release.yml](.github/workflows/prepare-release.yml) opens a `release/vX.Y.Z` PR when `pyproject.toml` lags the latest tag, or run **Actions → prepare-release** (patch / minor / major).
+3. **Merge** that PR; [tag-release.yml](.github/workflows/tag-release.yml) pushes `vX.Y.Z`.
+4. [release.yml](.github/workflows/release.yml) builds DMG, MSI (x64), and AppImage and publishes a GitHub Release with SHA256 checksums. No push to `main` from CI (branch protection safe).
 
 Local packaging smoke:
 

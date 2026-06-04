@@ -27,10 +27,10 @@ jobs:
           python-version: "3.12"
           enable-cache: true
 
-      - name: Resolve version from merged commit
+      - name: Read version from merged commit
         id: version
         run: |
-          VERSION="$(uv run python packaging/scripts/sync_version.py)"
+          VERSION="$(uv run python packaging/scripts/sync_version.py --resolve-only)"
           echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "Tagging v${VERSION}"
 
@@ -40,8 +40,13 @@ jobs:
           TAG="v${VERSION}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin --tags
           if git rev-parse "${TAG}" >/dev/null 2>&1; then
             echo "${TAG} already exists; skipping."
+            exit 0
+          fi
+          if git ls-remote --exit-code origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "${TAG} already exists on origin; skipping."
             exit 0
           fi
           git tag "${TAG}"

@@ -19,8 +19,8 @@ def _load_sync_version():
 
 
 _sync = _load_sync_version()
-_latest_git_tag_version = _sync._latest_git_tag_version
-_read_pyproject_version = _sync._read_pyproject_version
+latest_git_tag_version = _sync.latest_git_tag_version
+read_pyproject_version = _sync.read_pyproject_version
 write_core_version = _sync.write_core_version
 write_pyproject_version = _sync.write_pyproject_version
 
@@ -60,8 +60,8 @@ def bump_semver(version: str, bump: str) -> str:
 
 def resolve_base_version(*, repo_root: Path) -> str:
     """Latest released tag version, or ``pyproject.toml`` when no tag exists."""
-    tag_version = _latest_git_tag_version(repo_root)
-    pyproject_version = _read_pyproject_version(repo_root)
+    tag_version = latest_git_tag_version(repo_root=repo_root)
+    pyproject_version = read_pyproject_version(repo_root=repo_root)
     if tag_version is None:
         return pyproject_version
     return semver_max(tag_version, pyproject_version)
@@ -74,10 +74,10 @@ def next_release_version(*, repo_root: Path, bump: str) -> str:
 
 def should_auto_prepare(*, repo_root: Path) -> bool:
     """True when ``pyproject.toml`` is behind the latest ``v*`` tag on the remote."""
-    tag_version = _latest_git_tag_version(repo_root)
+    tag_version = latest_git_tag_version(repo_root=repo_root)
     if tag_version is None:
         return False
-    pyproject_version = _read_pyproject_version(repo_root)
+    pyproject_version = read_pyproject_version(repo_root=repo_root)
     return parse_semver(pyproject_version) < parse_semver(tag_version)
 
 

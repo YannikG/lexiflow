@@ -38,7 +38,7 @@ def test_next_release_version_bumps_from_latest_tag(
     _init_repo(repo_root, pyproject="0.0.0", core="0.0.0")
 
     bump = _load_bump_version()
-    monkeypatch.setattr(bump, "_latest_git_tag_version", lambda _root: "1.0.4")
+    monkeypatch.setattr(bump, "latest_git_tag_version", lambda *, repo_root: "1.0.4")
 
     assert bump.next_release_version(repo_root=repo_root, bump="patch") == "1.0.5"
     assert bump.next_release_version(repo_root=repo_root, bump="minor") == "1.1.0"
@@ -50,7 +50,7 @@ def test_should_auto_prepare_when_pyproject_behind_tag(
     repo_root = tmp_path / "repo"
     _init_repo(repo_root, pyproject="0.0.0", core="0.0.0")
     bump = _load_bump_version()
-    monkeypatch.setattr(bump, "_latest_git_tag_version", lambda _root: "1.0.4")
+    monkeypatch.setattr(bump, "latest_git_tag_version", lambda *, repo_root: "1.0.4")
 
     assert bump.should_auto_prepare(repo_root=repo_root) is True
 
@@ -61,7 +61,7 @@ def test_should_auto_prepare_skips_when_versions_match(
     repo_root = tmp_path / "repo"
     _init_repo(repo_root, pyproject="1.0.4", core="1.0.4")
     bump = _load_bump_version()
-    monkeypatch.setattr(bump, "_latest_git_tag_version", lambda _root: "1.0.4")
+    monkeypatch.setattr(bump, "latest_git_tag_version", lambda *, repo_root: "1.0.4")
 
     assert bump.should_auto_prepare(repo_root=repo_root) is False
 
@@ -72,7 +72,7 @@ def test_bump_release_files_writes_pyproject_and_core(
     repo_root = tmp_path / "repo"
     _init_repo(repo_root, pyproject="0.0.0", core="0.0.0")
     bump = _load_bump_version()
-    monkeypatch.setattr(bump, "_latest_git_tag_version", lambda _root: "1.0.4")
+    monkeypatch.setattr(bump, "latest_git_tag_version", lambda *, repo_root: "1.0.4")
 
     version = bump.bump_release_files(repo_root=repo_root, bump="patch")
 

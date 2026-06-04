@@ -87,6 +87,28 @@ def test_sync_version_uses_ci_dev_suffix_on_pr_builds(
     assert '__version__ = "1.0.0.dev42"' in core_init.read_text(encoding="utf-8")
 
 
+def test_sync_version_resolve_only_does_not_write_files(
+    tmp_path: Path, monkeypatch
+) -> None:
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    pyproject = repo_root / "pyproject.toml"
+    pyproject.write_text(
+        '[project]\nname = "lexiflow"\nversion = "2.3.4"\n',
+        encoding="utf-8",
+    )
+    core_init = repo_root / "packages/lexiflow-core/src/lexiflow_core/__init__.py"
+    core_init.parent.mkdir(parents=True)
+    core_init.write_text('__version__ = "0.0.0"\n', encoding="utf-8")
+    monkeypatch.delenv("GITHUB_REF_NAME", raising=False)
+
+    sync_version = _load_sync_version()
+    version = sync_version.resolve_build_version(repo_root=repo_root)
+
+    assert version == "2.3.4"
+    assert '__version__ = "0.0.0"' in core_init.read_text(encoding="utf-8")
+
+
 def test_sync_version_can_write_pyproject(tmp_path: Path, monkeypatch) -> None:
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
