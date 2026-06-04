@@ -99,14 +99,8 @@ def _install_loadable(source: Path, platform_key: str) -> Path:
     dest_base = destination_path(platform_key)
     dest_base.parent.mkdir(parents=True, exist_ok=True)
     suffix = source.suffix
-    if suffix:
-        dest = dest_base.with_suffix(suffix)
-        for old in dest_base.parent.glob(f"{dest_base.name}.*"):
-            old.unlink(missing_ok=True)
-    else:
-        dest = dest_base
-        if dest.exists():
-            dest.unlink()
+    dest = dest_base.with_suffix(suffix) if suffix else dest_base
+    dest.unlink(missing_ok=True)
     shutil.copy2(source, dest)
     return dest
 

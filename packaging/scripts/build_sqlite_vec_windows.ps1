@@ -20,18 +20,16 @@ if (Test-Path $SourceDir) {
   Remove-Item -Recurse -Force $SourceDir
 }
 Expand-Archive -Path $SourceZip -DestinationPath (Split-Path $SourceDir -Parent) -Force
-$Extracted = Get-ChildItem (Split-Path $SourceDir -Parent) -Directory |
-  Where-Object { $_.Name -like "sqlite-vec-*" } |
-  Select-Object -First 1
-if (-not $Extracted) {
+$ExtractedPath = Join-Path (Split-Path $SourceDir -Parent) "sqlite-vec-$Version"
+if (-not (Test-Path $ExtractedPath)) {
   throw "sqlite-vec source directory not found after extract"
 }
 
-Push-Location $Extracted.FullName
+Push-Location $ExtractedPath
 try {
-  $SourceFile = Join-Path $Extracted.FullName "sqlite-vec.c"
+  $SourceFile = Join-Path $ExtractedPath "sqlite-vec.c"
   if (-not (Test-Path $SourceFile)) {
-    throw "sqlite-vec.c missing in $($Extracted.FullName)"
+    throw "sqlite-vec.c missing in $ExtractedPath"
   }
   $BuildDir = Join-Path $env:TEMP "sqlite-vec-arm64-build"
   if (Test-Path $BuildDir) {
@@ -40,7 +38,7 @@ try {
   New-Item -ItemType Directory -Force -Path $BuildDir | Out-Null
   Push-Location $BuildDir
   try {
-    & cl.exe /nologo /LD /O2 /I "$($Extracted.FullName)\vendor" `
+    & cl.exe /nologo /LD /O2 /I "$ExtractedPath\vendor" `
       "$SourceFile" /link /OUT:"vec0.dll"
     if (-not (Test-Path "vec0.dll")) {
       throw "vec0.dll was not produced"
