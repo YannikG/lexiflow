@@ -43,6 +43,8 @@ All must pass before merge. Coverage floors: 80% core, 60% ui (see ADR-0001).
 
 ## Release (maintainers)
 
+**One-time repo setting:** Settings → Actions → General → Workflow permissions → enable **Allow GitHub Actions to create and approve pull requests** (required for `prepare-release` to open the bump PR).
+
 1. Merge feature work to `main`.
 2. **Prepare release:** [prepare-release.yml](.github/workflows/prepare-release.yml) opens a `release/vX.Y.Z` PR when `pyproject.toml` lags the latest tag, or run **Actions → prepare-release** (patch / minor / major).
 3. **Merge** that PR; [tag-release.yml](.github/workflows/tag-release.yml) pushes `vX.Y.Z`.

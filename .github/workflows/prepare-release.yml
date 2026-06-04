@@ -101,8 +101,21 @@ jobs:
             echo ""
             echo "No manual tag or push to \`main\` is required."
           } > "${BODY_FILE}"
-          gh pr create \
+          if gh pr create \
             --base main \
             --head "${BRANCH}" \
             --title "chore: release v${VERSION}" \
-            --body-file "${BODY_FILE}"
+            --body-file "${BODY_FILE}"; then
+            exit 0
+          fi
+          if gh pr list --base main --head "${BRANCH}" --state open --json number \
+            --jq 'length' | grep -qv '^0$'; then
+            echo "Pull request for ${BRANCH} already exists."
+            exit 0
+          fi
+          echo "::error::GitHub Actions cannot create pull requests for this repository."
+          echo "Enable: Settings → Actions → General → Workflow permissions →"
+          echo "Allow GitHub Actions to create and approve pull requests."
+          echo "Branch ${BRANCH} was pushed. Open a PR manually:"
+          echo "https://github.com/${GITHUB_REPOSITORY}/compare/main...${BRANCH}?expand=1"
+          exit 1
