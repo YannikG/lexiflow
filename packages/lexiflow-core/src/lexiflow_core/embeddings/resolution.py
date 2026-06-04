@@ -20,7 +20,7 @@ def resolve_embedder(settings: Settings) -> Embedder:
         logger.info("Ollama LLM configured; using FakeEmbedder until phase 10b")
         return FakeEmbedder()
     try:
-        pinned_embedding_hf_model()
+        model = pinned_embedding_hf_model()
     except RuntimeError as exc:
         logger.warning("%s; using FakeEmbedder", exc)
         return FakeEmbedder()
@@ -32,7 +32,4 @@ def resolve_embedder(settings: Settings) -> Embedder:
         )
         return FakeEmbedder()
     logger.info("using llama-server embedder at %s", base_url)
-    return LlamaServerEmbedder(
-        base_url=base_url,
-        model=pinned_embedding_hf_model(),
-    )
+    return LlamaServerEmbedder(base_url=base_url, model=model)

@@ -14,12 +14,12 @@ def ensure_ai_workers_running(
     """Start llama-server processes when needed, then spawn the worker once ready."""
     if llama_supervisor is not None:
         llama_supervisor.ensure_running()
-        if not llama_supervisor.is_ready():
-            return
     if embed_supervisor is not None:
         embed_supervisor.ensure_running()
-        if not embed_supervisor.is_ready():
-            return
+    if llama_supervisor is not None and not llama_supervisor.is_ready():
+        return
+    if embed_supervisor is not None and not embed_supervisor.is_ready():
+        return
     worker_supervisor.ensure_running()
 
 

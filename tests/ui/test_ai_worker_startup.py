@@ -84,6 +84,44 @@ def test_ensure_ai_workers_running_waits_for_embed_server(
     assert worker.state is WorkerState.OFFLINE
 
 
+def test_ensure_ai_workers_running_starts_both_servers_in_parallel(
+    tmp_path: Path, monkeypatch
+) -> None:
+    FakeProcess.instances.clear()
+    worker = WorkerSupervisor(
+        data_root=tmp_path,
+        executable=sys.executable,
+        process_factory=FakeProcess,
+    )
+    llama = LlamaServerSupervisor(
+        data_root=tmp_path,
+        base_url="http://127.0.0.1:8080",
+        hf_model=lambda: "org/chat-model:quant",
+        huggingface_token="hf_test",
+        process_factory=FakeProcess,
+    )
+    embed = LlamaServerSupervisor(
+        data_root=tmp_path,
+        base_url="http://127.0.0.1:8081",
+        hf_model=lambda: "LLukas22/all-MiniLM-L6-v2-GGUF:Q8_0",
+        embeddings=True,
+        process_factory=FakeProcess,
+    )
+    monkeypatch.setattr(
+        "lexiflow_ui.llama_server_supervisor.llama_server_health",
+        lambda _url: False,
+    )
+    monkeypatch.setattr(
+        "lexiflow_ui.llama_server_supervisor.llama_server_binary",
+        lambda: "/usr/bin/llama-server",
+    )
+
+    ensure_ai_workers_running(worker, llama, embed)
+
+    assert len(FakeProcess.instances) == 2
+    assert worker.state is WorkerState.OFFLINE
+
+
 def test_ensure_ai_workers_running_starts_worker_when_both_servers_ready(
     tmp_path: Path, monkeypatch
 ) -> None:
