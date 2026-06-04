@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import platform
 import sys
 from pathlib import Path
@@ -11,6 +12,20 @@ from PyInstaller.utils.hooks import collect_all, collect_data_files
 
 block_cipher = None
 REPO_ROOT = Path(SPECPATH).resolve().parent
+
+
+def _load_llama_runtime_libs():
+    script = REPO_ROOT / "packaging" / "scripts" / "llama_runtime_libs.py"
+    spec = importlib.util.spec_from_file_location("lexiflow_llama_runtime_libs", script)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load {script}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_llama_runtime = _load_llama_runtime_libs()
+runtime_lib_globs = _llama_runtime.runtime_lib_globs
 CORE_SRC = REPO_ROOT / "packages/lexiflow-core/src/lexiflow_core"
 UI_SRC = REPO_ROOT / "packages/lexiflow-ui/src/lexiflow_ui"
 BIN_ROOT = REPO_ROOT / "packaging" / "bin"
@@ -30,14 +45,6 @@ PLATFORM_BIN_KEYS = {
 }
 
 
-def _llama_server_runtime_globs(platform_key: str) -> tuple[str, ...]:
-    if platform_key.startswith("windows"):
-        return ("*.dll",)
-    if platform_key.startswith("macos"):
-        return ("*.dylib",)
-    return ("*.so", "*.so.*")
-
-
 def _llama_server_binaries() -> list[tuple[str, str]]:
     key = sys.platform
     if key not in PLATFORM_BIN_KEYS:
@@ -50,7 +57,7 @@ def _llama_server_binaries() -> list[tuple[str, str]]:
     dest = "bin"
     entries: list[tuple[str, str]] = [(str(candidate), dest)]
     seen: set[str] = set()
-    for pattern in _llama_server_runtime_globs(platform_key):
+    for pattern in runtime_lib_globs(platform_key):
         for lib_path in sorted(platform_dir.glob(pattern)):
             if lib_path.is_file() and lib_path.name not in seen:
                 seen.add(lib_path.name)

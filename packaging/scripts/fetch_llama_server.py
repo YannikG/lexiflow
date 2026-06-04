@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import os
 import platform
 import shutil
@@ -13,6 +14,21 @@ import tempfile
 import urllib.request
 import zipfile
 from pathlib import Path
+from types import ModuleType
+
+
+def _load_llama_runtime_libs() -> ModuleType:
+    script = Path(__file__).resolve().parent / "llama_runtime_libs.py"
+    spec = importlib.util.spec_from_file_location("lexiflow_llama_runtime_libs", script)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load {script}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_llama_runtime = _load_llama_runtime_libs()
+copy_runtime_libs = _llama_runtime.copy_runtime_libs
 
 DEFAULT_RELEASE = "b9500"
 GITHUB_RELEASE_BASE = "https://github.com/ggml-org/llama.cpp/releases/download"
@@ -60,34 +76,6 @@ def _download(url: str, destination: Path) -> None:
                 handle.write(chunk)
 
 
-def _runtime_lib_globs(platform_key: str) -> tuple[str, ...]:
-    """Return glob patterns for shared libraries shipped next to llama-server."""
-    if platform_key.startswith("windows"):
-        return ("*.dll",)
-    if platform_key.startswith("macos"):
-        return ("*.dylib",)
-    return ("*.so", "*.so.*")
-
-
-def _copy_runtime_libs(
-    source_dir: Path,
-    destination_dir: Path,
-    platform_key: str,
-) -> int:
-    """Copy llama.cpp shared libraries beside the llama-server binary."""
-    destination_dir.mkdir(parents=True, exist_ok=True)
-    copied = 0
-    seen: set[str] = set()
-    for pattern in _runtime_lib_globs(platform_key):
-        for lib_path in sorted(source_dir.glob(pattern)):
-            if not lib_path.is_file() or lib_path.name in seen:
-                continue
-            seen.add(lib_path.name)
-            shutil.copy2(lib_path, destination_dir / lib_path.name)
-            copied += 1
-    return copied
-
-
 def _extract_llama_server(
     archive: Path,
     archive_type: str,
@@ -110,7 +98,7 @@ def _extract_llama_server(
             raise FileNotFoundError(f"{binary_name} not found in {archive}")
         source_binary = matches[0]
         shutil.copy2(source_binary, destination)
-        lib_count = _copy_runtime_libs(
+        lib_count = copy_runtime_libs(
             source_binary.parent,
             destination.parent,
             platform_key,
