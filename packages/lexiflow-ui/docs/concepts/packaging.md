@@ -54,7 +54,7 @@ uv run pyinstaller packaging/lexiflow.spec --noconfirm
 bash packaging/scripts/smoke_bundle.sh
 ```
 
-On **Windows ARM64**, compile the extension first: `packaging/scripts/build_sqlite_vec_windows.ps1` (MSVC arm64), then fetch is a no-op for the DLL stem.
+On **Windows ARM64**, compile the extension first: `prepare_sqlite_vec_windows_arm64.py` downloads the official sqlite-vec amalgamation plus SQLite `sqlite3ext.h`, then `build_sqlite_vec_windows.ps1` builds `vec0.arm64.dll` with MSVC arm64. The fetch step is a no-op for the DLL stem.
 
 **Windows MSI** uses WiX with a four-part product version from `packaging/scripts/wix_version.py` (invoked from `build_msi.ps1`).
 
