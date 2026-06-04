@@ -39,7 +39,7 @@ Build-time script `packaging/scripts/sync_version.py` sets `lexiflow_core.__vers
 - **Release tag** (`vX.Y.Z`) → exact tag version
 - **Local dev** → root `pyproject.toml`
 
-After a release, CI syncs `pyproject.toml` on `main` to match the tag.
+Before tagging a release, bump `pyproject.toml` on `main` via PR; the release build reads the tag version at CI time and does not push back to `main`.
 
 ## Local build (maintainers)
 

@@ -18,7 +18,7 @@ PySide6 and a native `llama-server` binary must coexist in a single onedir layou
 3. **Frozen worker spawn** — `build_worker_command` uses `[executable, "--worker", ...]` when `sys.frozen`; dev keeps `python -m lexiflow_worker`.
 4. **Bundled llama-server** — CI downloads pinned llama.cpp prebuilts into `packaging/bin/<platform>/`; spec copies to `bin/` in the bundle; `llama_server_binary()` resolves `{sys._MEIPASS}/bin/llama-server` before PATH.
 5. **Release dependency group** — root `pyproject.toml` `[dependency-groups] release` adds `pyinstaller` and `pillow` only (no `sentence-transformers` / torch). Embeddings use the bundled `llama-server` binary. PR pytest stays fake-only; no real models in CI unit tests.
-6. **Version sync** — `packaging/scripts/sync_version.py` writes `lexiflow_core.__version__` from the release tag or `pyproject.toml` locally. Release workflow syncs `pyproject.toml` back to `main` after publish.
+6. **Version sync** — `packaging/scripts/sync_version.py` writes `lexiflow_core.__version__` from the release tag at build time (or from `pyproject.toml` locally). Bump `pyproject.toml` on `main` via PR before tagging; release CI does not push to `main` (branch protection).
 7. **Installers** — Linux AppImage, macOS DMG, Windows MSI (WiX + heat harvest). Unsigned in v1.
 8. **Release CI** — tag `v*` triggers `.github/workflows/release.yml`; SHA256 checksums published per asset.
 
