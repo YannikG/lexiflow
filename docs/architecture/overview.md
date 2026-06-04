@@ -29,7 +29,7 @@ flowchart LR
 
 - **UI:** no torch/transformers; supervises `llama-server` on the native LLM path.
 - **Worker:** lazy spawn on first AI job; idle shutdown ~5 min.
-- **Single PyInstaller bundle:** same binary, different entry module (`lexiflow-ui` vs `lexiflow-worker`).
+- **Single PyInstaller bundle:** same `LexiFlow` executable; UI by default, worker via `--worker` ([packaging.md](../../packages/lexiflow-ui/docs/concepts/packaging.md), [ADR-0008](../adr/0008-pyinstaller-release-bundle.md)).
 
 ## Packages
 

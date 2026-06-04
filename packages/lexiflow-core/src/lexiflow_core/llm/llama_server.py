@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -87,11 +88,24 @@ def llama_server_runtime_env() -> dict[str, str]:
     return env
 
 
+def _bundled_llama_server_binary() -> str | None:
+    """Return llama-server shipped inside a PyInstaller bundle."""
+    if not getattr(sys, "frozen", False):
+        return None
+    meipass = getattr(sys, "_MEIPASS", "")
+    if not meipass:
+        return None
+    return _executable_path(Path(meipass) / "bin" / _llama_server_executable_name())
+
+
 def llama_server_binary() -> str | None:
     """Return the llama-server executable path when available."""
     override = os.environ.get(_LLAMA_SERVER_BIN_ENV, "").strip()
     if override:
         return _executable_path(Path(override))
+    bundled = _bundled_llama_server_binary()
+    if bundled is not None:
+        return bundled
     for directory in _path_directories():
         resolved = _executable_path(Path(directory) / _llama_server_executable_name())
         if resolved is not None:

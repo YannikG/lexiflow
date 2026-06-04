@@ -175,3 +175,25 @@ def test_llama_server_binary_resolves_windows_exe(monkeypatch, tmp_path: Path) -
     )
 
     assert llama_server_binary() == str(fake_binary)
+
+
+def test_llama_server_binary_uses_bundled_path_when_frozen(
+    monkeypatch, tmp_path: Path
+) -> None:
+    import sys
+
+    from lexiflow_core.llm.llama_server import _llama_server_executable_name
+
+    bundled = tmp_path / "bin" / _llama_server_executable_name()
+    bundled.parent.mkdir()
+    bundled.write_text("")
+    bundled.chmod(0o755)
+    monkeypatch.delenv("LEXIFLOW_LLAMA_SERVER_BIN", raising=False)
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "_MEIPASS", str(tmp_path), raising=False)
+    monkeypatch.setattr(
+        "lexiflow_core.llm.llama_server._path_directories",
+        lambda: (str(tmp_path / "empty"),),
+    )
+
+    assert llama_server_binary() == str(bundled)
