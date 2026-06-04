@@ -12,7 +12,6 @@ from pathlib import Path
 
 # Matches upstream scripts/vendor.sh (sqlite-vec v0.1.9).
 SQLITE_AMALGAMATION_URL = "https://www.sqlite.org/2024/sqlite-amalgamation-3450300.zip"
-SQLITE_AMALGAMATION_DIR = "sqlite-amalgamation-3450300"
 
 
 def _load_fetch_sqlite_vec():
@@ -46,7 +45,7 @@ def vendor_sqlite_amalgamation(vendor_dir: Path, *, scratch_dir: Path) -> None:
     _download(SQLITE_AMALGAMATION_URL, archive)
     with zipfile.ZipFile(archive, "r") as zip_archive:
         zip_archive.extractall(scratch_dir)
-    extracted = scratch_dir / SQLITE_AMALGAMATION_DIR
+    extracted = scratch_dir / Path(SQLITE_AMALGAMATION_URL).stem
     if not extracted.is_dir():
         raise FileNotFoundError("sqlite amalgamation directory missing after extract")
     vendor_dir.mkdir(parents=True, exist_ok=True)

@@ -37,7 +37,7 @@ def _write_minimal_sqlite_vec_amalgamation(work_dir: Path) -> None:
 
 def _write_minimal_sqlite_amalgamation_zip(archive: Path) -> None:
     prepare = _load_prepare_sqlite_vec_windows_arm64()
-    sqlite_dir = archive.parent / prepare.SQLITE_AMALGAMATION_DIR
+    sqlite_dir = archive.parent / Path(prepare.SQLITE_AMALGAMATION_URL).stem
     sqlite_dir.mkdir()
     (sqlite_dir / "sqlite3ext.h").write_text("/* ext */\n", encoding="utf-8")
     (sqlite_dir / "sqlite3.h").write_text("/* sqlite3 */\n", encoding="utf-8")
