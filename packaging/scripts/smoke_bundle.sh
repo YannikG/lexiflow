@@ -5,11 +5,16 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
 BUNDLE_DIR="${LF_BUNDLE_DIR:-$ROOT/dist/LexiFlow}"
-BINARY="$BUNDLE_DIR/LexiFlow"
 EXPECTED_VERSION="${LF_EXPECTED_VERSION:-}"
 
-if [[ ! -x "$BINARY" ]]; then
-  echo "bundle binary not found or not executable: $BINARY" >&2
+if [[ -x "$ROOT/dist/LexiFlow.app/Contents/MacOS/LexiFlow" ]]; then
+  BINARY="$ROOT/dist/LexiFlow.app/Contents/MacOS/LexiFlow"
+elif [[ -x "$BUNDLE_DIR/LexiFlow.app/Contents/MacOS/LexiFlow" ]]; then
+  BINARY="$BUNDLE_DIR/LexiFlow.app/Contents/MacOS/LexiFlow"
+elif [[ -x "$BUNDLE_DIR/LexiFlow" ]]; then
+  BINARY="$BUNDLE_DIR/LexiFlow"
+else
+  echo "bundle binary not found under $BUNDLE_DIR or dist/LexiFlow.app" >&2
   exit 1
 fi
 

@@ -3,13 +3,18 @@ $Root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 Set-Location $Root
 
 $BundleDir = Join-Path $Root "dist\LexiFlow"
-$Version = if ($env:WIX_VERSION) {
+$RawVersion = if ($env:WIX_VERSION) {
   $env:WIX_VERSION
 } elseif ($env:LF_VERSION) {
-  "$($env:LF_VERSION).0"
+  $env:LF_VERSION
 } else {
-  "0.0.0.0"
+  "0.0.0"
 }
+$Sanitized = $RawVersion -replace '[^0-9.]', ''
+$Parts = $Sanitized.Split('.') | Where-Object { $_ -ne "" }
+while ($Parts.Count -lt 3) { $Parts += "0" }
+if ($Parts.Count -gt 4) { $Parts = $Parts[0..3] }
+$Version = $Parts -join "."
 $MsiName = if ($env:LF_INSTALLER_ARCH) {
   "LexiFlow-$($env:LF_VERSION)-$($env:LF_INSTALLER_ARCH).msi"
 } else {

@@ -133,3 +133,11 @@ coll = COLLECT(
     upx_exclude=[],
     name="LexiFlow",
 )
+
+if sys.platform == "darwin":
+    app = BUNDLE(
+        coll,
+        name="LexiFlow.app",
+        icon=icon_file,
+        bundle_identifier="com.lexiflow.app",
+    )

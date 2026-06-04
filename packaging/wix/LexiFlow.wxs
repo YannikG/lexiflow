@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
   <Product Id="*" Name="LexiFlow" Language="1033" Version="$(var.Version)"
-           Manufacturer="LexiFlow" UpgradeCode="f8b0f6f0-0f6a-4a6a-9a6a-lexiflow01">
+           Manufacturer="LexiFlow" UpgradeCode="f8b0f6f0-0f6a-4a6a-9a6a-1e1f10101010">
     <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" />
     <MajorUpgrade DowngradeErrorMessage="A newer version of LexiFlow is already installed." />
     <MediaTemplate EmbedCab="yes" />
