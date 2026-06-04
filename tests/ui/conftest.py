@@ -47,17 +47,28 @@ def _suppress_worker_crash_dialog(monkeypatch: pytest.MonkeyPatch) -> None:
 def _allow_quit_without_modal(monkeypatch: pytest.MonkeyPatch) -> None:
     """Close MainWindow in tests without blocking on the quit confirmation dialog."""
 
-    def _confirm(_parent, *, job_service, worker_supervisor, llama_supervisor) -> bool:  # noqa: ANN001
-        del job_service
+    def _confirm(
+        _parent,
+        *,
+        job_service,
+        worker_supervisor,
+        llama_supervisor,
+        embed_supervisor=None,
+    ) -> bool:  # noqa: ANN001
+        del job_service, _parent
+        if embed_supervisor is not None:
+            embed_supervisor.shutdown(wait=False)
         if llama_supervisor is not None:
             llama_supervisor.shutdown(wait=False)
         worker_supervisor.shutdown(wait=False)
         return True
 
-    monkeypatch.setattr(
+    for target in (
+        "lexiflow_ui.shutdown_flow.confirm_application_quit",
         "lexiflow_ui.main_window.window.confirm_application_quit",
-        _confirm,
-    )
+        "lexiflow_ui.dialogs.settings_dialog.confirm_application_quit",
+    ):
+        monkeypatch.setattr(target, _confirm)
 
 
 @pytest.fixture(autouse=True)
@@ -82,6 +93,8 @@ def _stop_ui_timers_after_test() -> Iterator[None]:
             widget._supervisor.shutdown(wait=False)
             if widget._llama_supervisor is not None:
                 widget._llama_supervisor.shutdown(wait=False)
+            if widget._embed_supervisor is not None:
+                widget._embed_supervisor.shutdown(wait=False)
         widget.close()
     for timer in app.findChildren(QTimer):
         timer.stop()
