@@ -151,14 +151,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-      - uses: astral-sh/setup-uv@v7
-        with:
-          python-version: "3.12"
-          enable-cache: true
-      - name: Install release dependencies
-        run: uv sync --frozen --group release
 
       - name: Download all platform artifacts
         uses: actions/download-artifact@v4
@@ -178,16 +170,3 @@ jobs:
         with:
           files: merged/*
           generate_release_notes: true
-
-      - name: Sync version files on main
-        run: |
-          VERSION="$(uv run python packaging/scripts/sync_version.py --write-pyproject)"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pyproject.toml packages/lexiflow-core/src/lexiflow_core/__init__.py
-          if git diff --staged --quiet; then
-            echo "version files already match ${VERSION}"
-          else
-            git commit -m "chore: sync version to ${VERSION} [skip ci]"
-            git push origin HEAD:refs/heads/main
-          fi
