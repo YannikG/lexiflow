@@ -30,15 +30,32 @@ PLATFORM_BIN_KEYS = {
 }
 
 
-def _llama_server_binary() -> tuple[str, str] | None:
+def _llama_server_runtime_globs(platform_key: str) -> tuple[str, ...]:
+    if platform_key.startswith("windows"):
+        return ("*.dll",)
+    if platform_key.startswith("macos"):
+        return ("*.dylib",)
+    return ("*.so", "*.so.*")
+
+
+def _llama_server_binaries() -> list[tuple[str, str]]:
     key = sys.platform
     if key not in PLATFORM_BIN_KEYS:
-        return None
+        return []
     platform_key, binary_name = PLATFORM_BIN_KEYS[key]
-    candidate = BIN_ROOT / platform_key / binary_name
-    if candidate.is_file():
-        return str(candidate), "bin"
-    return None
+    platform_dir = BIN_ROOT / platform_key
+    candidate = platform_dir / binary_name
+    if not candidate.is_file():
+        return []
+    dest = "bin"
+    entries: list[tuple[str, str]] = [(str(candidate), dest)]
+    seen: set[str] = set()
+    for pattern in _llama_server_runtime_globs(platform_key):
+        for lib_path in sorted(platform_dir.glob(pattern)):
+            if lib_path.is_file() and lib_path.name not in seen:
+                seen.add(lib_path.name)
+                entries.append((str(lib_path), dest))
+    return entries
 
 
 pyside6_datas, pyside6_binaries, pyside6_hiddenimports = collect_all("PySide6")
@@ -50,10 +67,7 @@ datas = [
     (str(CORE_SRC / "llm" / "prompts"), "lexiflow_core/llm/prompts"),
 ] + pyside6_datas + collect_data_files("sqlite_vec")
 
-binaries: list[tuple[str, str]] = []
-llama_binary = _llama_server_binary()
-if llama_binary is not None:
-    binaries.append(llama_binary)
+binaries: list[tuple[str, str]] = _llama_server_binaries()
 binaries += pyside6_binaries
 
 hiddenimports = [

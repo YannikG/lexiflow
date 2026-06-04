@@ -51,3 +51,21 @@ def test_platform_key_detects_windows_x64(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(fetch.platform, "system", lambda: "Windows")
     monkeypatch.setattr(fetch.platform, "machine", lambda: "AMD64")
     assert fetch.detect_platform_key() == "windows"
+
+
+def test_copy_runtime_libs_copies_dylibs_beside_server(tmp_path: Path) -> None:
+    fetch = _load_fetch_llama_server()
+    source = tmp_path / "src"
+    destination = tmp_path / "out"
+    source.mkdir()
+    (source / "llama-server").write_text("", encoding="utf-8")
+    (source / "libllama-server-impl.dylib").write_bytes(b"dylib")
+    (source / "libggml.0.dylib").write_bytes(b"dylib")
+    (source / "readme.txt").write_text("skip", encoding="utf-8")
+
+    copied = fetch._copy_runtime_libs(source, destination, "macos-arm64")
+
+    assert copied == 2
+    assert (destination / "libllama-server-impl.dylib").is_file()
+    assert (destination / "libggml.0.dylib").is_file()
+    assert not (destination / "readme.txt").exists()
