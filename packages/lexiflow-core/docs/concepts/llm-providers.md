@@ -27,10 +27,12 @@ There are exactly two LLM backends:
 
 ## Embeddings
 
-- Pinned repo/revision in `models.lock` as **`embedding-minilm`**.
-- The worker loads MiniLM via `sentence-transformers` from Hugging Face on first use; LexiFlow does not cache weights under `.app/models/`.
-- Optional `huggingface_token` from settings is passed through for gated repos.
-- Without `sentence-transformers` installed, the worker uses `FakeEmbedder` (CI and dev).
+- Pinned `llama_hf_model` in `models.lock` as **`native-embedding`** (384-d GGUF, same vector contract as phase 10).
+- The **UI** supervises a second `llama-server` with `--embedding` on `llama_embed_server_url` (default port 8081).
+- The worker calls `LlamaServerEmbedder` over HTTP (`/v1/embeddings`) when the embed server is healthy.
+- Optional `huggingface_token` from settings is passed to llama-server for gated repos.
+- When **Ollama endpoint** is set, embeddings still use `FakeEmbedder` until phase 10b (`OllamaEmbedder`).
+- CI and dev without a running embed server use `FakeEmbedder`.
 
 ## CI and tests
 
@@ -39,6 +41,8 @@ There are exactly two LLM backends:
 
 ## Worker entry
 
-`lexiflow_worker.main` loads `SettingsStore`, calls `resolve_llm`, and passes the provider to `run_worker_loop`. Production never hardcodes `FakeLLM`.
+`resolve_embedder(settings)` in `lexiflow_core.embeddings.resolution` mirrors LLM selection.
+
+`lexiflow_worker.main` loads `SettingsStore`, calls `resolve_llm` and `resolve_embedder`, and passes both to `run_worker_loop`. Production never hardcodes `FakeLLM` or `FakeEmbedder` when servers are healthy.
 
 See [common-language.md](../../../../common-language.md): **LLM provider**, **Provider mode**, **Native LLM**, **Ollama endpoint**, **Native LLM lifecycle**.

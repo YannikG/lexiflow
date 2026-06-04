@@ -3,6 +3,25 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
+
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _vendored_vec0_loadable() -> Path | None:
+    package_dir = _REPO_ROOT / "packaging" / "vendor" / "sqlite_vec" / "sqlite_vec"
+    for name in ("vec0.dylib", "vec0.so", "vec0.dll", "vec0.arm64.dll"):
+        candidate = package_dir / name
+        if candidate.exists():
+            return candidate
+    return None
+
+
+# Use fetched vec0 binaries when present (CI and local dev after fetch_sqlite_vec.py).
+if not os.environ.get("LEXIFLOW_SQLITE_VEC_PATH", "").strip():
+    _vec0 = _vendored_vec0_loadable()
+    if _vec0 is not None:
+        os.environ["LEXIFLOW_SQLITE_VEC_PATH"] = str(_vec0)
 
 # Headless Qt for UI tests avoids macOS "Python quit unexpectedly" dialogs from
 # native window teardown. Set LEXIFLOW_QT_HEADED=1 to run UI tests with real windows.

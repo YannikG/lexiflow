@@ -52,6 +52,7 @@ class MainWindow(
         *,
         supervisor: WorkerSupervisor,
         llama_supervisor: LlamaServerSupervisor | None = None,
+        embed_supervisor: LlamaServerSupervisor | None = None,
         settings: Settings | None = None,
         data_root: Path | None = None,
         parent: QWidget | None = None,
@@ -59,6 +60,7 @@ class MainWindow(
         super().__init__(parent)
         self._supervisor = supervisor
         self._llama_supervisor = llama_supervisor
+        self._embed_supervisor = embed_supervisor
         self._settings = settings if settings is not None else Settings()
         self._data_root = data_root if data_root is not None else supervisor.data_root
         self.setWindowTitle("LexiFlow")
@@ -75,6 +77,7 @@ class MainWindow(
         self._status_bar = WorkerStatusBar(
             supervisor,
             llama_supervisor,
+            embed_supervisor=self._embed_supervisor,
             data_root=self._data_root,
             on_open_jobs=self._open_jobs_panel,
             parent=self,
@@ -84,6 +87,11 @@ class MainWindow(
             self._llama_supervisor.state_changed.connect(
                 self._on_infrastructure_state_changed
             )
+        if self._embed_supervisor is not None:
+            self._embed_supervisor.state_changed.connect(
+                self._on_infrastructure_state_changed
+            )
+            self._embed_supervisor.state_changed.connect(self._status_bar.refresh)
         self._supervisor.crashed.connect(self._on_worker_crashed)
         self._supervisor.state_changed.connect(self._status_bar.refresh)
         self._open_text_id: UUID | None = None
@@ -151,6 +159,7 @@ class MainWindow(
             job_service=job_service,
             worker_supervisor=self._supervisor,
             llama_supervisor=self._llama_supervisor,
+            embed_supervisor=self._embed_supervisor,
         ):
             event.ignore()
             return

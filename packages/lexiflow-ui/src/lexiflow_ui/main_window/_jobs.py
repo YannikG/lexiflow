@@ -10,8 +10,7 @@ from lexiflow_core.jobs.service import JobService
 from lexiflow_core.languages.models import CEFRLevel
 from PySide6.QtCore import QTimer
 
-from lexiflow_ui.ai_worker_startup import ensure_ai_workers_running
-from lexiflow_ui.main_window._types import LLM_JOB_TYPES
+from lexiflow_ui.ai_worker_startup import ensure_background_workers
 
 if TYPE_CHECKING:
     from lexiflow_ui.main_window.window import MainWindow
@@ -41,23 +40,17 @@ class MainWindowJobsMixin:
         for delay_ms in (500, 1500, 3000, 6000, 12000):
             QTimer.singleShot(delay_ms, self._poll_background_jobs)
 
-    def _uses_native_llm(self: MainWindow) -> bool:
-        return not self._settings.ollama_url and self._llama_supervisor is not None
-
     def _ensure_background_workers(self: MainWindow, job_service: JobService) -> None:
-        pending_llm = any(
-            job.status == JobStatus.PENDING and job.job_type in LLM_JOB_TYPES
-            for job in job_service.list_jobs()
-        )
         pending_any = any(
             job.status == JobStatus.PENDING for job in job_service.list_jobs()
         )
         if not pending_any:
             return
-        if pending_llm and self._uses_native_llm():
-            ensure_ai_workers_running(self._supervisor, self._llama_supervisor)
-            return
-        self._supervisor.ensure_running()
+        ensure_background_workers(
+            self._supervisor,
+            llama_supervisor=self._llama_supervisor,
+            embed_supervisor=self._embed_supervisor,
+        )
 
     def _poll_background_jobs(self: MainWindow) -> None:
         if self._open_text_id is None:

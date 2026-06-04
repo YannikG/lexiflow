@@ -12,7 +12,9 @@ from lexiflow_core.vocabulary.lemma_form import parse_word_category
 from lexiflow_core.vocabulary.lemma_resolution import resolve_lemma_with_spacy
 from lexiflow_core.vocabulary.models import WordCategory
 
+from lexiflow_ui.ai_worker_startup import ensure_background_workers
 from lexiflow_ui.lemma_job_wait import LemmaJobPollState, find_lemma_job_result
+from lexiflow_ui.llama_server_supervisor import LlamaServerSupervisor
 from lexiflow_ui.worker_supervisor import WorkerSupervisor
 
 LEMMA_FILL_TIMEOUT_MS = 120_000
@@ -57,6 +59,8 @@ def make_async_lemma_fill(
     language_code: str,
     native_language: str,
     supervisor: WorkerSupervisor | None,
+    llama_supervisor: LlamaServerSupervisor | None = None,
+    embed_supervisor: LlamaServerSupervisor | None = None,
 ) -> AsyncLemmaFill:
     """Return non-blocking begin/poll callbacks for lemma inference."""
     spacy_hints: dict[str, LemmaSuggestions] = {}
@@ -91,7 +95,11 @@ def make_async_lemma_fill(
             context="",
         )
         if supervisor is not None:
-            supervisor.ensure_running()
+            ensure_background_workers(
+                supervisor,
+                llama_supervisor=llama_supervisor,
+                embed_supervisor=embed_supervisor,
+            )
 
     def poll(surface_form: str) -> LemmaSuggestions | None:
         normalized = surface_form.strip()

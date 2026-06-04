@@ -115,9 +115,18 @@ def generation_indicator(
 def format_background_status(
     supervisor: WorkerSupervisor,
     llama_supervisor: LlamaServerSupervisor | None,
+    embed_supervisor: LlamaServerSupervisor | None = None,
 ) -> str:
     """Return status-bar text for worker and model startup."""
     pending = _pending_job_count(supervisor.data_root)
+    if pending > 0 and embed_supervisor is not None:
+        if embed_supervisor.state is LlamaServerState.LOADING:
+            return "Loading embedding model (first run may take a few minutes)…"
+        if (
+            embed_supervisor.state is LlamaServerState.OFFLINE
+            and embed_supervisor.startup_error
+        ):
+            return embed_supervisor.startup_error
     if pending > 0 and llama_supervisor is not None:
         if llama_supervisor.state is LlamaServerState.LOADING:
             return "Loading language model (first run may take a few minutes)…"
@@ -127,6 +136,8 @@ def format_background_status(
         ):
             return llama_supervisor.startup_error
         if llama_supervisor.is_ready() and supervisor.state is WorkerState.OFFLINE:
+            if embed_supervisor is not None and not embed_supervisor.is_ready():
+                return "Language model ready — loading embedding model…"
             return "Language model ready — starting background worker…"
 
     state = supervisor.state

@@ -12,9 +12,10 @@ def test_load_models_lock_parses_llama_hf_model(tmp_path: Path) -> None:
     lock_path.write_text(
         """
 [[artifacts]]
-id = "embedding-minilm"
-repo = "sentence-transformers/all-MiniLM-L6-v2"
-revision = "c9745ed1d9f207416be6d2e6f8de32d1f16199bf"
+id = "native-embedding"
+repo = "LLukas22/all-MiniLM-L6-v2-GGUF"
+revision = "ae6369f25f3393dcca54ff7b41157ffd2e43e2e6"
+llama_hf_model = "LLukas22/all-MiniLM-L6-v2-GGUF:Q8_0"
 
 [[artifacts]]
 id = "native-llm"
@@ -52,3 +53,14 @@ def test_bundled_native_llm_has_llama_hf_model_pin() -> None:
 
     assert native.llama_hf_model
     assert ":" in native.llama_hf_model
+
+
+def test_bundled_native_embedding_has_llama_hf_model_pin() -> None:
+    from lexiflow_core.embeddings.pins import pinned_embedding_hf_model
+    from lexiflow_core.models.lockfile import bundled_models_lock_path
+
+    lock = load_models_lock(bundled_models_lock_path())
+    native = next(a for a in lock.artifacts if a.id == "native-embedding")
+
+    assert native.llama_hf_model
+    assert pinned_embedding_hf_model() == native.llama_hf_model

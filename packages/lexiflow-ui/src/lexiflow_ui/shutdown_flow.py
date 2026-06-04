@@ -16,6 +16,7 @@ def confirm_application_quit(
     job_service: JobService,
     worker_supervisor: WorkerSupervisor,
     llama_supervisor: LlamaServerSupervisor | None,
+    embed_supervisor: LlamaServerSupervisor | None = None,
 ) -> bool:
     """Return True when the app may exit. Shut down supervisors when allowed."""
     jobs = job_service.list_queue_jobs(limit=100)
@@ -25,6 +26,7 @@ def confirm_application_quit(
         _shutdown_supervisors(
             worker_supervisor=worker_supervisor,
             llama_supervisor=llama_supervisor,
+            embed_supervisor=embed_supervisor,
             wait=True,
         )
         return True
@@ -55,6 +57,7 @@ def confirm_application_quit(
         _shutdown_supervisors(
             worker_supervisor=worker_supervisor,
             llama_supervisor=llama_supervisor,
+            embed_supervisor=embed_supervisor,
             wait=False,
         )
         return True
@@ -65,8 +68,11 @@ def _shutdown_supervisors(
     *,
     worker_supervisor: WorkerSupervisor,
     llama_supervisor: LlamaServerSupervisor | None,
+    embed_supervisor: LlamaServerSupervisor | None = None,
     wait: bool,
 ) -> None:
+    if embed_supervisor is not None:
+        embed_supervisor.shutdown(wait=wait)
     if llama_supervisor is not None:
         llama_supervisor.shutdown(wait=wait)
     worker_supervisor.shutdown(wait=wait)

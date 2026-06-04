@@ -13,6 +13,7 @@ from lexiflow_core.vocabulary.lemma_resolution import resolve_lemma_with_spacy
 from lexiflow_core.vocabulary.models import VocabularyEntry, WordCategory
 from PySide6.QtWidgets import QWidget
 
+from lexiflow_ui.ai_worker_startup import ensure_background_workers
 from lexiflow_ui.dialogs.add_word_dialog import (
     AddWordDialog,
     AddWordForm,
@@ -25,6 +26,7 @@ from lexiflow_ui.lemma_suggestions import (
     LemmaSuggestions,
     make_async_lemma_fill,
 )
+from lexiflow_ui.llama_server_supervisor import LlamaServerSupervisor
 from lexiflow_ui.worker_supervisor import WorkerSupervisor
 
 
@@ -40,6 +42,8 @@ def resolve_lemma_suggestions(
     surface_form: str,
     native_language: str,
     supervisor: WorkerSupervisor | None,
+    llama_supervisor: LlamaServerSupervisor | None = None,
+    embed_supervisor: LlamaServerSupervisor | None = None,
     via_llm_only: bool = False,
 ) -> LemmaSuggestions:
     """Resolve lemma fields via spaCy or a background lemma job."""
@@ -63,7 +67,11 @@ def resolve_lemma_suggestions(
         context="",
     )
     if supervisor is not None:
-        supervisor.ensure_running()
+        ensure_background_workers(
+            supervisor,
+            llama_supervisor=llama_supervisor,
+            embed_supervisor=embed_supervisor,
+        )
     completed = wait_for_lemma_result(data_root, surface_form=surface_form)
     if completed is None:
         return LemmaSuggestions(
@@ -133,6 +141,8 @@ def prompt_add_word_with_lemma_resolution(
     default_level: CEFRLevel,
     surface_form: str,
     supervisor: WorkerSupervisor | None,
+    llama_supervisor: LlamaServerSupervisor | None = None,
+    embed_supervisor: LlamaServerSupervisor | None = None,
 ) -> AddWordForm | None:
     """Open the add-word dialog and auto-fill from the reader selection via LLM."""
     async_lemma_fill = make_async_lemma_fill(
@@ -140,6 +150,8 @@ def prompt_add_word_with_lemma_resolution(
         language_code=language_code,
         native_language=native_language,
         supervisor=supervisor,
+        llama_supervisor=llama_supervisor,
+        embed_supervisor=embed_supervisor,
     )
     return prompt_add_word(
         parent,

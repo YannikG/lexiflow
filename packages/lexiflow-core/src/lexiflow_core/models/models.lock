@@ -1,7 +1,8 @@
 [[artifacts]]
-id = "embedding-minilm"
-repo = "sentence-transformers/all-MiniLM-L6-v2"
-revision = "c9745ed1d9f207416be6d2e6f8de32d1f16199bf"
+id = "native-embedding"
+repo = "LLukas22/all-MiniLM-L6-v2-GGUF"
+revision = "ae6369f25f3393dcca54ff7b41157ffd2e43e2e6"
+llama_hf_model = "LLukas22/all-MiniLM-L6-v2-GGUF:Q8_0"
 
 [[artifacts]]
 id = "native-llm"

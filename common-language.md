@@ -41,7 +41,7 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Local logging** — Rotating log files in the app data area. Settings: open logs folder, optional verbose debug mode (off by default). User may attach logs to GitHub issues manually; no automatic upload.
 
-**Network requirement** — First install may require network for Hugging Face model weights (native llama-server or sentence-transformers embedder), spaCy language packs when adding a target language, and optional Ollama model pulls when using an Ollama endpoint. After weights are cached locally, the app runs fully offline for reading, vocabulary, translate, simplify, and embed.
+**Network requirement** — First install may require network for Hugging Face model weights (native llama-server for LLM and embeddings), spaCy language packs when adding a target language, and optional Ollama model pulls when using an Ollama endpoint. After weights are cached locally, the app runs fully offline for reading, vocabulary, translate, simplify, and embed.
 
 **Distribution** — GitHub Releases with CI-built artifacts. Open-source license: Apache 2.0. Product name: LexiFlow.
 
@@ -191,7 +191,7 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 ## Embeddings
 
-**Embedding model** — Local MiniLM-class model, separate from the LLM. Same model for vocabulary word vectors and translated-text vectors.
+**Embedding model** — On the native path, a pinned 384-dimensional GGUF loaded by a supervised `llama-server` embed process (separate port from chat). Same model for vocabulary word vectors and translated-text vectors. Upgrading from an older in-process MiniLM build may change similarity for existing vectors until text or words are re-embedded.
 
 **Embedding queue** — Background embedding when vocabulary or translated text changes. UI does not block.
 
@@ -323,11 +323,13 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Hugging Face token** — Optional token in **settings** for rate limits and gated repos. Anonymous download works without token when the hub allows it.
 
-**Ollama and embeddings** — Until [phase 10b](docs/roadmap/phases/phase-10b-ollama-embeddings/README.md) ([ADR 0005](docs/adr/0005-ollama-embedding-provider-deferred.md)): Ollama replaces native LLM only; embeddings load via `sentence-transformers` from Hugging Face on first use. After 10b: when **Ollama endpoint** is set, embeddings may use Ollama HTTP instead of MiniLM (pinned embed model; same vector contract as phase 10).
+**Ollama and embeddings** — Until [phase 10b](docs/roadmap/phases/phase-10b-ollama-embeddings/README.md) ([ADR 0005](docs/adr/0005-ollama-embedding-provider-deferred.md)): Ollama replaces native LLM only; native embeddings still use the second `llama-server` when no Ollama URL is set. With **Ollama endpoint** set, the worker uses `FakeEmbedder` until 10b adds `OllamaEmbedder`.
 
-**Native LLM lifecycle** — UI supervises `llama-server` on first LLM job; process stops on app quit (idle shutdown phase 14). Ollama path: HTTP client only.
+**Native LLM lifecycle** — UI supervises chat `llama-server` on first AI job; process stops on app quit (idle shutdown phase 14). Ollama path: HTTP client only.
 
-**Worker-linked model lifecycle** — Worker calls native LLM over HTTP or Ollama HTTP. Embedding model loads in worker via `sentence-transformers` when available. **Worker idle lifecycle** unloads worker state; LLM process lifecycle is UI-owned.
+**Native embedding lifecycle** — UI supervises embed `llama-server` (`--embedding`) on the native path alongside chat server startup. Worker calls `/v1/embeddings` over HTTP.
+
+**Worker-linked model lifecycle** — Worker calls native LLM over HTTP or Ollama HTTP. Embeddings call native embed HTTP or `FakeEmbedder` (CI / Ollama path). **Worker idle lifecycle** unloads worker state; llama-server process lifecycle is UI-owned.
 
 ## Engineering
 

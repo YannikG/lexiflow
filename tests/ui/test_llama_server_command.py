@@ -24,6 +24,27 @@ def test_build_llama_server_command_uses_hf_flag() -> None:
     ]
 
 
+def test_build_llama_server_command_adds_embedding_flag() -> None:
+    command = build_llama_server_command(
+        "/usr/bin/llama-server",
+        hf_model="LLukas22/all-MiniLM-L6-v2-GGUF:Q8_0",
+        host="127.0.0.1",
+        port=8081,
+        embeddings=True,
+    )
+
+    assert command == [
+        "/usr/bin/llama-server",
+        "-hf",
+        "LLukas22/all-MiniLM-L6-v2-GGUF:Q8_0",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8081",
+        "--embedding",
+    ]
+
+
 def test_build_llama_server_command_passes_hf_token() -> None:
     command = build_llama_server_command(
         "/usr/bin/llama-server",

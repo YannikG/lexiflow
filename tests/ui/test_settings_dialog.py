@@ -162,13 +162,13 @@ def test_model_store_upgrade_artifact_updates_marker(tmp_path: Path) -> None:
     lock_path.write_text(
         """
 [[artifacts]]
-id = "embedding-minilm"
-repo = "sentence-transformers/all-MiniLM-L6-v2"
+id = "native-embedding"
+repo = "LLukas22/all-MiniLM-L6-v2-GGUF"
 revision = "new-pin"
 """.strip(),
         encoding="utf-8",
     )
-    marker = artifact_revision_path(data_root, "embedding-minilm")
+    marker = artifact_revision_path(data_root, "native-embedding")
     marker.parent.mkdir(parents=True)
     marker.write_text("old-pin", encoding="utf-8")
     store = ModelStore(
@@ -177,7 +177,7 @@ revision = "new-pin"
         downloader=FakeModelDownloader(),
     )
 
-    store.upgrade_artifact("embedding-minilm", on_progress=lambda *_: None)
+    store.upgrade_artifact("native-embedding", on_progress=lambda *_: None)
 
     assert marker.read_text(encoding="utf-8") == "new-pin"
 
@@ -223,13 +223,13 @@ def test_check_model_updates_shows_result_dialog(
     lock_path.write_text(
         """
 [[artifacts]]
-id = "embedding-minilm"
-repo = "sentence-transformers/all-MiniLM-L6-v2"
+id = "native-embedding"
+repo = "LLukas22/all-MiniLM-L6-v2-GGUF"
 revision = "new-pin"
 """.strip(),
         encoding="utf-8",
     )
-    marker = artifact_revision_path(data_root, "embedding-minilm")
+    marker = artifact_revision_path(data_root, "native-embedding")
     marker.parent.mkdir(parents=True)
     marker.write_text("old-pin", encoding="utf-8")
     model_store = ModelStore(
@@ -250,4 +250,4 @@ revision = "new-pin"
     check_button = dialog.findChild(QPushButton, "settings_check_updates")
     assert check_button is not None
     qtbot.mouseClick(check_button, Qt.MouseButton.LeftButton)
-    assert shown == ["Updates available: embedding-minilm"]
+    assert shown == ["Updates available: native-embedding"]

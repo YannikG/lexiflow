@@ -15,7 +15,7 @@ Download the latest release for your platform from [GitHub Releases](https://git
 
 Verify downloads with the `checksums.txt` SHA256 file attached to each release.
 
-**First run:** an internet connection may be required for Hugging Face model weights (native LLM via bundled llama-server, MiniLM embeddings, spaCy when adding a language). Model weights are not included in the installer. See [model bootstrap](packages/lexiflow-core/docs/concepts/model-bootstrap.md).
+**First run:** an internet connection may be required for Hugging Face model weights (native LLM and embeddings via bundled llama-server, spaCy when adding a language). Model weights are not included in the installer. See [model bootstrap](packages/lexiflow-core/docs/concepts/model-bootstrap.md).
 
 **System requirements:** see **About LexiFlow** in the app for RAM and disk guidance. Recommended: 16 GB RAM for the native LLM path.
 
@@ -38,7 +38,7 @@ uv run python -m lexiflow_ui
 
 Close the window to quit.
 
-**First run:** an internet connection may be required on first use (embedding model via `sentence-transformers`; native LLM via llama-server from Hugging Face unless you configure Ollama). See [model bootstrap](packages/lexiflow-core/docs/concepts/model-bootstrap.md).
+**First run:** an internet connection may be required on first use (LLM and embeddings via llama-server from Hugging Face unless you configure Ollama for chat). See [model bootstrap](packages/lexiflow-core/docs/concepts/model-bootstrap.md).
 
 ## Development
 

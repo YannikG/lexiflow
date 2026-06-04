@@ -20,7 +20,9 @@ from lexiflow_ui.add_word_flow import (
     default_level_for_language,
     prompt_add_word_with_lemma_resolution,
 )
+from lexiflow_ui.ai_worker_startup import ensure_background_workers
 from lexiflow_ui.dialogs.add_word_dialog import AddWordForm
+from lexiflow_ui.llama_server_supervisor import LlamaServerSupervisor
 from lexiflow_ui.worker_supervisor import WorkerSupervisor
 
 
@@ -49,6 +51,8 @@ def open_highlight_add_dialog(
     surface_form: str,
     native_language: str,
     supervisor: WorkerSupervisor | None,
+    llama_supervisor: LlamaServerSupervisor | None = None,
+    embed_supervisor: LlamaServerSupervisor | None = None,
 ) -> bool:
     """Open add-word dialog for a reader selection."""
     if not surface_form.strip():
@@ -71,6 +75,8 @@ def open_highlight_add_dialog(
         default_level=default_level,
         surface_form=surface_form,
         supervisor=supervisor,
+        llama_supervisor=llama_supervisor,
+        embed_supervisor=embed_supervisor,
     )
     if form is None:
         return False
@@ -81,6 +87,8 @@ def open_highlight_add_dialog(
         tab_id=tab_id,
         form=form,
         supervisor=supervisor,
+        llama_supervisor=llama_supervisor,
+        embed_supervisor=embed_supervisor,
     )
 
 
@@ -92,6 +100,8 @@ def persist_reader_add(
     tab_id: str,
     form: AddWordForm,
     supervisor: WorkerSupervisor | None,
+    llama_supervisor: LlamaServerSupervisor | None = None,
+    embed_supervisor: LlamaServerSupervisor | None = None,
 ) -> bool:
     store = VocabularyStore(data_root, record.target_language)
     try:
@@ -112,5 +122,9 @@ def persist_reader_add(
         lemma=form.lemma,
     )
     if supervisor is not None:
-        supervisor.ensure_running()
+        ensure_background_workers(
+            supervisor,
+            llama_supervisor=llama_supervisor,
+            embed_supervisor=embed_supervisor,
+        )
     return True
