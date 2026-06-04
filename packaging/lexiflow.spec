@@ -10,7 +10,7 @@ from pathlib import Path
 from PyInstaller.utils.hooks import collect_all, collect_data_files
 
 block_cipher = None
-REPO_ROOT = Path(SPECPATH).resolve()
+REPO_ROOT = Path(SPECPATH).resolve().parent
 CORE_SRC = REPO_ROOT / "packages/lexiflow-core/src/lexiflow_core"
 UI_SRC = REPO_ROOT / "packages/lexiflow-ui/src/lexiflow_ui"
 BIN_ROOT = REPO_ROOT / "packaging" / "bin"
