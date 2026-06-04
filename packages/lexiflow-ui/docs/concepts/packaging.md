@@ -63,7 +63,7 @@ Platform installers: `bash packaging/scripts/build_installer.sh linux|macos-arm6
 ## CI
 
 - **PR / main:** lint, mypy, and pytest (`.github/workflows/ci.yml`). Linux test job runs `fetch_sqlite_vec.py --platform linux` before `uv sync`. No PyInstaller build on every PR.
-- **Release tag:** `.github/workflows/release.yml` fetches or builds sqlite-vec per matrix row, then `uv sync`, PyInstaller, and installers. Windows x64/arm64 MSIs use `wix_version.py` + `build_msi.ps1`. Publishes SHA256 checksums.
+- **Release tag:** `.github/workflows/release.yml` builds Linux AppImage, macOS DMG, and Windows x64 MSI (Windows ARM64 MSI temporarily disabled; see issue #40). Publishes SHA256 checksums.
 
 ## Out of scope (v1)
 

@@ -51,7 +51,7 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Packaging** — Single installable bundle contains UI and worker. End users do not install Python separately. Release artifact excludes model weights; models download on first use. UI spawns the worker from the same bundle.
 
-**Installers** — macOS disk image, Windows installer package, Linux AppImage (x86_64). Unsigned in v1.
+**Installers** — macOS disk image, Windows x64 installer package, Linux AppImage (x86_64). Windows ARM64 MSI is supported in packaging scripts but omitted from release CI until #40 is resolved. Unsigned in v1.
 
 **App icon (v1)** — Simple placeholder motif. Professional rebrand post-launch.
 
