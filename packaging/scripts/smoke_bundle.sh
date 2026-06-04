@@ -25,6 +25,21 @@ if [[ -n "$EXPECTED_VERSION" && "$ACTUAL_VERSION" != "$EXPECTED_VERSION" ]]; the
   exit 1
 fi
 
+if [[ -x "$ROOT/dist/LexiFlow.app/Contents/MacOS/LexiFlow" || -x "$BUNDLE_DIR/LexiFlow.app/Contents/MacOS/LexiFlow" ]]; then
+  LLAMA_SERVER="$(find "$ROOT/dist" "$BUNDLE_DIR" -path '*/Contents/Frameworks/bin/llama-server' -type f 2>/dev/null | head -1)"
+  if [[ -z "$LLAMA_SERVER" || ! -x "$LLAMA_SERVER" ]]; then
+    echo "bundled llama-server missing under LexiFlow.app/Contents/Frameworks/bin" >&2
+    exit 1
+  fi
+  IMPL_DYLIB="$(dirname "$LLAMA_SERVER")/libllama-server-impl.dylib"
+  if [[ ! -f "$IMPL_DYLIB" ]]; then
+    echo "bundled libllama-server-impl.dylib missing next to llama-server" >&2
+    exit 1
+  fi
+  "$LLAMA_SERVER" --version >/dev/null
+  echo "llama-server smoke passed"
+fi
+
 WORKER_ROOT="$(mktemp -d)"
 trap 'rm -rf "$WORKER_ROOT"' EXIT
 "$BINARY" --worker --data-root "$WORKER_ROOT"

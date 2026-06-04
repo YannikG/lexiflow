@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import os
 import platform
 import shutil
@@ -13,6 +14,21 @@ import tempfile
 import urllib.request
 import zipfile
 from pathlib import Path
+from types import ModuleType
+
+
+def _load_llama_runtime_libs() -> ModuleType:
+    script = Path(__file__).resolve().parent / "llama_runtime_libs.py"
+    spec = importlib.util.spec_from_file_location("lexiflow_llama_runtime_libs", script)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load {script}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_llama_runtime = _load_llama_runtime_libs()
+copy_runtime_libs = _llama_runtime.copy_runtime_libs
 
 DEFAULT_RELEASE = "b9500"
 GITHUB_RELEASE_BASE = "https://github.com/ggml-org/llama.cpp/releases/download"
@@ -60,7 +76,13 @@ def _download(url: str, destination: Path) -> None:
                 handle.write(chunk)
 
 
-def _extract_llama_server(archive: Path, archive_type: str, destination: Path) -> None:
+def _extract_llama_server(
+    archive: Path,
+    archive_type: str,
+    destination: Path,
+    *,
+    platform_key: str,
+) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     binary_name = destination.name
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -74,7 +96,17 @@ def _extract_llama_server(archive: Path, archive_type: str, destination: Path) -
         matches = list(temp_path.rglob(binary_name))
         if not matches:
             raise FileNotFoundError(f"{binary_name} not found in {archive}")
-        shutil.copy2(matches[0], destination)
+        source_binary = matches[0]
+        shutil.copy2(source_binary, destination)
+        lib_count = copy_runtime_libs(
+            source_binary.parent,
+            destination.parent,
+            platform_key,
+        )
+        if lib_count == 0 and not platform_key.startswith("windows"):
+            raise FileNotFoundError(
+                f"no runtime libraries found next to {binary_name} in {archive}"
+            )
     if not destination.name.endswith(".exe"):
         mode = destination.stat().st_mode
         destination.chmod(mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
@@ -105,7 +137,7 @@ def fetch_llama_server(
         archive = Path(temp_dir) / asset_filename
         print(f"Downloading {url}", file=sys.stderr)
         _download(url, archive)
-        _extract_llama_server(archive, archive_type, destination)
+        _extract_llama_server(archive, archive_type, destination, platform_key=key)
     print(destination)
     return destination
 
