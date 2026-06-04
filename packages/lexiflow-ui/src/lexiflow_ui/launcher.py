@@ -16,10 +16,6 @@ def main(argv: list[str] | None = None) -> int:
     if argv is None:
         argv = sys.argv[1:]
 
-    if argv[:1] == ["--version"]:
-        print(lexiflow_core.__version__)
-        return 0
-
     parser = argparse.ArgumentParser(prog="lexiflow", add_help=False)
     parser.add_argument("--worker", action="store_true")
     parser.add_argument("--version", action="store_true")

@@ -22,7 +22,8 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
-def _platform_key() -> str:
+def detect_platform_key() -> str:
+    """Return packaging platform key for the current host OS and CPU."""
     system = platform.system()
     machine = platform.machine().lower()
     if system == "Linux":
@@ -34,7 +35,8 @@ def _platform_key() -> str:
     raise RuntimeError(f"unsupported platform for llama-server fetch: {system}")
 
 
-def _asset_name(release: str, platform_key: str) -> tuple[str, str]:
+def asset_name(release: str, platform_key: str) -> tuple[str, str]:
+    """Return GitHub release asset filename and archive type for a platform key."""
     tag = release if release.startswith("b") else f"b{release}"
     if platform_key == "linux":
         return f"llama-{tag}-bin-ubuntu-x64.tar.gz", "tar.gz"
@@ -85,14 +87,14 @@ def fetch_llama_server(
     output_dir: Path | None = None,
 ) -> Path:
     """Download llama-server into packaging/bin/<platform_key>/."""
-    key = platform_key if platform_key is not None else _platform_key()
+    key = platform_key if platform_key is not None else detect_platform_key()
     tag = (
         release
         if release is not None
         else os.environ.get("LLAMA_CPP_RELEASE", DEFAULT_RELEASE)
     )
-    asset_name, archive_type = _asset_name(tag, key)
-    url = f"{GITHUB_RELEASE_BASE}/{tag}/{asset_name}"
+    asset_filename, archive_type = asset_name(tag, key)
+    url = f"{GITHUB_RELEASE_BASE}/{tag}/{asset_filename}"
     root = _repo_root()
     target_dir = (
         output_dir if output_dir is not None else root / "packaging" / "bin" / key
@@ -100,7 +102,7 @@ def fetch_llama_server(
     binary_name = "llama-server.exe" if key.startswith("windows") else "llama-server"
     destination = target_dir / binary_name
     with tempfile.TemporaryDirectory() as temp_dir:
-        archive = Path(temp_dir) / asset_name
+        archive = Path(temp_dir) / asset_filename
         print(f"Downloading {url}", file=sys.stderr)
         _download(url, archive)
         _extract_llama_server(archive, archive_type, destination)

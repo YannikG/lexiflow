@@ -161,7 +161,6 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          ref: main
       - uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.12"
@@ -198,5 +197,5 @@ jobs:
             echo "version files already match ${VERSION}"
           else
             git commit -m "chore: sync version to ${VERSION} [skip ci]"
-            git push origin main
+            git push origin HEAD:refs/heads/main
           fi

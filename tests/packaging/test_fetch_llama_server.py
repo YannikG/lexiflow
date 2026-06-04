@@ -34,8 +34,8 @@ def _load_fetch_llama_server():
 )
 def test_asset_name_for_platform(platform_key: str, expected_asset: str) -> None:
     fetch = _load_fetch_llama_server()
-    asset_name, archive_type = fetch._asset_name("b9500", platform_key)
-    assert asset_name == expected_asset
+    asset_filename, archive_type = fetch.asset_name("b9500", platform_key)
+    assert asset_filename == expected_asset
     assert archive_type in {"tar.gz", "zip"}
 
 
@@ -43,11 +43,11 @@ def test_platform_key_detects_windows_arm64(monkeypatch: pytest.MonkeyPatch) -> 
     fetch = _load_fetch_llama_server()
     monkeypatch.setattr(fetch.platform, "system", lambda: "Windows")
     monkeypatch.setattr(fetch.platform, "machine", lambda: "ARM64")
-    assert fetch._platform_key() == "windows-arm64"
+    assert fetch.detect_platform_key() == "windows-arm64"
 
 
 def test_platform_key_detects_windows_x64(monkeypatch: pytest.MonkeyPatch) -> None:
     fetch = _load_fetch_llama_server()
     monkeypatch.setattr(fetch.platform, "system", lambda: "Windows")
     monkeypatch.setattr(fetch.platform, "machine", lambda: "AMD64")
-    assert fetch._platform_key() == "windows"
+    assert fetch.detect_platform_key() == "windows"
