@@ -117,8 +117,8 @@ class LlmConfigPage(QWizardPage):
         ollama_layout.addWidget(
             _hint_label(
                 ollama_panel,
-                "Ollama runs translate, simplify, and cleanup. "
-                "Embeddings also load from Hugging Face when needed.",
+                "Ollama runs translate, simplify, and cleanup only. "
+                "Embeddings stay on the native path until phase 10b.",
                 object_name="ollama_embedding_note",
             )
         )
@@ -312,8 +312,8 @@ class LlmConfigPage(QWizardPage):
         model_url = native_llm_hub_page_url()
         self._native_license_steps.setText(
             "The language model loads from Hugging Face via llama-server "
-            f"({model_url}). Embeddings use the pinned MiniLM model from "
-            "Hugging Face on first use."
+            f"({model_url}). Embeddings use a second llama-server instance "
+            "with a pinned GGUF from Hugging Face on first use."
         )
 
     def _on_open_native_hub(self) -> None:

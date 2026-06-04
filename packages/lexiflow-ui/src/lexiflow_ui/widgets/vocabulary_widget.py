@@ -32,7 +32,9 @@ from lexiflow_ui.add_word_flow import (
     prompt_add_word,
     prompt_edit_word,
 )
+from lexiflow_ui.ai_worker_startup import ensure_background_workers
 from lexiflow_ui.dialogs.add_word_dialog import AddWordForm
+from lexiflow_ui.llama_server_supervisor import LlamaServerSupervisor
 from lexiflow_ui.widgets.empty_state import EmptyStateWidget
 from lexiflow_ui.widgets.vocabulary_browse_table import VocabularyBrowseTable
 from lexiflow_ui.worker_supervisor import WorkerSupervisor
@@ -48,6 +50,8 @@ class VocabularyWidget(QWidget):
         data_root: Path,
         settings: Settings,
         supervisor: WorkerSupervisor | None = None,
+        llama_supervisor: LlamaServerSupervisor | None = None,
+        embed_supervisor: LlamaServerSupervisor | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -55,6 +59,8 @@ class VocabularyWidget(QWidget):
         self._data_root = data_root
         self._settings = settings
         self._supervisor = supervisor
+        self._llama_supervisor = llama_supervisor
+        self._embed_supervisor = embed_supervisor
 
         root = QVBoxLayout(self)
         root.setContentsMargins(16, 16, 16, 16)
@@ -197,7 +203,11 @@ class VocabularyWidget(QWidget):
                 lemma=updated.lemma,
             )
             if self._supervisor is not None:
-                self._supervisor.ensure_running()
+                ensure_background_workers(
+                    self._supervisor,
+                    llama_supervisor=self._llama_supervisor,
+                    embed_supervisor=self._embed_supervisor,
+                )
         self.vocabulary_changed.emit()
         self.refresh()
 
@@ -256,7 +266,11 @@ class VocabularyWidget(QWidget):
             lemma=form.lemma,
         )
         if self._supervisor is not None:
-            self._supervisor.ensure_running()
+            ensure_background_workers(
+                self._supervisor,
+                llama_supervisor=self._llama_supervisor,
+                embed_supervisor=self._embed_supervisor,
+            )
         self.vocabulary_changed.emit()
         self.refresh()
 

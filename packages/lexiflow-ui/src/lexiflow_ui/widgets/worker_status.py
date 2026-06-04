@@ -21,6 +21,7 @@ class WorkerStatusBar(QStatusBar):
         self,
         supervisor: WorkerSupervisor,
         llama_supervisor: LlamaServerSupervisor | None = None,
+        embed_supervisor: LlamaServerSupervisor | None = None,
         *,
         data_root: Path | None = None,
         on_open_jobs: Callable[[], None] | None = None,
@@ -29,6 +30,7 @@ class WorkerStatusBar(QStatusBar):
         super().__init__(parent)
         self._supervisor = supervisor
         self._llama_supervisor = llama_supervisor
+        self._embed_supervisor = embed_supervisor
         self._data_root = data_root if data_root is not None else supervisor.data_root
         self._on_open_jobs = on_open_jobs
         self._message_label = QLabel(self)
@@ -37,6 +39,8 @@ class WorkerStatusBar(QStatusBar):
         supervisor.state_changed.connect(self.refresh)
         if llama_supervisor is not None:
             llama_supervisor.state_changed.connect(self.refresh)
+        if embed_supervisor is not None:
+            embed_supervisor.state_changed.connect(self.refresh)
         self.refresh()
 
     def currentMessage(self) -> str:  # noqa: N802
@@ -53,7 +57,11 @@ class WorkerStatusBar(QStatusBar):
         super().mousePressEvent(event)
 
     def refresh(self) -> None:
-        base = format_background_status(self._supervisor, self._llama_supervisor)
+        base = format_background_status(
+            self._supervisor,
+            self._llama_supervisor,
+            self._embed_supervisor,
+        )
         queued = self._queued_count()
         if queued > 0 and self._on_open_jobs is not None:
             suffix = "job" if queued == 1 else "jobs"

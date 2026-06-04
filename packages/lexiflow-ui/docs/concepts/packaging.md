@@ -25,7 +25,7 @@ See [ADR-0008](../../../../docs/adr/0008-pyinstaller-release-bundle.md) and [com
 | Shipped in installer | Downloaded on first use |
 |----------------------|-------------------------|
 | PySide6 UI, worker code | Hugging Face LLM weights (via bundled llama-server) |
-| UI theme JSON tokens | MiniLM embedding weights (sentence-transformers) |
+| UI theme JSON tokens | Embedding GGUF (llama-server, not bundled) |
 | `models.lock`, migrations, prompts | spaCy language packs when adding a target language |
 | llama-server binary | Ollama models when using Ollama endpoint |
 | sqlite-vec `vec0` extension (per platform) | — (fetched at CI/build; Windows ARM64 compiled from upstream amalgamation) |

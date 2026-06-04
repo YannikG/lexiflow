@@ -42,33 +42,29 @@ def _llama_server_binary() -> tuple[str, str] | None:
 
 
 pyside6_datas, pyside6_binaries, pyside6_hiddenimports = collect_all("PySide6")
-st_datas, st_binaries, st_hiddenimports = collect_all("sentence_transformers")
 
 datas = [
     (str(UI_SRC / "themes"), "lexiflow_ui/themes"),
     (str(CORE_SRC / "migrations"), "lexiflow_core/migrations"),
     (str(CORE_SRC / "models" / "models.lock"), "lexiflow_core/models"),
     (str(CORE_SRC / "llm" / "prompts"), "lexiflow_core/llm/prompts"),
-] + pyside6_datas + st_datas + collect_data_files("sqlite_vec")
+] + pyside6_datas + collect_data_files("sqlite_vec")
 
 binaries: list[tuple[str, str]] = []
 llama_binary = _llama_server_binary()
 if llama_binary is not None:
     binaries.append(llama_binary)
-binaries += pyside6_binaries + st_binaries
+binaries += pyside6_binaries
 
 hiddenimports = [
     "tomli_w",
     "sqlite_vec",
-    "sklearn",
-    "sklearn.utils",
-    "sklearn.utils._typedefs",
     "lexiflow_core",
     "lexiflow_ui",
     "lexiflow_worker",
     "lexiflow_worker.main",
     "lexiflow_worker.embedder",
-] + pyside6_hiddenimports + st_hiddenimports
+] + pyside6_hiddenimports
 
 pathex = [
     str(REPO_ROOT / "packages/lexiflow-ui/src"),

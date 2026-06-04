@@ -15,7 +15,7 @@ Native LLM artifacts also carry `llama_hf_model`, passed to `llama-server -hf`.
 | Capability | Loader | LexiFlow responsibility |
 |------------|--------|-------------------------|
 | **LLM (native)** | `llama-server -hf` | Pin spec; supervise process |
-| **Embeddings** | `sentence-transformers` | Pin repo/revision; pass HF token from settings |
+| **Embeddings (native)** | `llama-server -hf` + `--embedding` | Pin `native-embedding`; supervise second process; pass HF token |
 | **Ollama LLM** | User's Ollama | HTTP client only |
 
 First use may require network access and optional `huggingface_token` in **global settings** for gated repos.

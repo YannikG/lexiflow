@@ -10,6 +10,7 @@ def build_llama_server_command(
     host: str,
     port: int,
     hf_token: str | None = None,
+    embeddings: bool = False,
 ) -> list[str]:
     """Return argv to start llama-server with a pinned Hugging Face model."""
     command = [
@@ -21,6 +22,8 @@ def build_llama_server_command(
         "--port",
         str(port),
     ]
+    if embeddings:
+        command.append("--embedding")
     if hf_token:
         command.extend(["--hf-token", hf_token])
     return command

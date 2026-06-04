@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from lexiflow_core.models.lockfile import ModelsLock, load_models_lock
-from lexiflow_core.models.requirements import EMBEDDING_MINILM_ID, NATIVE_LLM_ID
+from lexiflow_core.models.requirements import NATIVE_EMBEDDING_ID, NATIVE_LLM_ID
 
 
 def artifact_hint(artifact_id: str, lock: ModelsLock | None = None) -> str:
@@ -26,4 +26,4 @@ def native_llm_hub_page_url(lock: ModelsLock | None = None) -> str:
 
 
 def embedding_hub_page_url(lock: ModelsLock | None = None) -> str:
-    return artifact_hub_page_url(EMBEDDING_MINILM_ID, lock)
+    return artifact_hub_page_url(NATIVE_EMBEDDING_ID, lock)

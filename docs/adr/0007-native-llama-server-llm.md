@@ -16,7 +16,7 @@ Product direction: two LLM backends only — **native llama-server** (default) a
 1. **Remove** in-process Gemma / `embedded-llm` uv group from the worker path.
 2. **Native LLM:** UI supervises a local `llama-server` process; worker calls HTTP `/v1/chat/completions` via `LlamaServerLLM`.
 3. **Model source:** pinned `llama_hf_model` in `models.lock`; llama-server loads from Hugging Face with `-hf`. LexiFlow does not download or store LLM weights under `{data_root}/.app/models/`.
-4. **Embeddings:** pinned MiniLM repo/revision in `models.lock`; worker loads via `sentence-transformers` from Hugging Face on first use (no LexiFlow bootstrap download in v1).
+4. **Embeddings:** UI supervises a second `llama-server` on a separate port (`--embedding`); worker calls HTTP `/v1/embeddings` via `LlamaServerEmbedder`. Pinned `native-embedding` `llama_hf_model` in `models.lock`; weights load via llama-server `-hf` (no LexiFlow bootstrap download, no in-process torch).
 5. **Readiness:** `native_llm_operational()` checks binary on PATH (or `LEXIFLOW_LLAMA_SERVER_BIN`) and valid lock pin; onboarding blocks native path when false.
 
 ## Rationale
@@ -24,7 +24,7 @@ Product direction: two LLM backends only — **native llama-server** (default) a
 | Factor | llama-server |
 |--------|----------------|
 | Packaging | No torch in LexiFlow Python env |
-| UX | Hugging Face fetch delegated to llama-server / sentence-transformers |
+| UX | Hugging Face fetch delegated to llama-server for LLM and embeddings |
 | Isolation | LLM crash domain is separate process (aligns with ADR 0003 spirit) |
 | Ollama parity | Both native and Ollama are HTTP clients from the worker |
 
