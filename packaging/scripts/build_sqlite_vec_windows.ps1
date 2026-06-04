@@ -25,6 +25,12 @@ if (-not (Test-Path $ExtractedPath)) {
   throw "sqlite-vec source directory not found after extract"
 }
 
+$RenderHeader = Join-Path $Root "packaging\scripts\render_sqlite_vec_header.py"
+python $RenderHeader $ExtractedPath
+if ($LASTEXITCODE -ne 0) {
+  throw "render_sqlite_vec_header.py failed"
+}
+
 Push-Location $ExtractedPath
 try {
   $SourceFile = Join-Path $ExtractedPath "sqlite-vec.c"
@@ -38,7 +44,9 @@ try {
   New-Item -ItemType Directory -Force -Path $BuildDir | Out-Null
   Push-Location $BuildDir
   try {
-    & cl.exe /nologo /LD /O2 /I "$ExtractedPath\vendor" `
+    & cl.exe /nologo /LD /O2 `
+      /I "$ExtractedPath" `
+      /I "$ExtractedPath\vendor" `
       "$SourceFile" /link /OUT:"vec0.dll"
     if (-not (Test-Path "vec0.dll")) {
       throw "vec0.dll was not produced"
