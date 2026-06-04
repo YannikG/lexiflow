@@ -17,7 +17,7 @@ Both use WAL journaling and schema migrations like other LexiFlow databases.
 
 ## Vector extension
 
-LexiFlow depends on the **sqlite-vec** PyPI package (declared in `lexiflow-core`). The native extension is bundled inside that wheel for macOS, Linux, and Windows, so operators do not configure a separate `.so` / `.dll` path.
+LexiFlow depends on **sqlite-vec** (declared in `lexiflow-core`). Release builds use a vendored copy under `packaging/vendor/sqlite_vec/` with per-platform `vec0` loadables fetched or built in CI. Windows ARM64 compiles the extension from upstream sources until PyPI ships a `win_arm64` wheel. Operators do not configure a separate `.so` / `.dll` path.
 
 Before any vector database is opened, core calls `load_sqlite_vec(connection)`, which registers sqlite-vec on that SQLite connection. Migrations then create `vec0` virtual tables for 384-float embeddings.
 

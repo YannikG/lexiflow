@@ -17,7 +17,8 @@ See [ADR-0008](../../../../docs/adr/0008-pyinstaller-release-bundle.md) and [com
 | CLI dispatch | `lexiflow_ui.launcher` | `--version`, `--worker`, default UI |
 | Worker argv | `lexiflow_ui.worker_command` | frozen vs dev spawn command |
 | llama-server path | `lexiflow_core.llm.llama_server` | bundled binary, env override, PATH |
-| Build scripts | `packaging/` | spec, fetch llama-server, installers — no domain logic |
+| Build scripts | `packaging/` | spec, fetch llama-server, fetch sqlite-vec, installers — no domain logic |
+| sqlite-vec loadable | `packaging/vendor/sqlite_vec/` | vendored path dependency; platform `vec0` binary fetched or compiled at build time |
 
 ## Bundled vs downloaded
 
@@ -27,6 +28,7 @@ See [ADR-0008](../../../../docs/adr/0008-pyinstaller-release-bundle.md) and [com
 | UI theme JSON tokens | MiniLM embedding weights (sentence-transformers) |
 | `models.lock`, migrations, prompts | spaCy language packs when adding a target language |
 | llama-server binary | Ollama models when using Ollama endpoint |
+| sqlite-vec `vec0` extension (per platform) | — (fetched at CI/build; Windows ARM64 compiled from upstream amalgamation) |
 
 Model weights are **not** bundled in the installer ([common-language.md](../../../../common-language.md)).
 
@@ -41,7 +43,10 @@ After a release, CI syncs `pyproject.toml` on `main` to match the tag.
 
 ## Local build (maintainers)
 
+Fetch the vendored sqlite-vec loadable for your host before `uv sync` (binaries are not committed):
+
 ```bash
+python packaging/scripts/fetch_sqlite_vec.py --platform macos-arm64  # or linux / windows
 uv sync --group release
 uv run python packaging/scripts/sync_version.py
 uv run python packaging/scripts/fetch_llama_server.py --platform linux
@@ -49,12 +54,16 @@ uv run pyinstaller packaging/lexiflow.spec --noconfirm
 bash packaging/scripts/smoke_bundle.sh
 ```
 
+On **Windows ARM64**, compile the extension first: `packaging/scripts/build_sqlite_vec_windows.ps1` (MSVC arm64), then fetch is a no-op for the DLL stem.
+
+**Windows MSI** uses WiX with a four-part product version from `packaging/scripts/wix_version.py` (invoked from `build_msi.ps1`).
+
 Platform installers: `bash packaging/scripts/build_installer.sh linux|macos-arm64|windows|windows-arm64`
 
 ## CI
 
-- **PR / main:** lint, mypy, and pytest only (`.github/workflows/ci.yml`). No PyInstaller build on every PR.
-- **Release tag:** `.github/workflows/release.yml` builds the onedir bundle on each platform (Linux x86_64, macOS arm64, Windows x64, Windows arm64), produces DMG, MSI, and AppImage, and publishes SHA256 checksums.
+- **PR / main:** lint, mypy, and pytest (`.github/workflows/ci.yml`). Linux test job runs `fetch_sqlite_vec.py --platform linux` before `uv sync`. No PyInstaller build on every PR.
+- **Release tag:** `.github/workflows/release.yml` fetches or builds sqlite-vec per matrix row, then `uv sync`, PyInstaller, and installers. Windows x64/arm64 MSIs use `wix_version.py` + `build_msi.ps1`. Publishes SHA256 checksums.
 
 ## Out of scope (v1)
 
