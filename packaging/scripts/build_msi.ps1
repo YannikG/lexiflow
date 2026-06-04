@@ -36,15 +36,13 @@ New-Item -ItemType Directory -Force -Path $WixObjDir | Out-Null
 $env:LEXIFLOW_BUNDLE_DIR = $BundleDir
 $env:LEXIFLOW_MSI_PATH = $MsiPath
 
-$CandleDefine = "Version=$WixProductVersion"
-
 & candle.exe -nologo `
-  -d$CandleDefine `
+  -d"Version=$WixProductVersion" `
   -out (Join-Path $WixObjDir "LexiFlow.wixobj") `
   $WxsPath
 
 & candle.exe -nologo `
-  -d$CandleDefine `
+  -d"Version=$WixProductVersion" `
   -out (Join-Path $WixObjDir "Harvest.wixobj") `
   $HarvestPath
 
