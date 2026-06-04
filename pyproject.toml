@@ -1,6 +1,6 @@
 [project]
 name = "lexiflow"
-version = "0.0.0"
+version = "1.0.5"
 description = "Desktop app for learning languages by reading real texts"
 requires-python = ">=3.12,<3.14"
 dependencies = []
