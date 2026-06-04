@@ -7,6 +7,7 @@ from collections.abc import Callable
 
 from lexiflow_core.config.bootstrap import bootstrap_runtime
 from lexiflow_core.config.settings_store import SettingsStore
+from lexiflow_core.embeddings.pins import pinned_embedding_hf_model
 from PySide6.QtWidgets import QApplication
 
 from lexiflow_ui.llama_server_supervisor import LlamaServerSupervisor
@@ -52,15 +53,24 @@ def run(
 
     supervisor = WorkerSupervisor(data_root=data_root)
     llama_supervisor: LlamaServerSupervisor | None = None
+    embed_supervisor: LlamaServerSupervisor | None = None
     if not settings.ollama_url:
         llama_supervisor = LlamaServerSupervisor(
             data_root=data_root,
             base_url=settings.llama_server_url,
             huggingface_token=settings.huggingface_token,
         )
+        embed_supervisor = LlamaServerSupervisor(
+            data_root=data_root,
+            base_url=settings.llama_embed_server_url,
+            huggingface_token=settings.huggingface_token,
+            hf_model=pinned_embedding_hf_model,
+            embeddings=True,
+        )
     window = MainWindow(
         supervisor=supervisor,
         llama_supervisor=llama_supervisor,
+        embed_supervisor=embed_supervisor,
         settings=settings,
         data_root=data_root,
     )
@@ -69,6 +79,8 @@ def run(
     try:
         return app.exec()
     finally:
+        if embed_supervisor is not None:
+            embed_supervisor.shutdown(wait=True)
         if llama_supervisor is not None:
             llama_supervisor.shutdown(wait=True)
         supervisor.shutdown(wait=True)

@@ -170,7 +170,13 @@ class MainWindowShellDialogsMixin:
             QMessageBox.StandardButton.Yes,
         )
         if answer == QMessageBox.StandardButton.Yes:
-            self._supervisor.ensure_running()
+            from lexiflow_ui.ai_worker_startup import ensure_background_workers
+
+            ensure_background_workers(
+                self._supervisor,
+                llama_supervisor=self._llama_supervisor,
+                embed_supervisor=self._embed_supervisor,
+            )
 
     def _open_jobs_panel(self: MainWindow) -> None:
         open_jobs_panel(self, data_root=self._data_root)

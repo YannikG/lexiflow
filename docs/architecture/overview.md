@@ -9,12 +9,13 @@ flowchart LR
   subgraph ui [UI process - PySide6]
     MainWindow
     JobPanel
-    LlamaSrv[llama-server]
+    LlamaChat[llama-server chat]
+    LlamaEmbed[llama-server embed]
   end
   subgraph worker [Worker process]
     JobRunner
     HttpLLM[HTTP LLM client]
-    Embed[MiniLM embed]
+    HttpEmbed[HTTP embed client]
   end
   Queue[(queue.sqlite)]
   Index[(index.sqlite)]
@@ -22,12 +23,13 @@ flowchart LR
   worker -->|consume| Queue
   ui -->|read/write| Index
   JobRunner --> HttpLLM
-  JobRunner --> Embed
-  HttpLLM -.->|native path| LlamaSrv
+  JobRunner --> HttpEmbed
+  HttpLLM -.->|native path| LlamaChat
+  HttpEmbed -.->|native path| LlamaEmbed
   ui -.->|QLocalSocket| worker
 ```
 
-- **UI:** no torch/transformers; supervises `llama-server` on the native LLM path.
+- **UI:** no torch/transformers; supervises chat and embed `llama-server` on the native path.
 - **Worker:** lazy spawn on first AI job; idle shutdown ~5 min.
 - **Single PyInstaller bundle:** same `LexiFlow` executable; UI by default, worker via `--worker` ([packaging.md](../../packages/lexiflow-ui/docs/concepts/packaging.md), [ADR-0008](../adr/0008-pyinstaller-release-bundle.md)).
 
@@ -73,8 +75,8 @@ settings.toml          # global settings, including data_root pointer
 
 ## External dependencies
 
-- **Hugging Face:** pinned native LLM GGUF (via llama-server), MiniLM, spaCy packs (`models.lock` pins revisions).
-- **Ollama (optional):** replaces native LLM only; embeddings load via `sentence-transformers` unless phase 10b adds Ollama embed.
+- **Hugging Face:** pinned native LLM and embedding GGUF (via llama-server), spaCy packs (`models.lock` pins revisions).
+- **Ollama (optional):** replaces native LLM only; embeddings use `FakeEmbedder` in the worker until phase 10b adds Ollama embed HTTP.
 
 ## Testing strategy
 

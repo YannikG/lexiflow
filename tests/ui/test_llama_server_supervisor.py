@@ -114,6 +114,32 @@ def test_ensure_running_requires_hf_token_for_gemma(
     assert "hugging face access token" in supervisor.startup_error.lower()
 
 
+def test_ensure_running_uses_embedding_flag_for_embed_supervisor(
+    tmp_path: Path, monkeypatch
+) -> None:
+    FakeProcess.instances.clear()
+    monkeypatch.setattr(
+        "lexiflow_ui.llama_server_supervisor.llama_server_binary",
+        lambda: "/usr/bin/llama-server",
+    )
+    monkeypatch.setattr(
+        "lexiflow_ui.llama_server_supervisor.llama_server_health",
+        lambda _url: False,
+    )
+    supervisor = LlamaServerSupervisor(
+        data_root=tmp_path,
+        base_url="http://127.0.0.1:8081",
+        hf_model=lambda: "LLukas22/all-MiniLM-L6-v2-GGUF:Q8_0",
+        embeddings=True,
+        process_factory=FakeProcess,
+    )
+
+    supervisor.ensure_running()
+
+    process = FakeProcess.instances[0]
+    assert "--embedding" in process.arguments
+
+
 def test_pinned_native_model_is_gemma_4_from_ggml_org() -> None:
     from lexiflow_core.llm.llama_server import pinned_llama_hf_model
 

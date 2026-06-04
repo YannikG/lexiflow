@@ -20,7 +20,6 @@ dev = [
 ]
 release = [
     "pyinstaller>=6.13",
-    "sentence-transformers>=3.0",
     "pillow>=11.0",
 ]
 

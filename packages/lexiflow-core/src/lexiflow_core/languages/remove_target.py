@@ -46,6 +46,7 @@ def remove_target_language(
         theme=settings.theme,
         reader_font_size=settings.reader_font_size,
         llama_server_url=settings.llama_server_url,
+        llama_embed_server_url=settings.llama_embed_server_url,
     )
     settings_store.save(updated)
     return updated

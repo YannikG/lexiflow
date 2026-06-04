@@ -88,6 +88,7 @@ class MainWindowChromeMixin:
             data_root=self._data_root,
             supervisor=self._supervisor,
             llama_supervisor=self._llama_supervisor,
+            embed_supervisor=self._embed_supervisor,
         )
         self._reader.tab_changed.connect(self._on_reader_tab_changed)
         self._reader.text_saved.connect(self._refresh_texts_ui)
@@ -101,6 +102,8 @@ class MainWindowChromeMixin:
             data_root=self._data_root,
             settings=self._settings,
             supervisor=self._supervisor,
+            llama_supervisor=self._llama_supervisor,
+            embed_supervisor=self._embed_supervisor,
             parent=self._content_stack,
         )
         self._vocabulary.vocabulary_changed.connect(self._on_vocabulary_changed)

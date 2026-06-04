@@ -56,8 +56,8 @@ def test_download_passes_reporting_tqdm_class_when_callbacks_set(
     tmp_path: Path,
 ) -> None:
     artifact = ModelArtifact(
-        id="embedding-minilm",
-        repo="sentence-transformers/all-MiniLM-L6-v2",
+        id="native-embedding",
+        repo="LLukas22/all-MiniLM-L6-v2-GGUF",
         revision="abc",
     )
     downloader = HuggingFaceModelDownloader()

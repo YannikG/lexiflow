@@ -21,15 +21,15 @@ def test_import_artifact_directory_copies_files_and_writes_marker(
     source.mkdir()
     (source / "config.json").write_text("{}", encoding="utf-8")
     artifact = ModelArtifact(
-        id="embedding-minilm",
-        repo="sentence-transformers/all-MiniLM-L6-v2",
+        id="native-embedding",
+        repo="LLukas22/all-MiniLM-L6-v2-GGUF",
         revision="abc123",
     )
 
     dest = import_artifact_directory(data_root, artifact, source)
 
     assert (dest / "config.json").is_file()
-    assert artifact_revision_path(data_root, "embedding-minilm").read_text() == "abc123"
+    assert artifact_revision_path(data_root, "native-embedding").read_text() == "abc123"
 
 
 def test_import_artifact_directory_rejects_non_model_directory(tmp_path: Path) -> None:
@@ -38,8 +38,8 @@ def test_import_artifact_directory_rejects_non_model_directory(tmp_path: Path) -
     source.mkdir()
     (source / "readme.txt").write_text("not a model", encoding="utf-8")
     artifact = ModelArtifact(
-        id="embedding-minilm",
-        repo="sentence-transformers/all-MiniLM-L6-v2",
+        id="native-embedding",
+        repo="LLukas22/all-MiniLM-L6-v2-GGUF",
         revision="abc123",
     )
 
@@ -52,8 +52,8 @@ def test_import_artifact_directory_rejects_empty_directory(tmp_path: Path) -> No
     source = tmp_path / "empty"
     source.mkdir()
     artifact = ModelArtifact(
-        id="embedding-minilm",
-        repo="sentence-transformers/all-MiniLM-L6-v2",
+        id="native-embedding",
+        repo="LLukas22/all-MiniLM-L6-v2-GGUF",
         revision="abc123",
     )
 

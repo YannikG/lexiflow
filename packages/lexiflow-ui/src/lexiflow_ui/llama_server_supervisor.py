@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from enum import Enum
 from pathlib import Path
 from typing import Protocol
@@ -61,6 +62,8 @@ class LlamaServerSupervisor(QObject):
         data_root: Path,
         base_url: str,
         huggingface_token: str | None = None,
+        hf_model: Callable[[], str] | None = None,
+        embeddings: bool = False,
         process_factory: type[ServerProcess] | None = None,
         parent: QObject | None = None,
     ) -> None:
@@ -68,6 +71,8 @@ class LlamaServerSupervisor(QObject):
         self._data_root = data_root
         self._base_url = base_url.rstrip("/")
         self._huggingface_token = huggingface_token
+        self._hf_model = hf_model if hf_model is not None else pinned_llama_hf_model
+        self._embeddings = embeddings
         self._process_factory: type[ServerProcess] = (
             process_factory if process_factory is not None else QProcess
         )
@@ -118,7 +123,7 @@ class LlamaServerSupervisor(QObject):
             return
 
         binary = llama_server_binary()
-        hf_model = pinned_llama_hf_model()
+        hf_model = self._hf_model()
         if binary is None:
             self._startup_error = (
                 "Install llama.cpp llama-server and ensure it is on PATH, or set "
@@ -143,6 +148,7 @@ class LlamaServerSupervisor(QObject):
             host=host,
             port=port,
             hf_token=self._huggingface_token,
+            embeddings=self._embeddings,
         )
         process.setProgram(command[0])
         process.setArguments(command[1:])

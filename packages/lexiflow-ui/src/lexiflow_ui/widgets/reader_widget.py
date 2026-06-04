@@ -60,6 +60,7 @@ from PySide6.QtWidgets import (
 )
 
 from lexiflow_ui.add_word_flow import prompt_edit_word
+from lexiflow_ui.ai_worker_startup import ensure_background_workers
 from lexiflow_ui.delete_simplify_flow import confirm_delete_simplification
 from lexiflow_ui.delete_text_flow import confirm_delete_text, delete_text_to_trash
 from lexiflow_ui.dialogs.simplify_level_dialog import open_simplify_level_dialog
@@ -109,12 +110,14 @@ class ReaderWidget(QWidget):
         data_root: Path | None = None,
         supervisor: WorkerSupervisor | None = None,
         llama_supervisor: LlamaServerSupervisor | None = None,
+        embed_supervisor: LlamaServerSupervisor | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("reader_widget")
         self._data_root = data_root
         self._supervisor = supervisor
         self._llama_supervisor = llama_supervisor
+        self._embed_supervisor = embed_supervisor
         self._record: TextRecord | None = None
         self._repo: TextRepository | None = None
         self._index: LibraryIndex | None = None
@@ -648,7 +651,11 @@ class ReaderWidget(QWidget):
                 self._record.id,
             )
             if self._supervisor is not None:
-                self._supervisor.ensure_running()
+                ensure_background_workers(
+                    self._supervisor,
+                    llama_supervisor=self._llama_supervisor,
+                    embed_supervisor=self._embed_supervisor,
+                )
         self._record = updated
         self._library_title.setText(updated.title)
         self._show_read_mode()
@@ -843,6 +850,8 @@ class ReaderWidget(QWidget):
             surface_form=surface_form,
             native_language=self._settings.native_language,
             supervisor=self._supervisor,
+            llama_supervisor=self._llama_supervisor,
+            embed_supervisor=self._embed_supervisor,
         )
         if saved:
             self.vocabulary_changed.emit()
@@ -862,7 +871,11 @@ class ReaderWidget(QWidget):
             language_code=self._record.target_language,
             lemma=suggestion.lemma,
         )
-        self._supervisor.ensure_running()
+        ensure_background_workers(
+            self._supervisor,
+            llama_supervisor=self._llama_supervisor,
+            embed_supervisor=self._embed_supervisor,
+        )
         self._refresh_word_panel()
         self.vocabulary_changed.emit()
 
@@ -893,7 +906,11 @@ class ReaderWidget(QWidget):
                 lemma=updated.lemma,
             )
             if self._supervisor is not None:
-                self._supervisor.ensure_running()
+                ensure_background_workers(
+                    self._supervisor,
+                    llama_supervisor=self._llama_supervisor,
+                    embed_supervisor=self._embed_supervisor,
+                )
         self._refresh_word_panel()
         self.vocabulary_changed.emit()
 

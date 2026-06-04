@@ -21,6 +21,7 @@ class Settings:
     onboarding_complete: bool = False
     ollama_url: str | None = None
     llama_server_url: str = "http://127.0.0.1:8080"
+    llama_embed_server_url: str = "http://127.0.0.1:8081"
     huggingface_token: str | None = None
     theme: Theme = "system"
     reader_font_size: int = 14
