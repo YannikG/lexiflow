@@ -69,7 +69,11 @@ def _runtime_lib_globs(platform_key: str) -> tuple[str, ...]:
     return ("*.so", "*.so.*")
 
 
-def _copy_runtime_libs(source_dir: Path, destination_dir: Path, platform_key: str) -> int:
+def _copy_runtime_libs(
+    source_dir: Path,
+    destination_dir: Path,
+    platform_key: str,
+) -> int:
     """Copy llama.cpp shared libraries beside the llama-server binary."""
     destination_dir.mkdir(parents=True, exist_ok=True)
     copied = 0
@@ -106,7 +110,11 @@ def _extract_llama_server(
             raise FileNotFoundError(f"{binary_name} not found in {archive}")
         source_binary = matches[0]
         shutil.copy2(source_binary, destination)
-        lib_count = _copy_runtime_libs(source_binary.parent, destination.parent, platform_key)
+        lib_count = _copy_runtime_libs(
+            source_binary.parent,
+            destination.parent,
+            platform_key,
+        )
         if lib_count == 0 and not platform_key.startswith("windows"):
             raise FileNotFoundError(
                 f"no runtime libraries found next to {binary_name} in {archive}"
