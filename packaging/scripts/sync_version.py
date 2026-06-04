@@ -37,6 +37,8 @@ def _latest_git_tag_version(repo_root: Path) -> str | None:
 def _ci_dev_version(repo_root: Path) -> str | None:
     if os.environ.get("GITHUB_ACTIONS") != "true":
         return None
+    if os.environ.get("LF_SYNC_CI_DEV") != "1":
+        return None
     ref_name = os.environ.get("GITHUB_REF_NAME", "").strip()
     if ref_name.startswith("v"):
         return None

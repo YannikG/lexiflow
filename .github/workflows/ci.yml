@@ -91,6 +91,8 @@ jobs:
       - name: Install release dependencies
         run: uv sync --frozen --group release
       - name: Sync version and fetch llama-server
+        env:
+          LF_SYNC_CI_DEV: "1"
         run: |
           VERSION="$(uv run python packaging/scripts/sync_version.py)"
           echo "LF_VERSION=$VERSION" >> "$GITHUB_ENV"

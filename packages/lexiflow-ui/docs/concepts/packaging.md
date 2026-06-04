@@ -35,7 +35,7 @@ Model weights are **not** bundled in the installer ([common-language.md](../../.
 Build-time script `packaging/scripts/sync_version.py` sets `lexiflow_core.__version__`:
 
 - **Release tag** (`vX.Y.Z`) → exact tag version
-- **PR / main CI** → `{latest_git_tag_or_pyproject}.dev{GITHUB_RUN_NUMBER}` (automatic; no manual bump)
+- **PR / main CI** → `{latest_git_tag_or_pyproject}.dev{GITHUB_RUN_NUMBER}` when `LF_SYNC_CI_DEV=1` (packaging jobs only)
 - **Local dev** → root `pyproject.toml`
 
 After a release, CI syncs `pyproject.toml` on `main` to match the tag.

@@ -33,6 +33,9 @@ def test_sync_version_writes_core_init_from_pyproject(
     core_init.parent.mkdir(parents=True)
     core_init.write_text('__version__ = "0.0.0"\n', encoding="utf-8")
     monkeypatch.delenv("GITHUB_REF_NAME", raising=False)
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    monkeypatch.delenv("GITHUB_RUN_NUMBER", raising=False)
+    monkeypatch.delenv("LF_SYNC_CI_DEV", raising=False)
 
     sync_version = _load_sync_version().sync_version
     version = sync_version(repo_root=repo_root)
@@ -73,6 +76,7 @@ def test_sync_version_uses_ci_dev_suffix_on_pr_builds(
     core_init.parent.mkdir(parents=True)
     core_init.write_text('__version__ = "0.0.0"\n', encoding="utf-8")
     monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    monkeypatch.setenv("LF_SYNC_CI_DEV", "1")
     monkeypatch.setenv("GITHUB_REF_NAME", "feature/phase-15")
     monkeypatch.setenv("GITHUB_RUN_NUMBER", "42")
 
