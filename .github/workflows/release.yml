@@ -30,11 +30,7 @@ jobs:
             fetch_platform: windows
             artifact_glob: dist/LexiFlow-*.msi
             installer_arch: ""
-          - platform: windows-arm64
-            runner: windows-11-arm
-            fetch_platform: windows-arm64
-            artifact_glob: dist/LexiFlow-*-arm64.msi
-            installer_arch: arm64
+          # windows-arm64: disabled until sqlite-vec MSVC build is reliable in CI (#40).
 
     steps:
       - uses: actions/checkout@v6
@@ -71,25 +67,9 @@ jobs:
         if: runner.os == 'Windows'
         run: choco install wixtoolset -y
 
-      - name: Setup MSVC for sqlite-vec ARM64 build
-        if: matrix.platform == 'windows-arm64'
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: arm64
-
-      - name: Build sqlite-vec for Windows ARM64
-        if: matrix.platform == 'windows-arm64'
-        shell: pwsh
-        run: ./packaging/scripts/build_sqlite_vec_windows.ps1
-
       - name: Fetch sqlite-vec loadable
         shell: bash
-        run: |
-          if [[ "${{ matrix.platform }}" == "windows-arm64" ]]; then
-            python packaging/scripts/fetch_sqlite_vec.py --platform windows-arm64
-          else
-            python packaging/scripts/fetch_sqlite_vec.py --platform "${{ matrix.fetch_platform }}"
-          fi
+        run: python packaging/scripts/fetch_sqlite_vec.py --platform "${{ matrix.fetch_platform }}"
 
       - name: Install release dependencies
         run: uv sync --frozen --group release
@@ -138,7 +118,7 @@ jobs:
         run: bash packaging/scripts/build_dmg.sh
 
       - name: Build Windows MSI
-        if: matrix.platform == 'windows' || matrix.platform == 'windows-arm64'
+        if: matrix.platform == 'windows'
         shell: pwsh
         env:
           LF_INSTALLER_ARCH: ${{ matrix.installer_arch }}
