@@ -15,6 +15,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   tag-from-release-pr:
@@ -35,7 +36,7 @@ jobs:
       - uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.12"
-          enable-cache: true
+          enable-cache: false
 
       - name: Read version from merged commit
         id: version
@@ -45,23 +46,30 @@ jobs:
           echo "Tagging v${VERSION}"
 
       - name: Create and push release tag
+        id: tag
         env:
           VERSION: ${{ steps.version.outputs.value }}
         run: |
           TAG="v${VERSION}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin --tags
-          if git rev-parse "${TAG}" >/dev/null 2>&1; then
-            echo "${TAG} already exists locally; skipping."
-            exit 0
-          fi
           if git ls-remote --exit-code origin "refs/tags/${TAG}" >/dev/null 2>&1; then
-            echo "${TAG} already exists on origin; skipping."
+            echo "${TAG} already exists on origin; skipping push."
             exit 0
           fi
           git tag "${TAG}"
           git push origin "${TAG}"
+
+      - name: Trigger release build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          # Tags pushed with GITHUB_TOKEN do not fire other workflows (push: tags).
+          # workflow_dispatch is exempt; start release.yml explicitly.
+          gh workflow run release.yml --ref "${TAG}"
 
   tag-manual:
     if: github.event_name == 'workflow_dispatch'
@@ -72,15 +80,23 @@ jobs:
           fetch-depth: 0
 
       - name: Create and push release tag
+        id: tag
         run: |
           VERSION="${{ github.event.inputs.version }}"
           TAG="v${VERSION}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin --tags
           if git ls-remote --exit-code origin "refs/tags/${TAG}" >/dev/null 2>&1; then
-            echo "${TAG} already exists on origin; skipping."
+            echo "${TAG} already exists on origin; skipping push."
             exit 0
           fi
           git tag "${TAG}"
           git push origin "${TAG}"
+
+      - name: Trigger release build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: gh workflow run release.yml --ref "${TAG}"
