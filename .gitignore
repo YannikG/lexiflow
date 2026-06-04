@@ -9,6 +9,10 @@ __pycache__/
 dist/
 build/
 packaging/bin/
+packaging/vendor/sqlite_vec/sqlite_vec/vec0.dylib
+packaging/vendor/sqlite_vec/sqlite_vec/vec0.so
+packaging/vendor/sqlite_vec/sqlite_vec/vec0.dll
+packaging/vendor/sqlite_vec/sqlite_vec/vec0.arm64.dll
 packaging/wix/Harvest.wxs
 packaging/wix/obj/
 

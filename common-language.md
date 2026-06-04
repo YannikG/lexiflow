@@ -65,7 +65,7 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Desktop shell** — Native OS widgets. Not Electron, not in-app web UI.
 
-**Supported platforms** — macOS (Apple Silicon and Intel), Windows 10+, Linux x86_64. No mobile, no web client in v1.
+**Supported platforms** — macOS (Apple Silicon and Intel), Windows 10+ (x64 and ARM64), Linux x86_64. No mobile, no web client in v1.
 
 ## User languages
 

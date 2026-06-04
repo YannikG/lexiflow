@@ -28,6 +28,7 @@ release = [
 lexiflow-core = { workspace = true }
 lexiflow-ui = { workspace = true }
 lexiflow-worker = { workspace = true }
+sqlite-vec = { path = "packaging/vendor/sqlite_vec" }
 
 [tool.uv.workspace]
 members = ["packages/*"]

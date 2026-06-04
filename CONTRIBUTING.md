@@ -50,6 +50,7 @@ All must pass before merge. Coverage floors: 80% core, 60% ui (see ADR-0001).
 Local packaging smoke:
 
 ```bash
+python packaging/scripts/fetch_sqlite_vec.py --platform macos-arm64  # or linux / windows
 uv sync --group release
 uv run python packaging/scripts/sync_version.py
 uv run python packaging/scripts/fetch_llama_server.py --platform linux

@@ -3,18 +3,7 @@ $Root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 Set-Location $Root
 
 $BundleDir = Join-Path $Root "dist\LexiFlow"
-$RawVersion = if ($env:WIX_VERSION) {
-  $env:WIX_VERSION
-} elseif ($env:LF_VERSION) {
-  $env:LF_VERSION
-} else {
-  "0.0.0"
-}
-$Sanitized = $RawVersion -replace '[^0-9.]', ''
-$Parts = $Sanitized.Split('.') | Where-Object { $_ -ne "" }
-while ($Parts.Count -lt 3) { $Parts += "0" }
-if ($Parts.Count -gt 4) { $Parts = $Parts[0..3] }
-$Version = $Parts -join "."
+$WixProductVersion = (& uv run python packaging/scripts/wix_version.py).Trim()
 $MsiName = if ($env:LF_INSTALLER_ARCH) {
   "LexiFlow-$($env:LF_VERSION)-$($env:LF_INSTALLER_ARCH).msi"
 } else {
@@ -47,13 +36,15 @@ New-Item -ItemType Directory -Force -Path $WixObjDir | Out-Null
 $env:LEXIFLOW_BUNDLE_DIR = $BundleDir
 $env:LEXIFLOW_MSI_PATH = $MsiPath
 
+$CandleDefine = "Version=$WixProductVersion"
+
 & candle.exe -nologo `
-  -dVersion=$Version `
+  -d$CandleDefine `
   -out (Join-Path $WixObjDir "LexiFlow.wixobj") `
   $WxsPath
 
 & candle.exe -nologo `
-  -dVersion=$Version `
+  -d$CandleDefine `
   -out (Join-Path $WixObjDir "Harvest.wixobj") `
   $HarvestPath
 

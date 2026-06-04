@@ -71,6 +71,26 @@ jobs:
         if: runner.os == 'Windows'
         run: choco install wixtoolset -y
 
+      - name: Setup MSVC for sqlite-vec ARM64 build
+        if: matrix.platform == 'windows-arm64'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: arm64
+
+      - name: Build sqlite-vec for Windows ARM64
+        if: matrix.platform == 'windows-arm64'
+        shell: pwsh
+        run: ./packaging/scripts/build_sqlite_vec_windows.ps1
+
+      - name: Fetch sqlite-vec loadable
+        shell: bash
+        run: |
+          if [[ "${{ matrix.platform }}" == "windows-arm64" ]]; then
+            python packaging/scripts/fetch_sqlite_vec.py --platform windows-arm64
+          else
+            python packaging/scripts/fetch_sqlite_vec.py --platform "${{ matrix.fetch_platform }}"
+          fi
+
       - name: Install release dependencies
         run: uv sync --frozen --group release
 
@@ -82,14 +102,7 @@ jobs:
           VERSION="$(uv run python packaging/scripts/sync_version.py)"
           echo "LF_VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "LF_EXPECTED_VERSION=$VERSION" >> "$GITHUB_ENV"
-          WIX_VERSION="${VERSION}.0"
-          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            WIX_VERSION="${VERSION}.0"
-          elif [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            WIX_VERSION="$VERSION"
-          else
-            WIX_VERSION="0.0.0.0"
-          fi
+          WIX_VERSION="$(uv run python packaging/scripts/wix_version.py "$VERSION")"
           echo "WIX_VERSION=$WIX_VERSION" >> "$GITHUB_ENV"
 
       - name: Fetch llama-server
@@ -131,7 +144,6 @@ jobs:
           LF_INSTALLER_ARCH: ${{ matrix.installer_arch }}
         run: |
           $env:LEXIFLOW_BUNDLE_DIR = Join-Path $PWD "dist\LexiFlow"
-          $env:Version = $env:WIX_VERSION
           ./packaging/scripts/build_msi.ps1
 
       - name: Collect release artifacts
