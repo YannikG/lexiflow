@@ -63,7 +63,7 @@ Platform installers: `bash packaging/scripts/build_installer.sh linux|macos-arm6
 ## CI
 
 - **PR / main:** lint, mypy, and pytest (`.github/workflows/ci.yml`). Linux test job runs `fetch_sqlite_vec.py --platform linux` before `uv sync`. No PyInstaller build on every PR.
-- **Release tag:** `.github/workflows/release.yml` builds Linux AppImage, macOS DMG, and Windows x64 MSI (Windows ARM64 MSI temporarily disabled; see issue #40). Publishes SHA256 checksums.
+- **Release tag:** `.github/workflows/release.yml` builds Linux AppImage, macOS DMG, and Windows x64 MSI (Windows ARM64 MSI temporarily disabled; see issue #40). Oversized Linux assets are uploaded as `.AppImage.zst` (GitHub 2 GiB per-file limit). Publishes SHA256 checksums.
 
 ## Out of scope (v1)
 

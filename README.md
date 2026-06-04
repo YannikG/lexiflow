@@ -23,7 +23,7 @@ Verify downloads with the `checksums.txt` SHA256 file attached to each release.
 
 - **macOS:** Gatekeeper may block the app because it is not notarized. Right-click → Open, or allow in **System Settings → Privacy & Security**.
 - **Windows:** SmartScreen may warn on first launch because the installer is not Authenticode-signed. Choose **More info → Run anyway** if you trust the download and checksum.
-- **Linux:** AppImage may need `chmod +x`. Some distros require `libfuse2` for AppImage.
+- **Linux:** AppImage may need `chmod +x`. Some distros require `libfuse2` for AppImage. If the release ships `*.AppImage.zst` (over GitHub’s 2 GiB limit), decompress with `zstd -d LexiFlow-*-x86_64.AppImage.zst` then `chmod +x` the AppImage.
 
 ## Quick start (developers)
 

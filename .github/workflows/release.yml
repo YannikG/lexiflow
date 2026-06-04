@@ -166,11 +166,17 @@ jobs:
           path: release-artifacts
           merge-multiple: true
 
-      - name: Merge checksums
+      - name: Merge release artifacts
         run: |
           mkdir -p merged
           find release-artifacts -maxdepth 2 -type f ! -name 'checksums.txt' -exec cp {} merged/ \;
-          (cd merged && sha256sum *) > merged/checksums.txt
+          ls -la merged/
+
+      - name: Compress assets over GitHub 2 GiB limit
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zstd
+          uv run python packaging/scripts/prepare_github_release_assets.py merged
           ls -la merged/
 
       - name: Create GitHub Release
