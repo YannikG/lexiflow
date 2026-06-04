@@ -1,6 +1,12 @@
 name: tag-release
 
 on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to tag (X.Y.Z, without v prefix)
+        required: true
+        type: string
   pull_request:
     types:
       - closed
@@ -11,10 +17,14 @@ permissions:
   contents: write
 
 jobs:
-  tag-and-build:
+  tag-from-release-pr:
     if: >-
+      github.event_name == 'pull_request' &&
       github.event.pull_request.merged == true &&
-      startsWith(github.event.pull_request.head.ref, 'release/')
+      (
+        startsWith(github.event.pull_request.head.ref, 'release/') ||
+        startsWith(github.event.pull_request.title, 'chore: release v')
+      )
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -35,16 +45,39 @@ jobs:
           echo "Tagging v${VERSION}"
 
       - name: Create and push release tag
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
         run: |
-          VERSION="${{ steps.version.outputs.value }}"
           TAG="v${VERSION}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin --tags
           if git rev-parse "${TAG}" >/dev/null 2>&1; then
-            echo "${TAG} already exists; skipping."
+            echo "${TAG} already exists locally; skipping."
             exit 0
           fi
+          if git ls-remote --exit-code origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "${TAG} already exists on origin; skipping."
+            exit 0
+          fi
+          git tag "${TAG}"
+          git push origin "${TAG}"
+
+  tag-manual:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Create and push release tag
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          TAG="v${VERSION}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin --tags
           if git ls-remote --exit-code origin "refs/tags/${TAG}" >/dev/null 2>&1; then
             echo "${TAG} already exists on origin; skipping."
             exit 0
