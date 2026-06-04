@@ -58,3 +58,46 @@ def test_sync_version_reads_github_ref_name(tmp_path: Path, monkeypatch) -> None
 
     assert version == "2.0.1"
     assert '__version__ = "2.0.1"' in core_init.read_text(encoding="utf-8")
+
+
+def test_sync_version_uses_ci_dev_suffix_on_pr_builds(
+    tmp_path: Path, monkeypatch
+) -> None:
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    (repo_root / "pyproject.toml").write_text(
+        '[project]\nname = "lexiflow"\nversion = "1.0.0"\n',
+        encoding="utf-8",
+    )
+    core_init = repo_root / "packages/lexiflow-core/src/lexiflow_core/__init__.py"
+    core_init.parent.mkdir(parents=True)
+    core_init.write_text('__version__ = "0.0.0"\n', encoding="utf-8")
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    monkeypatch.setenv("GITHUB_REF_NAME", "feature/phase-15")
+    monkeypatch.setenv("GITHUB_RUN_NUMBER", "42")
+
+    sync_version = _load_sync_version().sync_version
+    version = sync_version(repo_root=repo_root)
+
+    assert version == "1.0.0.dev42"
+    assert '__version__ = "1.0.0.dev42"' in core_init.read_text(encoding="utf-8")
+
+
+def test_sync_version_can_write_pyproject(tmp_path: Path, monkeypatch) -> None:
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    pyproject = repo_root / "pyproject.toml"
+    pyproject.write_text(
+        '[project]\nname = "lexiflow"\nversion = "0.0.0"\n',
+        encoding="utf-8",
+    )
+    core_init = repo_root / "packages/lexiflow-core/src/lexiflow_core/__init__.py"
+    core_init.parent.mkdir(parents=True)
+    core_init.write_text('__version__ = "0.0.0"\n', encoding="utf-8")
+    monkeypatch.setenv("GITHUB_REF_NAME", "v3.4.5")
+
+    sync_version = _load_sync_version().sync_version
+    version = sync_version(repo_root=repo_root, write_pyproject=True)
+
+    assert version == "3.4.5"
+    assert 'version = "3.4.5"' in pyproject.read_text(encoding="utf-8")
