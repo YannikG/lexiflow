@@ -56,6 +56,10 @@ if [[ -x "$ROOT/dist/LexiFlow.app/Contents/MacOS/LexiFlow" || -x "$BUNDLE_DIR/Le
     exit 1
   fi
   LLAMA_SERVER="${LLAMA_SERVERS[0]}"
+  if [[ ! -x "$LLAMA_SERVER" ]]; then
+    echo "bundled llama-server is not executable: $LLAMA_SERVER" >&2
+    exit 1
+  fi
   IMPL_DYLIB="$(dirname "$LLAMA_SERVER")/libllama-server-impl.dylib"
   if [[ ! -f "$IMPL_DYLIB" ]]; then
     echo "bundled libllama-server-impl.dylib missing next to llama-server" >&2
