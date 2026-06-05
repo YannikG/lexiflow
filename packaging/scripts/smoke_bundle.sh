@@ -57,6 +57,21 @@ if [[ -x "$ROOT/dist/LexiFlow.app/Contents/MacOS/LexiFlow" || -x "$BUNDLE_DIR/Le
   echo "llama-server smoke passed"
 fi
 
+if [[ -x "$BUNDLE_DIR/LexiFlow.exe" ]]; then
+  LLAMA_SERVER="$(find "$ROOT/dist" "$BUNDLE_DIR" -path '*/bin/llama-server.exe' -type f 2>/dev/null | head -1)"
+  if [[ -z "$LLAMA_SERVER" || ! -f "$LLAMA_SERVER" ]]; then
+    echo "bundled llama-server.exe missing under LexiFlow/bin" >&2
+    exit 1
+  fi
+  LLAMA_DIR="$(dirname "$LLAMA_SERVER")"
+  if ! compgen -G "$LLAMA_DIR/*.dll" > /dev/null; then
+    echo "bundled llama-server runtime DLLs missing next to llama-server.exe" >&2
+    exit 1
+  fi
+  "$LLAMA_SERVER" --version >/dev/null
+  echo "llama-server smoke passed"
+fi
+
 WORKER_ROOT="$(mktemp -d)"
 trap 'rm -rf "$WORKER_ROOT"' EXIT
 "$BINARY" --worker --data-root "$WORKER_ROOT"

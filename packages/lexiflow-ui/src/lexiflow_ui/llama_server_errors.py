@@ -18,6 +18,10 @@ _HF_DOWNLOAD_FAILED = (
     "Failed to download the pinned language model from Hugging Face. "
     "Check your connection and Hugging Face access token in Settings (LLM)."
 )
+_PROJECTOR_COMPAT = (
+    "The bundled native LLM runtime cannot load the pinned language model. "
+    "Update LexiFlow to the latest version."
+)
 _LLAMA_START_FAILED = "llama-server failed to start. Check LexiFlow logs and try again."
 
 
@@ -43,6 +47,8 @@ def llama_server_startup_error(output: str) -> str:
         return _INVALID_MODEL_SPEC
     if "failed to download model from hugging face" in lower:
         return _HF_DOWNLOAD_FAILED
+    if "unknown projector type" in lower or "unknown model architecture" in lower:
+        return _PROJECTOR_COMPAT
     for line in reversed(normalized.splitlines()):
         stripped = line.strip()
         if stripped and not stripped.startswith("File "):

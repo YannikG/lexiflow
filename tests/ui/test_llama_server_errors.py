@@ -51,3 +51,29 @@ def test_llama_server_startup_error_maps_generic_hf_download_failure() -> None:
     assert "failed to download" in message.lower()
     assert "language model" in message.lower()
     assert "access token required" not in message.lower()
+
+
+def test_llama_server_startup_error_maps_projector_compat_failure() -> None:
+    stderr = (
+        "load_hparams: clip.vision.projector_type = 'gemma4uv'\n"
+        "clip.cpp:4391: Unknown projector type"
+    )
+
+    message = llama_server_startup_error(stderr)
+
+    assert "update lexiflow" in message.lower()
+    assert "native llm" in message.lower() or "language model" in message.lower()
+    assert "unknown projector type" not in message.lower()
+
+
+def test_llama_server_startup_error_maps_unknown_model_architecture() -> None:
+    stderr = (
+        "llama_model_load: error loading model architecture: "
+        "unknown model architecture: 'gemma4'"
+    )
+
+    message = llama_server_startup_error(stderr)
+
+    assert "update lexiflow" in message.lower()
+    assert "native llm" in message.lower() or "language model" in message.lower()
+    assert "gemma4" not in message.lower()
