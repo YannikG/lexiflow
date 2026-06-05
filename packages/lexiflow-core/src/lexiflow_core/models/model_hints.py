@@ -5,6 +5,16 @@ from __future__ import annotations
 from lexiflow_core.models.lockfile import ModelsLock, load_models_lock
 from lexiflow_core.models.requirements import NATIVE_EMBEDDING_ID, NATIVE_LLM_ID
 
+_ARTIFACT_DISPLAY_NAMES: dict[str, str] = {
+    NATIVE_LLM_ID: "Built-in LLM",
+    NATIVE_EMBEDDING_ID: "Embedding model",
+}
+
+
+def artifact_display_name(artifact_id: str) -> str:
+    """Return a short settings-friendly label for a pinned artifact."""
+    return _ARTIFACT_DISPLAY_NAMES.get(artifact_id, artifact_id)
+
 
 def artifact_hint(artifact_id: str, lock: ModelsLock | None = None) -> str:
     """Return helper text describing a pinned Hugging Face model."""

@@ -6,7 +6,6 @@ from pathlib import Path
 
 from lexiflow_core.embeddings.protocol import Embedder
 from lexiflow_core.jobs.handlers.cleanup import handle_cleanup
-from lexiflow_core.jobs.handlers.download_spacy import handle_download_spacy
 from lexiflow_core.jobs.handlers.embed import handle_embed
 from lexiflow_core.jobs.handlers.lemma import handle_lemma
 from lexiflow_core.jobs.handlers.simplify import handle_simplify
@@ -59,8 +58,5 @@ def process_job(
         return
     if job.job_type == JobType.LEMMA:
         handle_lemma(job, job_service=job_service, llm=llm)
-        return
-    if job.job_type == JobType.DOWNLOAD_SPACY:
-        handle_download_spacy(job, data_root=data_root, job_service=job_service)
         return
     job_service.fail(job.id, f"unsupported job type: {job.job_type}")

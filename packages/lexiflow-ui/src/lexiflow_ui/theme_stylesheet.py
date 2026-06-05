@@ -73,6 +73,9 @@ def build_theme_stylesheet(effective: EffectiveTheme) -> str:
         "QPushButton#settings_hf_token_link",
         "QPushButton#settings_check_updates",
         "QPushButton#settings_download_updates",
+        "QPushButton#settings_redownload_native-llm",
+        "QPushButton#settings_redownload_native-embedding",
+        "QPushButton#settings_redownload_all",
         "QPushButton#settings_reset_button",
         "QPushButton#settings_cancel_button",
     )

@@ -11,11 +11,11 @@ from lexiflow_core.config.settings import Settings, Theme
 from lexiflow_core.config.settings_store import SettingsStore
 from lexiflow_core.languages.set_native import SetNativeLanguageError
 from lexiflow_core.llm.llama_server import pinned_llama_hf_model
+from lexiflow_core.models.model_hints import artifact_display_name
 from lexiflow_core.models.requirements import NATIVE_LLM_ID
-from lexiflow_core.models.store import ModelStore, ModelStoreError, UpdateAvailable
+from lexiflow_core.models.store import ModelStore, UpdateAvailable
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
-    QApplication,
     QComboBox,
     QDialog,
     QDialogButtonBox,
@@ -26,7 +26,6 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QMessageBox,
-    QProgressDialog,
     QPushButton,
     QRadioButton,
     QScrollArea,
@@ -36,6 +35,7 @@ from PySide6.QtWidgets import (
 )
 
 from lexiflow_ui.app_relaunch import prompt_restart_lexiflow, relaunch_application
+from lexiflow_ui.background_task import run_with_progress_dialog
 from lexiflow_ui.dialogs.native_language_dialog import (
     NativeLanguageDialog,
     language_display_name,
@@ -99,7 +99,7 @@ class SettingsDialog(QDialog):
         super().__init__(parent)
         self.setObjectName("settings_dialog")
         self.setWindowTitle("Settings")
-        self.resize(520, 640)
+        self.resize(680, 640)
         self._app = app
         self._settings_store = settings_store
         self._data_root = data_root
@@ -223,6 +223,31 @@ class SettingsDialog(QDialog):
             check_row.addWidget(check_updates)
             models_layout.addLayout(check_row)
             models_layout.addWidget(self._download_updates_button)
+            redownload_label = QLabel("Re-download pinned models:", body)
+            redownload_label.setObjectName("settings_redownload_label")
+            models_layout.addWidget(redownload_label)
+            redownload_row = QHBoxLayout()
+            for artifact_id in model_store.pinned_artifact_ids():
+                button = QPushButton(
+                    f"Re-download {artifact_display_name(artifact_id)}…",
+                    body,
+                )
+                button.setObjectName(f"settings_redownload_{artifact_id}")
+                button.clicked.connect(
+                    lambda _checked=False, aid=artifact_id: self._reinstall_models(
+                        [aid]
+                    )
+                )
+                redownload_row.addWidget(button)
+            redownload_all = QPushButton("Re-download all…", body)
+            redownload_all.setObjectName("settings_redownload_all")
+            redownload_all.clicked.connect(
+                lambda _checked=False: self._reinstall_models(
+                    list(model_store.pinned_artifact_ids())
+                )
+            )
+            redownload_row.addWidget(redownload_all)
+            models_layout.addLayout(redownload_row)
             content.addLayout(models_layout)
             self._pending_updates: list[UpdateAvailable] = []
             QTimer.singleShot(
@@ -342,23 +367,32 @@ class SettingsDialog(QDialog):
             return self._stored_hf_token
         return raw
 
+    def _artifact_download_requires_token(self, artifact_ids: list[str]) -> bool:
+        if NATIVE_LLM_ID not in artifact_ids:
+            return False
+        try:
+            return model_requires_hf_token(pinned_llama_hf_model())
+        except RuntimeError:
+            return True
+
     def _download_requires_token(self) -> bool:
         if not self._pending_updates:
             return False
-        for item in self._pending_updates:
-            if item.artifact_id == NATIVE_LLM_ID:
-                try:
-                    if model_requires_hf_token(pinned_llama_hf_model()):
-                        return True
-                except RuntimeError:
-                    return True
-        return False
+        return self._artifact_download_requires_token(
+            [item.artifact_id for item in self._pending_updates]
+        )
 
-    def _download_model_updates(self) -> None:
-        if self._model_store is None or not self._pending_updates:
+    def _download_artifacts(
+        self,
+        artifact_ids: list[str],
+        *,
+        success_title: str,
+        success_message: str,
+    ) -> None:
+        if self._model_store is None or not artifact_ids:
             return
         token = self._resolved_hf_token()
-        if self._download_requires_token() and not token:
+        if self._artifact_download_requires_token(artifact_ids) and not token:
             QMessageBox.warning(
                 self,
                 "Hugging Face token required",
@@ -366,29 +400,64 @@ class SettingsDialog(QDialog):
             )
             return
         self._model_store.set_huggingface_token(token)
-        progress = QProgressDialog("Downloading models", None, 0, 0, self)
-        progress.setWindowModality(Qt.WindowModality.WindowModal)
-        progress.setMinimumDuration(0)
-        progress.setCancelButton(None)
-        progress.show()
+        model_store = self._model_store
 
-        def on_progress(_value: float) -> None:
-            QApplication.processEvents()
+        def download_work(
+            on_progress: Callable[[float], None],
+            on_status: Callable[[str], None],
+        ) -> None:
+            assert model_store is not None
+            for artifact_id in artifact_ids:
+                label = artifact_display_name(artifact_id)
+                header = f"Downloading {label}"
 
-        try:
-            for item in self._pending_updates:
-                progress.setLabelText(f"Downloading {item.artifact_id}…")
-                self._model_store.upgrade_artifact(
-                    item.artifact_id,
+                def on_log_line(
+                    line: str,
+                    *,
+                    status_header: str = header,
+                ) -> None:
+                    on_status(f"{status_header}\n{line}")
+
+                on_progress(0.0)
+                on_status(f"{header}…")
+                model_store.reinstall_artifact(
+                    artifact_id,
                     on_progress=on_progress,
+                    on_log_line=on_log_line,
                 )
-        except ModelStoreError as exc:
-            progress.close()
-            QMessageBox.critical(self, "Download failed", str(exc))
+
+        ok, error = run_with_progress_dialog(
+            self,
+            title="Downloading models",
+            initial_status="Preparing download…",
+            work=download_work,
+        )
+        if not ok:
+            QMessageBox.critical(self, "Download failed", error or "Download failed.")
             return
-        progress.close()
         self._check_model_updates()
-        QMessageBox.information(self, "Models updated", "Model downloads finished.")
+        QMessageBox.information(self, success_title, success_message)
+
+    def _download_model_updates(self) -> None:
+        if self._model_store is None or not self._pending_updates:
+            return
+        self._download_artifacts(
+            [item.artifact_id for item in self._pending_updates],
+            success_title="Models updated",
+            success_message="Model downloads finished.",
+        )
+
+    def _reinstall_models(self, artifact_ids: list[str]) -> None:
+        if len(artifact_ids) == 1:
+            label = artifact_display_name(artifact_ids[0])
+            success_message = f"{label} was re-downloaded."
+        else:
+            success_message = "Pinned models were re-downloaded."
+        self._download_artifacts(
+            artifact_ids,
+            success_title="Models re-downloaded",
+            success_message=success_message,
+        )
 
     def _reset_app(self) -> None:
         confirm = QMessageBox.warning(

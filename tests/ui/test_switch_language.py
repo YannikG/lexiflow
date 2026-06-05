@@ -6,7 +6,7 @@ from pathlib import Path
 
 from lexiflow_core.config.settings import Settings
 from lexiflow_core.config.settings_store import SettingsStore
-from lexiflow_core.languages.setup import add_target_with_spacy_download
+from lexiflow_core.languages.store import LanguageStore
 from lexiflow_core.languages.switch_target import switch_active_target
 from lexiflow_core.library.index import LibraryIndex, ensure_library_index
 from lexiflow_core.library.models import CreateTextRequest
@@ -37,8 +37,8 @@ def test_switch_language_refreshes_sidebar_for_active_target(
 ) -> None:
     data_root = tmp_path / "LexiFlow"
     config_dir = tmp_path / "config"
-    add_target_with_spacy_download(data_root, "es")
-    add_target_with_spacy_download(data_root, "de")
+    LanguageStore(data_root).add_target("es")
+    LanguageStore(data_root).add_target("de")
     _seed_text(data_root, language="es", title="Spanish text")
     _seed_text(data_root, language="de", title="German text")
 
@@ -84,8 +84,8 @@ def test_switch_to_empty_language_closes_reader(qtbot, tmp_path: Path) -> None:
     """After add-language, a text from the previous language must not stay visible."""
     data_root = tmp_path / "LexiFlow"
     config_dir = tmp_path / "config"
-    add_target_with_spacy_download(data_root, "es")
-    add_target_with_spacy_download(data_root, "fr")
+    LanguageStore(data_root).add_target("es")
+    LanguageStore(data_root).add_target("fr")
     _seed_text(data_root, language="es", title="Spanish text")
 
     settings = Settings(

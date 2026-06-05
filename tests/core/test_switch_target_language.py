@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from lexiflow_core.config.settings import Settings
 from lexiflow_core.config.settings_store import SettingsStore
-from lexiflow_core.languages.setup import add_target_with_spacy_download
+from lexiflow_core.languages.store import LanguageStore
 from lexiflow_core.languages.switch_target import (
     SwitchTargetLanguageError,
     switch_active_target,
@@ -18,8 +18,8 @@ def test_switch_active_target_persists_settings(tmp_path: Path) -> None:
     data_root = tmp_path / "library"
     config_dir = tmp_path / "config"
     store = SettingsStore(config_dir=config_dir)
-    add_target_with_spacy_download(data_root, "es")
-    add_target_with_spacy_download(data_root, "de")
+    LanguageStore(data_root).add_target("es")
+    LanguageStore(data_root).add_target("de")
     settings = Settings(
         data_root=data_root,
         native_language="en",
@@ -43,7 +43,7 @@ def test_switch_active_target_rejects_native_language(tmp_path: Path) -> None:
     data_root = tmp_path / "library"
     config_dir = tmp_path / "config"
     store = SettingsStore(config_dir=config_dir)
-    add_target_with_spacy_download(data_root, "en")
+    LanguageStore(data_root).add_target("en")
     settings = Settings(
         data_root=data_root,
         native_language="en",

@@ -9,14 +9,13 @@ from lexiflow_core.config.settings import Settings
 from lexiflow_core.config.settings_store import SettingsStore
 from lexiflow_core.languages.models import CEFRLevel
 from lexiflow_core.languages.remove_target import remove_target_language
-from lexiflow_core.languages.setup import add_target_with_spacy_download
 from lexiflow_core.languages.store import LanguageStore
 from lexiflow_core.vocabulary.store import VocabularyStore
 
 
 def test_remove_target_language_wipes_language_folder(tmp_path: Path) -> None:
     data_root = tmp_path / "LexiFlow"
-    add_target_with_spacy_download(data_root, "es")
+    LanguageStore(data_root).add_target("es")
     VocabularyStore(data_root, "es").add_entry(
         lemma="correr",
         translation="to run",

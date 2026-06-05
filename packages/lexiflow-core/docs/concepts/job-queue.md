@@ -22,10 +22,9 @@ On startup, **Running** jobs return to **Pending** and are picked up automatical
 | `translate` | Plain translation (LLM) |
 | `simplify` | Simplified variant (LLM); payload `text_id`, `level` |
 | `embed` | Embedding generation (translated text or vocabulary lemma) |
-| `download_spacy` | spaCy language pack download (enqueued when a target language is added) |
 | `lemma` | Lemma, translation, and explanation inference for highlight-add |
 
-LLM job types share the one-at-a-time rule. `download_spacy` installs a spaCy pipeline under `{data_root}/.app/spacy/{iso}/` via the worker (requires spaCy installed in the worker environment).
+LLM job types share the one-at-a-time rule. spaCy language packs install in the UI when a target language is added (see `packages/lexiflow-ui/docs/concepts/language-pack-install.md`), not via the queue. Legacy `download_spacy` rows are deleted when the queue opens.
 
 ### Lemma
 

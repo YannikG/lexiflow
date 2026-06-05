@@ -29,7 +29,7 @@ from tests.ui.jobs_panel_helpers import (
 def test_jobs_panel_shows_jobs_in_queue_tab(qtbot, tmp_path: Path) -> None:
     data_root = tmp_path / "LexiFlow"
     JobService(data_root).enqueue(
-        JobRequest(job_type=JobType.DOWNLOAD_SPACY, payload={"iso": "es"})
+        JobRequest(job_type=JobType.CLEANUP, payload={"text_id": "es"})
     )
 
     parent = QWidget()
@@ -44,7 +44,7 @@ def test_jobs_panel_shows_jobs_in_queue_tab(qtbot, tmp_path: Path) -> None:
     assert tabs.currentIndex() == 0
     assert table.columnCount() == len(JOB_TABLE_HEADERS)
     assert table.rowCount() == 1
-    assert table.item(0, 0).text() == "download_spacy"
+    assert table.item(0, 0).text() == "cleanup"
     assert table.item(0, 1).text() == JobStatus.PENDING.value
 
     table.selectRow(0)
@@ -58,7 +58,7 @@ def test_jobs_panel_tabs_show_separate_job_lists(qtbot, tmp_path: Path) -> None:
     data_root = tmp_path / "LexiFlow"
     jobs = JobService(data_root)
     failed_id = jobs.enqueue(
-        JobRequest(job_type=JobType.DOWNLOAD_SPACY, payload={"iso": "de"})
+        JobRequest(job_type=JobType.TRANSLATE, payload={"text_id": "de"})
     )
     claimed = jobs.claim_next()
     assert claimed is not None
@@ -170,7 +170,7 @@ def test_job_detail_dialog_shows_full_text(qtbot, tmp_path: Path) -> None:
     data_root = tmp_path / "LexiFlow"
     jobs = JobService(data_root)
     job_id = jobs.enqueue(
-        JobRequest(job_type=JobType.DOWNLOAD_SPACY, payload={"iso": "fr"})
+        JobRequest(job_type=JobType.CLEANUP, payload={"text_id": "fr"})
     )
     claimed = jobs.claim_next()
     assert claimed is not None
@@ -185,7 +185,7 @@ def test_job_detail_dialog_shows_full_text(qtbot, tmp_path: Path) -> None:
     editor = detail.findChild(QPlainTextEdit, "job_detail_body")
     assert editor is not None
     text = editor.toPlainText()
-    assert "download_spacy" in text
-    assert '"iso": "fr"' in text
+    assert "cleanup" in text
+    assert '"text_id": "fr"' in text
     assert '"path": "/tmp"' in text
     assert "Duration:" in text
