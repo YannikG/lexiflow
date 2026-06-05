@@ -43,11 +43,19 @@ fi
 echo "sqlite-vec smoke passed"
 
 if [[ -x "$ROOT/dist/LexiFlow.app/Contents/MacOS/LexiFlow" || -x "$BUNDLE_DIR/LexiFlow.app/Contents/MacOS/LexiFlow" ]]; then
-  LLAMA_SERVER="$(find "$ROOT/dist" "$BUNDLE_DIR" -path '*/Contents/Frameworks/bin/llama-server' -type f 2>/dev/null | head -1)"
-  if [[ -z "$LLAMA_SERVER" || ! -x "$LLAMA_SERVER" ]]; then
+  LLAMA_SERVERS=()
+  while IFS= read -r candidate; do
+    LLAMA_SERVERS+=("$candidate")
+  done < <(find "$ROOT/dist" "$BUNDLE_DIR" -path '*/Contents/Frameworks/bin/llama-server' -type f 2>/dev/null)
+  if [[ ${#LLAMA_SERVERS[@]} -eq 0 ]]; then
     echo "bundled llama-server missing under LexiFlow.app/Contents/Frameworks/bin" >&2
     exit 1
   fi
+  if [[ ${#LLAMA_SERVERS[@]} -gt 1 ]]; then
+    echo "error: found multiple llama-server binaries, ambiguous. Paths: ${LLAMA_SERVERS[*]}" >&2
+    exit 1
+  fi
+  LLAMA_SERVER="${LLAMA_SERVERS[0]}"
   IMPL_DYLIB="$(dirname "$LLAMA_SERVER")/libllama-server-impl.dylib"
   if [[ ! -f "$IMPL_DYLIB" ]]; then
     echo "bundled libllama-server-impl.dylib missing next to llama-server" >&2
@@ -58,11 +66,19 @@ if [[ -x "$ROOT/dist/LexiFlow.app/Contents/MacOS/LexiFlow" || -x "$BUNDLE_DIR/Le
 fi
 
 if [[ -x "$BUNDLE_DIR/LexiFlow.exe" ]]; then
-  LLAMA_SERVER="$(find "$ROOT/dist" "$BUNDLE_DIR" -path '*/bin/llama-server.exe' -type f 2>/dev/null | head -1)"
-  if [[ -z "$LLAMA_SERVER" || ! -f "$LLAMA_SERVER" ]]; then
+  LLAMA_SERVERS=()
+  while IFS= read -r candidate; do
+    LLAMA_SERVERS+=("$candidate")
+  done < <(find "$ROOT/dist" "$BUNDLE_DIR" -path '*/bin/llama-server.exe' -type f 2>/dev/null)
+  if [[ ${#LLAMA_SERVERS[@]} -eq 0 ]]; then
     echo "bundled llama-server.exe missing under LexiFlow/bin" >&2
     exit 1
   fi
+  if [[ ${#LLAMA_SERVERS[@]} -gt 1 ]]; then
+    echo "error: found multiple llama-server.exe, ambiguous. Paths: ${LLAMA_SERVERS[*]}" >&2
+    exit 1
+  fi
+  LLAMA_SERVER="${LLAMA_SERVERS[0]}"
   LLAMA_DIR="$(dirname "$LLAMA_SERVER")"
   if ! compgen -G "$LLAMA_DIR/*.dll" > /dev/null; then
     echo "bundled llama-server runtime DLLs missing next to llama-server.exe" >&2

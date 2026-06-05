@@ -62,7 +62,7 @@ def test_llama_server_startup_error_maps_projector_compat_failure() -> None:
     message = llama_server_startup_error(stderr)
 
     assert "update lexiflow" in message.lower()
-    assert "native llm" in message.lower() or "language model" in message.lower()
+    assert "native llm" in message.lower() and "language model" in message.lower()
     assert "unknown projector type" not in message.lower()
 
 
@@ -75,5 +75,5 @@ def test_llama_server_startup_error_maps_unknown_model_architecture() -> None:
     message = llama_server_startup_error(stderr)
 
     assert "update lexiflow" in message.lower()
-    assert "native llm" in message.lower() or "language model" in message.lower()
+    assert "native llm" in message.lower() and "language model" in message.lower()
     assert "gemma4" not in message.lower()

@@ -13,3 +13,4 @@ def test_smoke_bundle_script_resolves_windows_exe() -> None:
     assert "llama-server.exe" in script
     assert '"$LLAMA_SERVER" --version' in script
     assert "*.dll" in script
+    assert "multiple llama-server" in script
