@@ -151,7 +151,7 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Re-simplify** — Explicit user action to regenerate a **simplified variant**. Uses vocabulary vectors at time of run. Does not auto-update when vocabulary changes later.
 
-**Background job** — Unit of async work: cleanup, translate, simplify, embed, model download, spaCy download, lemma inference. User-visible types include translate, simplify, embed, and download jobs.
+**Background job** — Unit of async work: cleanup, translate, simplify, embed, lemma inference. User-visible types include translate, simplify, and embed. Setup downloads (Hugging Face model weights in **Settings**, spaCy language packs when adding a target language) run in the initiating dialog, not in the **job queue**.
 
 **LLM job UX** — Long-running translate, simplify, and cleanup jobs run in the background. User can continue browsing. Status indicator shows active jobs with cancel support. Notification on complete or fail; partial outputs discarded on cancel. **One LLM job at a time**; additional requests queue globally.
 
@@ -263,7 +263,7 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Lemma resolution** — spaCy when language pack installed; otherwise LLM inference. Same for highlight-add, **manual add word**, and **new word suggestions**.
 
-**spaCy language packs** — Downloaded per target language when added. All model and pack downloads go through Hugging Face in v1.
+**spaCy language packs** — Downloaded per target language when added, with in-dialog progress on onboarding or **Switch language**. Installed under `{data_root}/.app/spacy/{iso}/` in the UI process. Not enqueued as **background jobs**.
 
 ## Storage
 

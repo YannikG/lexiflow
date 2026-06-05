@@ -128,6 +128,24 @@ class ModelStore:
         except (OSError, shutil.Error) as exc:
             raise ModelStoreError(f"failed to import {artifact_id}") from exc
 
+    def pinned_artifact_ids(self) -> tuple[str, ...]:
+        """Return artifact IDs from the active models.lock pin."""
+        return tuple(artifact.id for artifact in self._lock.artifacts)
+
+    def reinstall_artifact(
+        self,
+        artifact_id: str,
+        on_progress: Callable[[float], None],
+        *,
+        on_log_line: Callable[[str], None] | None = None,
+    ) -> Path:
+        """Force a fresh download of the pinned revision."""
+        return self.upgrade_artifact(
+            artifact_id,
+            on_progress,
+            on_log_line=on_log_line,
+        )
+
     def check_for_updates(self) -> list[UpdateAvailable]:
         """Return artifacts whose installed revision differs from the lock pin."""
         updates: list[UpdateAvailable] = []

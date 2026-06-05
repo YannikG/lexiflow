@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QMenu,
+    QProgressDialog,
     QPushButton,
     QRadioButton,
     QSpinBox,
@@ -251,3 +252,107 @@ revision = "new-pin"
     assert check_button is not None
     qtbot.mouseClick(check_button, Qt.MouseButton.LeftButton)
     assert shown == ["Updates available: native-embedding"]
+
+
+def test_redownload_model_when_pins_up_to_date(
+    qtbot, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    completed: list[tuple[str, str]] = []
+
+    def fake_information(_parent, title: str, message: str) -> None:
+        completed.append((title, message))
+
+    monkeypatch.setattr(
+        "lexiflow_ui.dialogs.settings_dialog.QMessageBox.information",
+        fake_information,
+    )
+    data_root = tmp_path / "library"
+    lock_path = tmp_path / "models.lock"
+    lock_path.write_text(
+        """
+[[artifacts]]
+id = "native-embedding"
+repo = "LLukas22/all-MiniLM-L6-v2-GGUF"
+revision = "abc"
+""".strip(),
+        encoding="utf-8",
+    )
+    downloader = FakeModelDownloader()
+    model_store = ModelStore(
+        data_root=data_root,
+        lock=load_models_lock(lock_path),
+        downloader=downloader,
+    )
+    model_store.ensure_installed("native-embedding", on_progress=lambda *_: None)
+    assert downloader.call_count == 1
+    assert model_store.check_for_updates() == []
+
+    app = QApplication.instance()
+    assert app is not None
+    dialog = SettingsDialog(
+        app=app,
+        settings=Settings(active_target_language="es", native_language="en"),
+        settings_store=SettingsStore(config_dir=tmp_path / "config"),
+        data_root=data_root,
+        model_store=model_store,
+    )
+    qtbot.addWidget(dialog)
+    redownload = dialog.findChild(QPushButton, "settings_redownload_native-embedding")
+    assert redownload is not None
+    assert redownload.isEnabled()
+    qtbot.mouseClick(redownload, Qt.MouseButton.LeftButton)
+
+    assert downloader.call_count == 2
+    assert completed == [("Models re-downloaded", "Embedding model was re-downloaded.")]
+
+
+def test_model_download_progress_shows_hub_log_line(
+    qtbot, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    progress_labels: list[str] = []
+    original_set_label_text = QProgressDialog.setLabelText
+
+    def track_label_text(self: QProgressDialog, text: str) -> None:
+        progress_labels.append(text)
+        original_set_label_text(self, text)
+
+    monkeypatch.setattr(QProgressDialog, "setLabelText", track_label_text)
+    monkeypatch.setattr(
+        "lexiflow_ui.dialogs.settings_dialog.QMessageBox.information",
+        lambda *_args, **_kwargs: None,
+    )
+    data_root = tmp_path / "library"
+    lock_path = tmp_path / "models.lock"
+    lock_path.write_text(
+        """
+[[artifacts]]
+id = "native-embedding"
+repo = "LLukas22/all-MiniLM-L6-v2-GGUF"
+revision = "abc"
+""".strip(),
+        encoding="utf-8",
+    )
+    model_store = ModelStore(
+        data_root=data_root,
+        lock=load_models_lock(lock_path),
+        downloader=FakeModelDownloader(),
+    )
+    app = QApplication.instance()
+    assert app is not None
+    dialog = SettingsDialog(
+        app=app,
+        settings=Settings(active_target_language="es", native_language="en"),
+        settings_store=SettingsStore(config_dir=tmp_path / "config"),
+        data_root=data_root,
+        model_store=model_store,
+    )
+    qtbot.addWidget(dialog)
+    redownload = dialog.findChild(QPushButton, "settings_redownload_native-embedding")
+    assert redownload is not None
+    qtbot.mouseClick(redownload, Qt.MouseButton.LeftButton)
+
+    assert any(
+        "Downloading Embedding model" in label
+        and "Installing native-embedding" in label
+        for label in progress_labels
+    )

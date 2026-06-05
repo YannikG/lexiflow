@@ -11,8 +11,6 @@ from lexiflow_core.config.paths import (
 )
 from lexiflow_core.config.settings import Settings
 from lexiflow_core.config.settings_store import SettingsStore
-from lexiflow_core.jobs.models import JobRequest, JobType
-from lexiflow_core.jobs.service import JobService
 from lexiflow_core.languages.store import LanguageStore
 
 
@@ -20,7 +18,7 @@ class LanguageSetupError(Exception):
     """Raised when target-language setup cannot complete."""
 
 
-def _discard_new_target(data_root: Path, iso: str) -> None:
+def discard_failed_target(data_root: Path, iso: str) -> None:
     """Remove on-disk artifacts from a failed first-time target add."""
     metadata_path = language_json_path(data_root, iso)
     if metadata_path.is_file():
@@ -33,22 +31,12 @@ def _discard_new_target(data_root: Path, iso: str) -> None:
         lang_root.rmdir()
 
 
-def add_target_with_spacy_download(data_root: Path, iso: str) -> None:
-    """Add a target language and enqueue its spaCy pack download."""
+def add_target_language(data_root: Path, iso: str) -> None:
+    """Add a target language to the library without installing its spaCy pack."""
     store = LanguageStore(data_root)
     if store.has_target(iso):
         return
     store.add_target(iso)
-    try:
-        JobService(data_root).enqueue(
-            JobRequest(
-                job_type=JobType.DOWNLOAD_SPACY,
-                payload={"iso": iso},
-            )
-        )
-    except Exception as exc:
-        _discard_new_target(data_root, iso)
-        raise LanguageSetupError(f"failed to enqueue spaCy download for {iso}") from exc
 
 
 def complete_language_onboarding(
@@ -60,7 +48,7 @@ def complete_language_onboarding(
     target_language: str,
 ) -> Settings:
     """Apply first-run language setup and persist global settings."""
-    add_target_with_spacy_download(data_root, target_language)
+    add_target_language(data_root, target_language)
     updated = Settings(
         data_root=settings.data_root,
         native_language=native_language,
@@ -73,7 +61,7 @@ def complete_language_onboarding(
     try:
         settings_store.save(updated)
     except Exception as exc:
-        _discard_new_target(data_root, target_language)
+        discard_failed_target(data_root, target_language)
         raise LanguageSetupError("failed to save onboarding settings") from exc
     return updated
 

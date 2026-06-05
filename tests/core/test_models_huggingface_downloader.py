@@ -8,7 +8,10 @@ from unittest.mock import patch
 import pytest
 from huggingface_hub.errors import GatedRepoError, RepositoryNotFoundError
 from lexiflow_core.models.download import ModelAccessError, ModelPinError
-from lexiflow_core.models.huggingface_downloader import HuggingFaceModelDownloader
+from lexiflow_core.models.huggingface_downloader import (
+    HuggingFaceModelDownloader,
+    resolve_download_allow_patterns,
+)
 from lexiflow_core.models.lockfile import ModelArtifact
 
 
@@ -50,6 +53,37 @@ def test_gated_repo_error_maps_to_model_access_not_pin(tmp_path: Path) -> None:
 
 def test_gated_repo_error_is_subclass_of_repository_not_found() -> None:
     assert issubclass(GatedRepoError, RepositoryNotFoundError)
+
+
+def test_resolve_download_allow_patterns_from_llama_hf_model() -> None:
+    artifact = ModelArtifact(
+        id="native-llm",
+        repo="ggml-org/gemma-4-E2B-it-GGUF",
+        revision="abc",
+        llama_hf_model="ggml-org/gemma-4-E2B-it-GGUF:Q8_0",
+    )
+
+    assert resolve_download_allow_patterns(artifact) == ["*Q8_0*.gguf"]
+
+
+def test_download_uses_quantized_allow_patterns_for_llama_hf_pin(
+    tmp_path: Path,
+) -> None:
+    artifact = ModelArtifact(
+        id="native-llm",
+        repo="ggml-org/gemma-4-E2B-it-GGUF",
+        revision="abc",
+        llama_hf_model="ggml-org/gemma-4-E2B-it-GGUF:Q8_0",
+    )
+    downloader = HuggingFaceModelDownloader()
+    dest = tmp_path / "gemma"
+
+    with patch(
+        "lexiflow_core.models.huggingface_downloader.snapshot_download",
+    ) as snapshot:
+        downloader.download(artifact, dest, token=None)
+
+    assert snapshot.call_args.kwargs["allow_patterns"] == ["*Q8_0*.gguf"]
 
 
 def test_download_passes_reporting_tqdm_class_when_callbacks_set(

@@ -249,7 +249,7 @@ def test_list_completed_jobs_returns_only_completed(job_service: JobService) -> 
 
 def test_list_failed_jobs_excludes_pending_and_running(job_service: JobService) -> None:
     failed_id = job_service.enqueue(
-        JobRequest(job_type=JobType.DOWNLOAD_SPACY, payload={"iso": "de"})
+        JobRequest(job_type=JobType.TRANSLATE, payload={"text_id": "failed"})
     )
     claimed = job_service.claim_next()
     assert claimed is not None
@@ -381,6 +381,38 @@ def test_queue_migrations_dir_contains_initial_script() -> None:
 
     assert migrations_dir.is_dir()
     assert (migrations_dir / "001_initial.sql").is_file()
+
+
+def test_legacy_download_spacy_jobs_removed_on_queue_open(
+    job_service: JobService, data_root: Path
+) -> None:
+    job_id = uuid4()
+    db_path = job_service.db_path
+    connection = connect_sqlite(db_path)
+    try:
+        connection.execute(
+            """
+            INSERT INTO jobs (
+                id, job_type, status, payload_json, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                str(job_id),
+                "download_spacy",
+                JobStatus.PENDING.value,
+                json.dumps({"iso": "es"}),
+                "2026-01-01T00:00:00.000000Z",
+                "2026-01-01T00:00:00.000000Z",
+            ),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    jobs = JobService(data_root).list_jobs()
+
+    assert jobs == []
+    assert job_service.list_jobs() == []
 
 
 def test_fail_running_job_requires_running_state(job_service: JobService) -> None:

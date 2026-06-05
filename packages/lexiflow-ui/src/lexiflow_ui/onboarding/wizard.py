@@ -9,19 +9,16 @@ from lexiflow_core.config.settings import Settings
 from lexiflow_core.config.settings_store import SettingsStore
 from lexiflow_core.languages.setup import (
     complete_language_onboarding,
+    discard_failed_target,
     finalize_onboarding,
 )
-from PySide6.QtWidgets import (
-    QLabel,
-    QVBoxLayout,
-    QWizard,
-    QWizardPage,
-)
+from PySide6.QtWidgets import QLabel, QVBoxLayout, QWizard, QWizardPage
 
 from lexiflow_ui.onboarding.llm_config_page import LlmConfigPage
 from lexiflow_ui.onboarding.llm_mode_page import LlmModePage
 from lexiflow_ui.onboarding.ollama_probe import OllamaProbe
 from lexiflow_ui.onboarding.system_info import SystemInfo, ram_warning_message
+from lexiflow_ui.spacy_pack_install import install_spacy_pack_with_progress
 from lexiflow_ui.widgets.catalog_picker import CatalogPickerWidget
 
 TARGET_LANGUAGE_PAGE_ID = 4
@@ -113,6 +110,7 @@ class OnboardingWizard(QWizard):
         settings: Settings,
         system_info: SystemInfo | None = None,
         ollama_probe: OllamaProbe | None = None,
+        install_spacy_pack: Callable[..., bool] | None = None,
         parent: QWizard | None = None,
     ) -> None:
         super().__init__(parent)
@@ -122,6 +120,11 @@ class OnboardingWizard(QWizard):
         self._data_root = data_root
         self._settings_store = settings_store
         self._settings = settings
+        self._install_spacy_pack = (
+            install_spacy_pack
+            if install_spacy_pack is not None
+            else install_spacy_pack_with_progress
+        )
         info = system_info if system_info is not None else _default_system_info()
         self._welcome = WelcomePage(
             system_info=info,
@@ -178,6 +181,7 @@ class OnboardingWizard(QWizard):
         target_iso = self._target.selected_language()
         if native_iso is None or target_iso is None:
             return
+        settings_before_onboarding = self._settings
         self._settings = complete_language_onboarding(
             data_root=self._data_root,
             settings_store=self._settings_store,
@@ -185,6 +189,15 @@ class OnboardingWizard(QWizard):
             native_language=native_iso,
             target_language=target_iso,
         )
+        if not self._install_spacy_pack(
+            self,
+            data_root=self._data_root,
+            iso=target_iso,
+        ):
+            discard_failed_target(self._data_root, target_iso)
+            self._settings_store.save(settings_before_onboarding)
+            self._settings = settings_before_onboarding
+            return
         self._settings = finalize_onboarding(
             settings_store=self._settings_store,
             settings=self._settings,

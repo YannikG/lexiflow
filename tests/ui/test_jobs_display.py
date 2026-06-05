@@ -17,13 +17,11 @@ from lexiflow_ui.jobs_display import (
 def _job(**overrides) -> JobRecord:
     base = {
         "id": uuid4(),
-        "job_type": JobType.DOWNLOAD_SPACY,
+        "job_type": JobType.TRANSLATE,
         "status": JobStatus.FAILED,
-        "payload": {"iso": "es"},
+        "payload": {"text_id": "es"},
         "result": None,
-        "error_message": (
-            "spaCy is not installed. Install spaCy to download language packs."
-        ),
+        "error_message": "translation failed",
         "created_at": datetime(2026, 6, 2, 10, 0, tzinfo=UTC),
         "updated_at": datetime(2026, 6, 2, 10, 1, tzinfo=UTC),
         "started_at": datetime(2026, 6, 2, 10, 2, tzinfo=UTC),
@@ -36,7 +34,7 @@ def _job(**overrides) -> JobRecord:
 def test_job_table_cell_texts_includes_type_status_duration_and_timestamps() -> None:
     job = _job()
     cells = job_table_cell_texts(job)
-    assert cells[0] == "download_spacy"
+    assert cells[0] == "translate"
     assert cells[1] == "failed"
     assert cells[2] == "1m 0s"
     assert "2026-06-02" in cells[3]
@@ -61,13 +59,13 @@ def test_format_job_full_detail_includes_all_fields() -> None:
     job = _job(result={"ok": True})
     detail = format_job_full_detail(job)
     assert f"ID: {job.id}" in detail
-    assert "Job type: download_spacy" in detail
+    assert "Job type: translate" in detail
     assert "Status: failed" in detail
     assert "Created:" in detail
     assert "Updated:" in detail
     assert "Started:" in detail
     assert "Completed:" in detail
     assert "Duration: 1m 0s" in detail
-    assert '"iso": "es"' in detail
+    assert '"text_id": "es"' in detail
     assert '"ok": true' in detail
-    assert "Error:\nspaCy is not installed" in detail
+    assert "Error:\ntranslation failed" in detail

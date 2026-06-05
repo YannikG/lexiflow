@@ -24,6 +24,17 @@ from lexiflow_core.models.hub_progress import reporting_tqdm_factory
 from lexiflow_core.models.lockfile import ModelArtifact
 
 
+def resolve_download_allow_patterns(artifact: ModelArtifact) -> list[str] | None:
+    """Return Hub allow_patterns for an artifact pin."""
+    if artifact.allow_patterns:
+        return list(artifact.allow_patterns)
+    if artifact.llama_hf_model and ":" in artifact.llama_hf_model:
+        tag = artifact.llama_hf_model.rsplit(":", 1)[1].strip()
+        if tag:
+            return [f"*{tag}*.gguf"]
+    return None
+
+
 class HuggingFaceModelDownloader:
     """Download pinned model revisions from the Hugging Face Hub."""
 
@@ -45,14 +56,17 @@ class HuggingFaceModelDownloader:
             )
             if on_progress is not None:
                 on_progress(0.0)
+            if on_log_line is not None:
+                on_log_line(f"Connecting to {artifact.repo}…")
+        allow_patterns = resolve_download_allow_patterns(artifact)
         try:
-            if artifact.allow_patterns:
+            if allow_patterns:
                 snapshot_download(
                     repo_id=artifact.repo,
                     revision=artifact.revision,
                     local_dir=dest,
                     token=token,
-                    allow_patterns=list(artifact.allow_patterns),
+                    allow_patterns=allow_patterns,
                     tqdm_class=tqdm_class,
                 )
             else:

@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from lexiflow_core.config.settings import Settings
-from lexiflow_core.languages.setup import add_target_with_spacy_download
+from lexiflow_core.languages.store import LanguageStore
 from lexiflow_core.vocabulary.models import CEFRLevel
 from lexiflow_core.vocabulary.store import VocabularyStore
 from lexiflow_ui.widgets.vocabulary_widget import VocabularyWidget
@@ -17,8 +17,8 @@ def test_apply_settings_shows_only_active_language_vocabulary(
 ) -> None:
     QApplication.instance() or QApplication([])
     data_root = tmp_path / "LexiFlow"
-    add_target_with_spacy_download(data_root, "es")
-    add_target_with_spacy_download(data_root, "de")
+    LanguageStore(data_root).add_target("es")
+    LanguageStore(data_root).add_target("de")
     VocabularyStore(data_root, "es").add_entry(
         lemma="correr",
         translation="to run",

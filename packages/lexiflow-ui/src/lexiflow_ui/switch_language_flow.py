@@ -9,12 +9,14 @@ from lexiflow_core.config.settings import Settings
 from lexiflow_core.config.settings_store import SettingsStore
 from lexiflow_core.languages.setup import (
     LanguageSetupError,
-    add_target_with_spacy_download,
+    add_target_language,
+    discard_failed_target,
 )
 from lexiflow_core.languages.switch_target import switch_active_target
 from PySide6.QtWidgets import QMessageBox, QWidget
 
 from lexiflow_ui.dialogs.switch_language_dialog import SwitchLanguageDialog
+from lexiflow_ui.spacy_pack_install import install_spacy_pack_with_progress
 
 
 def open_switch_language_dialog(
@@ -24,8 +26,14 @@ def open_switch_language_dialog(
     settings: Settings,
     settings_store: SettingsStore,
     on_switched: Callable[[Settings], None],
+    install_spacy_pack: Callable[..., bool] | None = None,
 ) -> None:
     """Show language picker; invoke on_switched when active target changes."""
+    install_pack = (
+        install_spacy_pack
+        if install_spacy_pack is not None
+        else install_spacy_pack_with_progress
+    )
     dialog = SwitchLanguageDialog(
         data_root=data_root,
         active_iso=settings.active_target_language,
@@ -47,7 +55,10 @@ def open_switch_language_dialog(
             )
             return
         try:
-            add_target_with_spacy_download(data_root, iso)
+            add_target_language(data_root, iso)
+            if not install_pack(parent, data_root=data_root, iso=iso):
+                discard_failed_target(data_root, iso)
+                return
             updated = switch_active_target(
                 data_root=data_root,
                 settings_store=settings_store,
