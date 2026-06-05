@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from lexiflow_core.db.sqlite_bootstrap import ensure_loadable_sqlite3
+
+ensure_loadable_sqlite3()
+
 from lexiflow_worker.main import main
 
 if __name__ == "__main__":

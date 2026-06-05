@@ -1,5 +1,9 @@
 """Module entrypoint for `python -m lexiflow_ui`."""
 
+from lexiflow_core.db.sqlite_bootstrap import ensure_loadable_sqlite3
+
+ensure_loadable_sqlite3()
+
 from lexiflow_ui.app import run
 
 if __name__ == "__main__":

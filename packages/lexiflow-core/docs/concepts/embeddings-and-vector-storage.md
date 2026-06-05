@@ -19,6 +19,8 @@ Both use WAL journaling and schema migrations like other LexiFlow databases.
 
 LexiFlow depends on **sqlite-vec** (declared in `lexiflow-core`). Release builds use a vendored copy under `packaging/vendor/sqlite_vec/` with per-platform `vec0` loadables fetched or built in CI. Windows ARM64 compiles the extension from upstream sources until PyPI ships a `win_arm64` wheel. Operators do not configure a separate `.so` / `.dll` path.
 
+Frozen macOS and Linux bundles call `ensure_loadable_sqlite3()` at process startup. When the bundled CPython stdlib `sqlite3` module cannot load extensions (common on macOS), core substitutes **sqlean.py** before any vector database opens. Windows release builds rely on Python 3.12+ stdlib extension APIs.
+
 Before any vector database is opened, core calls `load_sqlite_vec(connection)`, which registers sqlite-vec on that SQLite connection. Migrations then create `vec0` virtual tables for 384-float embeddings.
 
 ## Embed queue

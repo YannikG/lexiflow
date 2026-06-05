@@ -7,16 +7,25 @@ cd "$ROOT"
 BUNDLE_DIR="${LF_BUNDLE_DIR:-$ROOT/dist/LexiFlow}"
 EXPECTED_VERSION="${LF_EXPECTED_VERSION:-}"
 
-if [[ -x "$ROOT/dist/LexiFlow.app/Contents/MacOS/LexiFlow" ]]; then
-  BINARY="$ROOT/dist/LexiFlow.app/Contents/MacOS/LexiFlow"
-elif [[ -x "$BUNDLE_DIR/LexiFlow.app/Contents/MacOS/LexiFlow" ]]; then
-  BINARY="$BUNDLE_DIR/LexiFlow.app/Contents/MacOS/LexiFlow"
-elif [[ -x "$BUNDLE_DIR/LexiFlow" ]]; then
-  BINARY="$BUNDLE_DIR/LexiFlow"
-else
-  echo "bundle binary not found under $BUNDLE_DIR or dist/LexiFlow.app" >&2
-  exit 1
-fi
+resolve_bundle_binary() {
+  local candidate=""
+  if [[ -x "$ROOT/dist/LexiFlow.app/Contents/MacOS/LexiFlow" ]]; then
+    candidate="$ROOT/dist/LexiFlow.app/Contents/MacOS/LexiFlow"
+  elif [[ -x "$BUNDLE_DIR/LexiFlow.app/Contents/MacOS/LexiFlow" ]]; then
+    candidate="$BUNDLE_DIR/LexiFlow.app/Contents/MacOS/LexiFlow"
+  elif [[ -x "$BUNDLE_DIR/LexiFlow.exe" ]]; then
+    candidate="$BUNDLE_DIR/LexiFlow.exe"
+  elif [[ -x "$BUNDLE_DIR/LexiFlow" ]]; then
+    candidate="$BUNDLE_DIR/LexiFlow"
+  fi
+  if [[ -z "$candidate" ]]; then
+    echo "bundle binary not found under $BUNDLE_DIR or dist/LexiFlow.app" >&2
+    exit 1
+  fi
+  printf '%s' "$candidate"
+}
+
+BINARY="$(resolve_bundle_binary)"
 
 ACTUAL_VERSION="$("$BINARY" --version)"
 echo "bundle version: $ACTUAL_VERSION"
@@ -24,6 +33,14 @@ if [[ -n "$EXPECTED_VERSION" && "$ACTUAL_VERSION" != "$EXPECTED_VERSION" ]]; the
   echo "expected version $EXPECTED_VERSION, got $ACTUAL_VERSION" >&2
   exit 1
 fi
+
+VEC_VERSION="$("$BINARY" --sqlite-vec-smoke)"
+echo "sqlite-vec version: $VEC_VERSION"
+if [[ -z "$VEC_VERSION" ]]; then
+  echo "sqlite-vec smoke returned empty version" >&2
+  exit 1
+fi
+echo "sqlite-vec smoke passed"
 
 if [[ -x "$ROOT/dist/LexiFlow.app/Contents/MacOS/LexiFlow" || -x "$BUNDLE_DIR/LexiFlow.app/Contents/MacOS/LexiFlow" ]]; then
   LLAMA_SERVER="$(find "$ROOT/dist" "$BUNDLE_DIR" -path '*/Contents/Frameworks/bin/llama-server' -type f 2>/dev/null | head -1)"

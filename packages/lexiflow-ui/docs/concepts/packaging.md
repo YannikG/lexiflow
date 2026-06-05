@@ -19,6 +19,7 @@ See [ADR-0008](../../../../docs/adr/0008-pyinstaller-release-bundle.md) and [com
 | llama-server path | `lexiflow_core.llm.llama_server` | bundled binary, env override, PATH |
 | Build scripts | `packaging/` | spec, fetch llama-server, fetch sqlite-vec, installers — no domain logic |
 | sqlite-vec loadable | `packaging/vendor/sqlite_vec/` | vendored path dependency; platform `vec0` binary fetched or compiled at build time |
+| Extension-capable sqlite3 | `sqlean.py` (macOS/Linux bundles) | bootstrap swaps stdlib when `enable_load_extension` missing; Windows relies on Python 3.12+ stdlib |
 
 ## Bundled vs downloaded
 
@@ -29,6 +30,7 @@ See [ADR-0008](../../../../docs/adr/0008-pyinstaller-release-bundle.md) and [com
 | `models.lock`, migrations, prompts | spaCy language packs when adding a target language |
 | llama-server binary | Ollama models when using Ollama endpoint |
 | sqlite-vec `vec0` extension (per platform) | — (fetched at CI/build; Windows ARM64 compiled from upstream amalgamation) |
+| Extension-capable sqlite3 (macOS/Linux bundles) | — (`sqlean.py` via bootstrap when stdlib lacks loadable extensions) |
 
 Model weights are **not** bundled in the installer ([common-language.md](../../../../common-language.md)).
 
