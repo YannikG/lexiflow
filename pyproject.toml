@@ -42,6 +42,10 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/conftest.py" = ["E402"]  # QT platform env must be set before PySide6 import
+"packages/lexiflow-ui/src/lexiflow_ui/launcher.py" = ["E402"]
+"packages/lexiflow-ui/src/lexiflow_ui/__main__.py" = ["E402"]
+"packages/lexiflow-worker/src/lexiflow_worker/main.py" = ["E402"]
+"packages/lexiflow-worker/src/lexiflow_worker/__main__.py" = ["E402"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -60,6 +64,10 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = ["sqlite_vec"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["sqlean"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

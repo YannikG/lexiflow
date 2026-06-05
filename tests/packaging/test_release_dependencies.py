@@ -16,3 +16,5 @@ def test_release_group_excludes_sentence_transformers_and_torch() -> None:
     spec = (root / "packaging" / "lexiflow.spec").read_text(encoding="utf-8")
     assert "sentence_transformers" not in spec
     assert "sklearn" not in spec
+    assert "sqlite_bootstrap" in spec
+    assert "sqlean" in spec or 'sys.platform != "win32"' in spec

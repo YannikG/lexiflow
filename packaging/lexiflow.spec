@@ -29,6 +29,20 @@ runtime_lib_globs = _llama_runtime.runtime_lib_globs
 CORE_SRC = REPO_ROOT / "packages/lexiflow-core/src/lexiflow_core"
 UI_SRC = REPO_ROOT / "packages/lexiflow-ui/src/lexiflow_ui"
 BIN_ROOT = REPO_ROOT / "packaging" / "bin"
+VENDOR_VEC_DIR = REPO_ROOT / "packaging" / "vendor" / "sqlite_vec" / "sqlite_vec"
+
+
+def _sqlite_vec_datas() -> list[tuple[str, str]]:
+    entries = collect_data_files("sqlite_vec")
+    seen = {Path(source).name for source, _dest in entries}
+    for loadable in sorted(VENDOR_VEC_DIR.glob("vec0*")):
+        if not loadable.is_file() or loadable.suffix not in {".dylib", ".so", ".dll"}:
+            continue
+        if loadable.name in seen:
+            continue
+        entries.append((str(loadable), "sqlite_vec"))
+        seen.add(loadable.name)
+    return entries
 
 PLATFORM_BIN_KEYS = {
     "linux": ("linux", "llama-server"),
@@ -67,25 +81,32 @@ def _llama_server_binaries() -> list[tuple[str, str]]:
 
 pyside6_datas, pyside6_binaries, pyside6_hiddenimports = collect_all("PySide6")
 
+sqlean_datas: list[tuple[str, str]] = []
+sqlean_binaries: list[tuple[str, str]] = []
+sqlean_hiddenimports: list[str] = []
+if sys.platform != "win32":
+    sqlean_datas, sqlean_binaries, sqlean_hiddenimports = collect_all("sqlean")
+
 datas = [
     (str(UI_SRC / "themes"), "lexiflow_ui/themes"),
     (str(CORE_SRC / "migrations"), "lexiflow_core/migrations"),
     (str(CORE_SRC / "models" / "models.lock"), "lexiflow_core/models"),
     (str(CORE_SRC / "llm" / "prompts"), "lexiflow_core/llm/prompts"),
-] + pyside6_datas + collect_data_files("sqlite_vec")
+] + pyside6_datas + _sqlite_vec_datas() + sqlean_datas
 
 binaries: list[tuple[str, str]] = _llama_server_binaries()
-binaries += pyside6_binaries
+binaries += pyside6_binaries + sqlean_binaries
 
 hiddenimports = [
     "tomli_w",
     "sqlite_vec",
     "lexiflow_core",
+    "lexiflow_core.db.sqlite_bootstrap",
     "lexiflow_ui",
     "lexiflow_worker",
     "lexiflow_worker.main",
     "lexiflow_worker.embedder",
-] + pyside6_hiddenimports
+] + pyside6_hiddenimports + sqlean_hiddenimports
 
 pathex = [
     str(REPO_ROOT / "packages/lexiflow-ui/src"),

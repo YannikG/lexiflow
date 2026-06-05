@@ -5,7 +5,12 @@ from __future__ import annotations
 import argparse
 import sys
 
+from lexiflow_core.db.sqlite_bootstrap import ensure_loadable_sqlite3
+
+ensure_loadable_sqlite3()
+
 import lexiflow_core
+from lexiflow_core.vectors.sqlite_vec import sqlite_vec_version
 from lexiflow_worker.main import main as _worker_main
 
 from lexiflow_ui.app import run as _ui_run
@@ -19,10 +24,14 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="lexiflow", add_help=False)
     parser.add_argument("--worker", action="store_true")
     parser.add_argument("--version", action="store_true")
+    parser.add_argument("--sqlite-vec-smoke", action="store_true")
     args, remainder = parser.parse_known_args(argv)
 
     if args.version:
         print(lexiflow_core.__version__)
+        return 0
+    if args.sqlite_vec_smoke:
+        print(sqlite_vec_version())
         return 0
     if args.worker:
         return _worker_main(remainder)
