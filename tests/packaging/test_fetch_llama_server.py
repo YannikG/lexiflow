@@ -23,19 +23,20 @@ def _load_fetch_llama_server():
 
 
 @pytest.mark.parametrize(
-    ("platform_key", "expected_asset"),
+    ("platform_key", "asset_suffix"),
     [
-        ("linux", "llama-b9500-bin-ubuntu-x64.tar.gz"),
-        ("macos-arm64", "llama-b9500-bin-macos-arm64.tar.gz"),
-        ("macos-x64", "llama-b9500-bin-macos-x64.tar.gz"),
-        ("windows", "llama-b9500-bin-win-cpu-x64.zip"),
-        ("windows-arm64", "llama-b9500-bin-win-cpu-arm64.zip"),
+        ("linux", "bin-ubuntu-x64.tar.gz"),
+        ("macos-arm64", "bin-macos-arm64.tar.gz"),
+        ("macos-x64", "bin-macos-x64.tar.gz"),
+        ("windows", "bin-win-cpu-x64.zip"),
+        ("windows-arm64", "bin-win-cpu-arm64.zip"),
     ],
 )
-def test_asset_name_for_platform(platform_key: str, expected_asset: str) -> None:
+def test_asset_name_for_platform(platform_key: str, asset_suffix: str) -> None:
     fetch = _load_fetch_llama_server()
-    asset_filename, archive_type = fetch.asset_name("b9500", platform_key)
-    assert asset_filename == expected_asset
+    release = fetch.DEFAULT_RELEASE
+    asset_filename, archive_type = fetch.asset_name(release, platform_key)
+    assert asset_filename == f"llama-{release}-{asset_suffix}"
     assert archive_type in {"tar.gz", "zip"}
 
 

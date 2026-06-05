@@ -10,3 +10,7 @@ def test_smoke_bundle_script_resolves_windows_exe() -> None:
     script = (root / "packaging/scripts/smoke_bundle.sh").read_text(encoding="utf-8")
     assert "LexiFlow.exe" in script
     assert "--sqlite-vec-smoke" in script
+    assert "llama-server.exe" in script
+    assert '"$LLAMA_SERVER" --version' in script
+    assert "*.dll" in script
+    assert "multiple llama-server" in script

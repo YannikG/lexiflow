@@ -28,6 +28,8 @@ First use may require network access and optional `huggingface_token` in **globa
 
 On the **native path**, onboarding validates `native_llm_operational()`: `llama-server` on PATH (or `LEXIFLOW_LLAMA_SERVER_BIN`) and a valid `llama_hf_model` pin.
 
+Release bundles ship a pinned llama.cpp prebuilt. The release pin is defined in `packaging/scripts/fetch_llama_server.py` and can be overridden with the `LLAMA_CPP_RELEASE` environment variable. The UI supervises that binary; it loads pinned weights from Hugging Face with `-hf`.
+
 ## Settings
 
 Optional `huggingface_token` in **global settings** is passed to Hugging Face clients for gated repos and rate limits.

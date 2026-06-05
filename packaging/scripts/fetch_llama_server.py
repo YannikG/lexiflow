@@ -30,7 +30,7 @@ def _load_llama_runtime_libs() -> ModuleType:
 _llama_runtime = _load_llama_runtime_libs()
 copy_runtime_libs = _llama_runtime.copy_runtime_libs
 
-DEFAULT_RELEASE = "b9500"
+DEFAULT_RELEASE = "b9524"
 GITHUB_RELEASE_BASE = "https://github.com/ggml-org/llama.cpp/releases/download"
 
 
