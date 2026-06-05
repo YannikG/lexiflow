@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-import sqlite3
 import sys
 from types import ModuleType
-from typing import cast
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    import sqlite3
 
 
 def connection_supports_loadable_extensions(connection: sqlite3.Connection) -> bool:
@@ -16,21 +18,9 @@ def connection_supports_loadable_extensions(connection: sqlite3.Connection) -> b
     try:
         enable(True)
         enable(False)
-    except sqlite3.OperationalError:
+    except Exception:
         return False
     return True
-
-
-def reload_stdlib_sqlite3_module() -> ModuleType:
-    """Reload the stdlib ``sqlite3`` module, bypassing ``sys.modules`` cache."""
-    saved = sys.modules.pop("sqlite3", None)
-    try:
-        import sqlite3 as stdlib
-
-        return stdlib
-    finally:
-        if saved is not None:
-            sys.modules["sqlite3"] = saved
 
 
 def replacement_sqlite3_module() -> ModuleType:
@@ -49,22 +39,16 @@ def replacement_sqlite3_module() -> ModuleType:
 
 def ensure_loadable_sqlite3() -> None:
     """Use a replacement sqlite3 module when stdlib cannot load extensions."""
-    current = sys.modules.get("sqlite3")
-    if current is not None:
-        connection = current.connect(":memory:")
+    try:
+        import sqlite3
+
+        connection = sqlite3.connect(":memory:")
         try:
             if connection_supports_loadable_extensions(connection):
                 return
         finally:
             connection.close()
-
-    stdlib = reload_stdlib_sqlite3_module()
-    connection = stdlib.connect(":memory:")
-    try:
-        if connection_supports_loadable_extensions(connection):
-            sys.modules["sqlite3"] = stdlib
-            return
-    finally:
-        connection.close()
+    except Exception:
+        pass
 
     sys.modules["sqlite3"] = replacement_sqlite3_module()

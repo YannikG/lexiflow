@@ -24,7 +24,9 @@ def sqlite_vec_version() -> str:
     connection = sqlite3.connect(":memory:")
     try:
         load_sqlite_vec(connection)
-        (version,) = connection.execute("SELECT vec_version()").fetchone()
-        return str(version)
+        row = connection.execute("SELECT vec_version()").fetchone()
+        if row is None:
+            raise RuntimeError("Failed to retrieve sqlite-vec version")
+        return str(row[0])
     finally:
         connection.close()

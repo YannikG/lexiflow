@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import sqlite3 as stdlib_sqlite3
 import sys
-import types
 from collections.abc import Generator
 
 import pytest
@@ -29,22 +28,23 @@ def test_connection_supports_loadable_extensions_false_without_method() -> None:
     assert connection_supports_loadable_extensions(BrokenConnection()) is False  # type: ignore[arg-type]
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="sqlean is not installed on Windows",
+)
 def test_ensure_loadable_sqlite3_replaces_stdlib_without_extensions(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    broken = types.ModuleType("sqlite3")
-
     class BrokenConnection:
         def close(self) -> None:
             return None
 
-    broken.connect = lambda *args, **kwargs: BrokenConnection()  # noqa: ARG005
-    broken.Connection = BrokenConnection
-    monkeypatch.setitem(sys.modules, "sqlite3", broken)
     monkeypatch.setattr(
-        "lexiflow_core.db.sqlite_bootstrap.reload_stdlib_sqlite3_module",
-        lambda: broken,
+        stdlib_sqlite3,
+        "connect",
+        lambda *args, **kwargs: BrokenConnection(),  # noqa: ARG005
     )
+    sys.modules["sqlite3"] = stdlib_sqlite3
 
     ensure_loadable_sqlite3()
 
