@@ -31,21 +31,25 @@ resolve_bundle_binary() {
 
 BINARY="$(resolve_bundle_binary)"
 
-BUNDLE_ROOTS=("$BUNDLE_DIR")
-if [[ -d "$ROOT/dist/LexiFlow.app" ]]; then
-  BUNDLE_ROOTS+=("$ROOT/dist/LexiFlow.app")
-fi
-
 SQLITE_VEC_LOADABLES=()
-while IFS= read -r candidate; do
-  SQLITE_VEC_LOADABLES+=("$candidate")
-done < <(
-  for root in "${BUNDLE_ROOTS[@]}"; do
-    list_bundled_sqlite_vec_loadables "$root"
-  done | sort -u
-)
+if [[ -x "$ROOT/dist/LexiFlow.app/Contents/MacOS/LexiFlow" || -x "$BUNDLE_DIR/LexiFlow.app/Contents/MacOS/LexiFlow" ]]; then
+  MACOS_APP_ROOTS=()
+  if [[ -d "$ROOT/dist/LexiFlow.app" ]]; then
+    MACOS_APP_ROOTS+=("$ROOT/dist/LexiFlow.app")
+  fi
+  if [[ -d "$BUNDLE_DIR/LexiFlow.app" ]]; then
+    MACOS_APP_ROOTS+=("$BUNDLE_DIR/LexiFlow.app")
+  fi
+  while IFS= read -r candidate; do
+    SQLITE_VEC_LOADABLES+=("$candidate")
+  done < <(list_bundled_sqlite_vec_candidates "${MACOS_APP_ROOTS[@]}")
+else
+  while IFS= read -r candidate; do
+    SQLITE_VEC_LOADABLES+=("$candidate")
+  done < <(list_bundled_sqlite_vec_candidates "$BUNDLE_DIR")
+fi
 if [[ ${#SQLITE_VEC_LOADABLES[@]} -eq 0 ]]; then
-  echo "bundled sqlite-vec loadable missing under bundle roots: ${BUNDLE_ROOTS[*]}" >&2
+  echo "bundled sqlite-vec loadable missing under bundle layout for $BINARY" >&2
   exit 1
 fi
 if [[ ${#SQLITE_VEC_LOADABLES[@]} -gt 1 ]]; then

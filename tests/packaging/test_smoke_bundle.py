@@ -31,12 +31,9 @@ def _list_llama_server_candidates(path_glob: str, *roots: Path) -> list[str]:
     return [line for line in result.stdout.splitlines() if line]
 
 
-def _list_sqlite_vec_loadables(*roots: Path) -> list[str]:
+def _list_sqlite_vec_candidates(*roots: Path) -> list[str]:
     discovery_script = _discovery_script()
-    command = (
-        f'source "{discovery_script}"; '
-        'for root in "$@"; do list_bundled_sqlite_vec_loadables "$root"; done'
-    )
+    command = f'source "{discovery_script}"; list_bundled_sqlite_vec_candidates "$@"'
     result = subprocess.run(
         ["bash", "-c", command, "--", *[str(root) for root in roots]],
         capture_output=True,
@@ -51,7 +48,8 @@ def test_smoke_bundle_script_resolves_windows_exe() -> None:
     script = _smoke_script().read_text(encoding="utf-8")
     assert "LexiFlow.exe" in script
     assert "--sqlite-vec-smoke" in script
-    assert "list_bundled_sqlite_vec_loadables" in script
+    assert "list_bundled_sqlite_vec_candidates" in script
+    assert "multiple sqlite-vec loadables" in script
     assert "llama-server.exe" in script
     assert '"$LLAMA_SERVER" --version' in script
     assert "*.dll" in script
@@ -150,6 +148,38 @@ def test_sqlite_vec_discovery_finds_bundled_loadable(tmp_path: Path) -> None:
     loadable = vec_dir / "vec0.so"
     loadable.write_bytes(b"")
 
-    paths = _list_sqlite_vec_loadables(bundle_dir)
+    paths = _list_sqlite_vec_candidates(bundle_dir)
+
+    assert paths == [str(loadable.resolve())]
+
+
+def test_macos_sqlite_vec_discovery_ignores_onedir_when_app_root_given(
+    tmp_path: Path,
+) -> None:
+    app_root = tmp_path / "dist" / "LexiFlow.app"
+    app_loadable = app_root / "Contents" / "Frameworks" / "sqlite_vec" / "vec0.dylib"
+    app_loadable.parent.mkdir(parents=True)
+    app_loadable.write_bytes(b"")
+
+    onedir_loadable = (
+        tmp_path / "dist" / "LexiFlow" / "_internal" / "sqlite_vec" / "vec0.dylib"
+    )
+    onedir_loadable.parent.mkdir(parents=True)
+    onedir_loadable.write_bytes(b"")
+
+    paths = _list_sqlite_vec_candidates(app_root)
+
+    assert paths == [str(app_loadable.resolve())]
+
+
+def test_macos_duplicate_app_roots_resolve_single_sqlite_vec_path(
+    tmp_path: Path,
+) -> None:
+    app_root = tmp_path / "dist" / "LexiFlow.app"
+    loadable = app_root / "Contents" / "Frameworks" / "sqlite_vec" / "vec0.dylib"
+    loadable.parent.mkdir(parents=True)
+    loadable.write_bytes(b"")
+
+    paths = _list_sqlite_vec_candidates(app_root, tmp_path / "dist" / "LexiFlow.app")
 
     assert paths == [str(loadable.resolve())]
