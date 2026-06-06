@@ -12,13 +12,9 @@ from lexiflow_core.vectors.sqlite_vec import load_sqlite_vec
 
 
 def _resolve_vendored_loadable() -> Path | None:
-    base = Path(sqlite_vec.loadable_path())
-    for candidate in (
-        base,
-        Path(f"{base}.dylib"),
-        Path(f"{base}.so"),
-        Path(f"{base}.dll"),
-    ):
+    package_dir = Path(sqlite_vec.loadable_path()).parent
+    for name in ("vec0.dylib", "vec0.so", "vec0.dll", "vec0.arm64.dll"):
+        candidate = package_dir / name
         if candidate.exists():
             return candidate
     return None
