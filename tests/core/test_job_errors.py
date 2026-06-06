@@ -37,6 +37,21 @@ def test_inference_subprocess_error_prefers_actionable_line() -> None:
     assert "not running yet" in message.lower()
 
 
+def test_user_facing_job_error_maps_sqlite_vec_dlopen_failure() -> None:
+    message = user_facing_job_error(
+        "dlopen(/Applications/LexiFlow.app/.../sqlite_vec/vec0.dylib, 0x000A): "
+        "no such file"
+    )
+    assert "sqlite-vec extension is missing" in message.lower()
+
+
+def test_user_facing_job_error_maps_enable_load_extension_missing() -> None:
+    message = user_facing_job_error(
+        "'sqlite3.Connection' object has no attribute 'enable_load_extension'"
+    )
+    assert "sqlite-vec extension is missing" in message.lower()
+
+
 def test_user_facing_job_error_empty_message() -> None:
     message = user_facing_job_error("   ")
     assert "generation failed" in message.lower()

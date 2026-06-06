@@ -51,6 +51,8 @@ All must pass before merge. Coverage floors: 80% core, 60% ui (see ADR-0001).
 3. **Merge** that PR; [tag-release.yml](.github/workflows/tag-release.yml) pushes `vX.Y.Z`.
 4. [release.yml](.github/workflows/release.yml) builds DMG, MSI (x64), and AppImage and publishes a GitHub Release with SHA256 checksums. No push to `main` from CI (branch protection safe).
 
+To **test release installers on a PR branch** without tagging, run **Actions → [release-build.yml](.github/workflows/release-build.yml)** with your branch as **ref** and download artifacts from the workflow run (no GitHub Release is created).
+
 Local packaging smoke:
 
 ```bash

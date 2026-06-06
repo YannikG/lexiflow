@@ -10,6 +10,21 @@ _LLAMA_SERVER_NOT_RUNNING = (
     "llama-server is not running yet. Wait for the model to load, then try again."
 )
 _INFERENCE_FAILED = "LLM inference failed. Check llama-server or Ollama status."
+_SQLITE_VEC_MISSING_HINT = (
+    "The sqlite-vec extension is missing from this install. "
+    "Reinstall LexiFlow from a current release build."
+)
+
+
+def _is_sqlite_vec_load_failure(message: str) -> bool:
+    lower = message.lower()
+    return (
+        "vec0" in lower
+        or "sqlite-vec loadable" in lower
+        or ("load_extension" in lower and "no such file" in lower)
+        or ("dlopen" in lower and "sqlite_vec" in lower)
+        or "enable_load_extension" in lower
+    )
 
 
 def _is_llama_server_install_message(message: str) -> bool:
@@ -67,6 +82,8 @@ def user_facing_job_error(message: str) -> str:
         return _LLAMA_SERVER_INSTALL_HINT
     if _is_llama_server_runtime_failure(normalized):
         return _LLAMA_SERVER_NOT_RUNNING
+    if _is_sqlite_vec_load_failure(normalized):
+        return _SQLITE_VEC_MISSING_HINT
     lower = normalized.lower()
     lines = normalized.splitlines()
     first_line = lines[0].strip()

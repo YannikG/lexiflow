@@ -19,7 +19,7 @@ See [ADR-0008](../../../../docs/adr/0008-pyinstaller-release-bundle.md) and [com
 | llama-server path | `lexiflow_core.llm.llama_server` | bundled binary, env override, PATH |
 | Build scripts | `packaging/` | spec, fetch llama-server, fetch sqlite-vec, installers — no domain logic |
 | Release smoke | `packaging/scripts/smoke_bundle.sh`, `smoke_bundle_discovery.sh` | post-PyInstaller bundle checks; discovery helper is query-only |
-| sqlite-vec loadable | `packaging/vendor/sqlite_vec/` | vendored path dependency; platform `vec0` binary fetched or compiled at build time; dev `.venv` installs it into `site-packages/sqlite_vec/` via the vendored wheel |
+| sqlite-vec loadable | `packaging/vendor/sqlite_vec/` | vendored path dependency; platform `vec0` binary fetched or compiled at build time; PyInstaller ships it under `sqlite_vec/` in the bundle (`_MEIPASS`); dev `.venv` installs via the vendored wheel |
 | Extension-capable sqlite3 | `sqlean.py` (macOS/Linux bundles) | bootstrap swaps stdlib when `enable_load_extension` missing; Windows relies on Python 3.12+ stdlib |
 
 ## Bundled vs downloaded
@@ -67,10 +67,11 @@ After PyInstaller, `packaging/scripts/smoke_bundle.sh` verifies the onedir bundl
 
 1. Resolve the bundle launcher (`LexiFlow`, `LexiFlow.exe`, or `LexiFlow.app/Contents/MacOS/LexiFlow`).
 2. `--version` and optional `LF_EXPECTED_VERSION` match.
-3. `--sqlite-vec-smoke` returns a non-empty extension version.
-4. **Bundled llama-server** — platform-specific discovery (see below); run `--version`; on Windows also require runtime DLLs next to `llama-server.exe`; on macOS require `libllama-server-impl.dylib` next to `llama-server`.
-5. `--worker` with a temp data root (headless worker loop).
-6. Offscreen UI launch for ~5s (skipped when `LF_SKIP_UI_SMOKE=1`; release CI sets this on macOS and Windows).
+3. Exactly one `sqlite_vec/vec0*` native loadable on disk under the bundle.
+4. `--sqlite-vec-smoke` returns a non-empty extension version from the **built binary** (frozen path, not dev `.venv`).
+5. **Bundled llama-server** — platform-specific discovery (see below); run `--version`; on Windows also require runtime DLLs next to `llama-server.exe`; on macOS require `libllama-server-impl.dylib` next to `llama-server`.
+6. `--worker` with a temp data root (headless worker loop).
+7. Offscreen UI launch for ~5s (skipped when `LF_SKIP_UI_SMOKE=1`; release CI sets this on macOS and Windows).
 
 **Environment:**
 
@@ -93,7 +94,7 @@ Scripts target Bash 3.2+ (macOS `/bin/bash`); discovery listing uses portable `w
 
 Behavioral coverage: `tests/packaging/test_smoke_bundle.py` sources the discovery helper and asserts single-path resolution, canonical dedupe when roots overlap, and rejection of multiple distinct binaries.
 
-On **Windows ARM64**, compile the extension first: `prepare_sqlite_vec_windows_arm64.py` downloads the official sqlite-vec amalgamation plus SQLite `sqlite3ext.h`, then `build_sqlite_vec_windows.ps1` builds `vec0.arm64.dll` with MSVC arm64. The fetch step is a no-op for the DLL stem.
+On **Windows ARM64**, compile the extension first: `prepare_sqlite_vec_windows_arm64.py` downloads the official sqlite-vec amalgamation plus SQLite `sqlite3ext.h`, then `build_sqlite_vec_windows.ps1` builds `vec0.arm64.dll` with MSVC arm64. PyInstaller copies vendored `vec0*` loadables into the bundle; at runtime `sqlite_vec.loadable_path()` resolves `{_MEIPASS}/sqlite_vec/` when frozen (same pattern as bundled `llama-server`).
 
 **Windows MSI** uses WiX with a four-part product version from `packaging/scripts/wix_version.py` (invoked from `build_msi.ps1`).
 
@@ -101,10 +102,23 @@ Platform installers: `bash packaging/scripts/build_installer.sh linux|macos-arm6
 
 ## CI
 
-- **PR / main:** lint, mypy, and pytest (`.github/workflows/ci.yml`). Linux test job runs `fetch_sqlite_vec.py --platform linux` before `uv sync`. No PyInstaller build on every PR.
+- **PR / main:** lint, mypy, pytest, and **Linux PyInstaller bundle smoke** (`.github/workflows/ci.yml` `bundle-smoke` job). The test job runs `fetch_sqlite_vec.py --platform linux` before `uv sync`. Bundle smoke builds `dist/LexiFlow`, asserts `vec0` is on disk, runs `--sqlite-vec-smoke`, worker, and offscreen UI — same checks as release, without waiting for a tag.
 - **Prepare release:** `.github/workflows/prepare-release.yml` opens the version-bump PR.
 - **Tag release:** `.github/workflows/tag-release.yml` tags `v*` when a `release/*` PR merges.
-- **Release tag:** `.github/workflows/release.yml` builds Linux AppImage, macOS DMG, and Windows x64 MSI (Windows ARM64 MSI temporarily disabled; see issue #40). Runs `smoke_bundle.sh` after each PyInstaller build (UI smoke skipped on macOS/Windows via `LF_SKIP_UI_SMOKE=1`). Publishes SHA256 checksums.
+- **Release tag:** `.github/workflows/release.yml` builds Linux AppImage, macOS DMG, and Windows x64 MSI (Windows ARM64 MSI temporarily disabled; see issue #40). Runs `smoke_bundle.sh` after each PyInstaller build (UI smoke skipped on macOS/Windows via `LF_SKIP_UI_SMOKE=1`). Publishes SHA256 checksums and a GitHub Release.
+- **Manual release build (no GitHub Release):** `.github/workflows/release-build.yml` — **Actions → release-build → Run workflow**. Set **ref** to your PR branch (or any commit SHA) and optionally limit **platform** to `linux` for a faster check. Download installers from the run’s **Artifacts** tab. Does not draft or publish a release.
+
+### Manual release build on a PR branch
+
+Use this when you need full platform installers (DMG, MSI, AppImage) from CI without merging or tagging:
+
+1. Push your branch (the workflow file must exist on that branch, or run **Use workflow from** that branch once merged to `main`).
+2. Open **Actions → release-build → Run workflow**.
+3. **ref:** branch name (e.g. `feature/fix-macos-dev-generation-vec0`) or full SHA.
+4. **platform:** `all` for every installer, or a single platform for quicker feedback.
+5. When the run finishes, download `lexiflow-linux`, `lexiflow-macos-arm64`, and/or `lexiflow-windows` from **Artifacts**.
+
+Version strings use CI dev suffixes (`X.Y.Z.dev<N>`) when the ref is not a release tag (`LF_SYNC_CI_DEV=1` in the build job).
 
 ## Out of scope (v1)
 

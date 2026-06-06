@@ -1,0 +1,36 @@
+name: release-build
+
+# Manual full release build (installers + bundle smoke) without creating a GitHub Release.
+# Use this to validate packaging on a PR branch before merge or tag.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag, or commit SHA to build (e.g. feature/my-branch)
+        required: true
+        type: string
+        default: main
+      platform:
+        description: Platform(s) to build
+        type: choice
+        options:
+          - all
+          - linux
+          - macos-arm64
+          - windows
+        default: all
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-build-${{ github.workflow }}-${{ inputs.ref }}-${{ inputs.platform }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    uses: ./.github/workflows/release-artifacts.yml
+    with:
+      ref: ${{ inputs.ref }}
+      platform-filter: ${{ inputs.platform }}

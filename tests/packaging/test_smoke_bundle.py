@@ -31,10 +31,27 @@ def _list_llama_server_candidates(path_glob: str, *roots: Path) -> list[str]:
     return [line for line in result.stdout.splitlines() if line]
 
 
+def _list_sqlite_vec_loadables(*roots: Path) -> list[str]:
+    discovery_script = _discovery_script()
+    command = (
+        f'source "{discovery_script}"; '
+        'for root in "$@"; do list_bundled_sqlite_vec_loadables "$root"; done'
+    )
+    result = subprocess.run(
+        ["bash", "-c", command, "--", *[str(root) for root in roots]],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    return [line for line in result.stdout.splitlines() if line]
+
+
 def test_smoke_bundle_script_resolves_windows_exe() -> None:
     script = _smoke_script().read_text(encoding="utf-8")
     assert "LexiFlow.exe" in script
     assert "--sqlite-vec-smoke" in script
+    assert "list_bundled_sqlite_vec_loadables" in script
     assert "llama-server.exe" in script
     assert '"$LLAMA_SERVER" --version' in script
     assert "*.dll" in script
@@ -124,3 +141,15 @@ def test_llama_server_discovery_rejects_genuine_duplicates(tmp_path: Path) -> No
     assert len(paths) == 2
     assert str(first.resolve()) in paths
     assert str(second.resolve()) in paths
+
+
+def test_sqlite_vec_discovery_finds_bundled_loadable(tmp_path: Path) -> None:
+    bundle_dir = tmp_path / "dist" / "LexiFlow"
+    vec_dir = bundle_dir / "_internal" / "sqlite_vec"
+    vec_dir.mkdir(parents=True)
+    loadable = vec_dir / "vec0.so"
+    loadable.write_bytes(b"")
+
+    paths = _list_sqlite_vec_loadables(bundle_dir)
+
+    assert paths == [str(loadable.resolve())]

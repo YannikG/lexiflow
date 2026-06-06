@@ -33,15 +33,15 @@ VENDOR_VEC_DIR = REPO_ROOT / "packaging" / "vendor" / "sqlite_vec" / "sqlite_vec
 
 
 def _sqlite_vec_datas() -> list[tuple[str, str]]:
-    entries = collect_data_files("sqlite_vec")
-    seen = {Path(source).name for source, _dest in entries}
+    return collect_data_files("sqlite_vec")
+
+
+def _sqlite_vec_binaries() -> list[tuple[str, str]]:
+    """Ship vendored vec0 native loadables next to the sqlite_vec package in the bundle."""
+    entries: list[tuple[str, str]] = []
     for loadable in sorted(VENDOR_VEC_DIR.glob("vec0*")):
-        if not loadable.is_file() or loadable.suffix not in {".dylib", ".so", ".dll"}:
-            continue
-        if loadable.name in seen:
-            continue
-        entries.append((str(loadable), "sqlite_vec"))
-        seen.add(loadable.name)
+        if loadable.is_file() and loadable.suffix in {".dylib", ".so", ".dll"}:
+            entries.append((str(loadable), "sqlite_vec"))
     return entries
 
 PLATFORM_BIN_KEYS = {
@@ -95,6 +95,7 @@ datas = [
 ] + pyside6_datas + _sqlite_vec_datas() + sqlean_datas
 
 binaries: list[tuple[str, str]] = _llama_server_binaries()
+binaries += _sqlite_vec_binaries()
 binaries += pyside6_binaries + sqlean_binaries
 
 hiddenimports = [

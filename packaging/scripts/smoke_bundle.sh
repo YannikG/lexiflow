@@ -31,6 +31,29 @@ resolve_bundle_binary() {
 
 BINARY="$(resolve_bundle_binary)"
 
+BUNDLE_ROOTS=("$BUNDLE_DIR")
+if [[ -d "$ROOT/dist/LexiFlow.app" ]]; then
+  BUNDLE_ROOTS+=("$ROOT/dist/LexiFlow.app")
+fi
+
+SQLITE_VEC_LOADABLES=()
+while IFS= read -r candidate; do
+  SQLITE_VEC_LOADABLES+=("$candidate")
+done < <(
+  for root in "${BUNDLE_ROOTS[@]}"; do
+    list_bundled_sqlite_vec_loadables "$root"
+  done | sort -u
+)
+if [[ ${#SQLITE_VEC_LOADABLES[@]} -eq 0 ]]; then
+  echo "bundled sqlite-vec loadable missing under bundle roots: ${BUNDLE_ROOTS[*]}" >&2
+  exit 1
+fi
+if [[ ${#SQLITE_VEC_LOADABLES[@]} -gt 1 ]]; then
+  echo "error: found multiple sqlite-vec loadables, ambiguous. Paths: ${SQLITE_VEC_LOADABLES[*]}" >&2
+  exit 1
+fi
+echo "sqlite-vec loadable: ${SQLITE_VEC_LOADABLES[0]}"
+
 ACTUAL_VERSION="$("$BINARY" --version)"
 echo "bundle version: $ACTUAL_VERSION"
 if [[ -n "$EXPECTED_VERSION" && "$ACTUAL_VERSION" != "$EXPECTED_VERSION" ]]; then

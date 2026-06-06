@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import lexiflow_core
 import pytest
 from lexiflow_ui import launcher
@@ -17,18 +19,15 @@ def test_launcher_version_prints_core_version(capsys) -> None:
 
 
 def test_launcher_sqlite_vec_smoke_prints_version(capsys) -> None:
-    exit_code = launcher.main(["--sqlite-vec-smoke"])
+    import sqlite_vec
 
-    captured = capsys.readouterr()
-    assert exit_code == 0
-    assert captured.out.strip()
-    assert captured.err == ""
-
-
-def test_launcher_sqlite_vec_smoke_without_env_override(
-    monkeypatch: pytest.MonkeyPatch, capsys
-) -> None:
-    monkeypatch.delenv("LEXIFLOW_SQLITE_VEC_PATH", raising=False)
+    package_dir = Path(sqlite_vec.loadable_path()).parent
+    has_loadable = any(
+        (package_dir / name).is_file()
+        for name in ("vec0.dylib", "vec0.so", "vec0.dll", "vec0.arm64.dll")
+    )
+    if not has_loadable:
+        pytest.skip("installed sqlite-vec loadable not present")
 
     exit_code = launcher.main(["--sqlite-vec-smoke"])
 

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 import sqlite_vec
 
 _SETUP_HINT = (
@@ -22,10 +21,6 @@ def _resolve_installed_loadable() -> Path | None:
     return None
 
 
-def test_installed_sqlite_vec_package_includes_platform_loadable(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.delenv("LEXIFLOW_SQLITE_VEC_PATH", raising=False)
-
+def test_installed_sqlite_vec_package_includes_platform_loadable() -> None:
     loadable = _resolve_installed_loadable()
     assert loadable is not None, _SETUP_HINT

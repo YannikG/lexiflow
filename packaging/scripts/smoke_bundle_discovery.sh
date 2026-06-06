@@ -44,3 +44,9 @@ list_bundled_llama_server_candidates() {
     printf '%s\n' "${unique_paths[@]}"
   fi
 }
+
+list_bundled_sqlite_vec_loadables() {
+  local root="$1"
+  [[ -d "$root" ]] || return 0
+  find "$root" -path '*/sqlite_vec/vec0*' -type f 2>/dev/null
+}
