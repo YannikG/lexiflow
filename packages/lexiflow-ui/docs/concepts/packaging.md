@@ -18,7 +18,7 @@ See [ADR-0008](../../../../docs/adr/0008-pyinstaller-release-bundle.md) and [com
 | Worker argv | `lexiflow_ui.worker_command` | frozen vs dev spawn command |
 | llama-server path | `lexiflow_core.llm.llama_server` | bundled binary, env override, PATH |
 | Build scripts | `packaging/` | spec, fetch llama-server, fetch sqlite-vec, installers — no domain logic |
-| sqlite-vec loadable | `packaging/vendor/sqlite_vec/` | vendored path dependency; platform `vec0` binary fetched or compiled at build time |
+| sqlite-vec loadable | `packaging/vendor/sqlite_vec/` | vendored path dependency; platform `vec0` binary fetched or compiled at build time; dev `.venv` installs it into `site-packages/sqlite_vec/` via the vendored wheel |
 | Extension-capable sqlite3 | `sqlean.py` (macOS/Linux bundles) | bootstrap swaps stdlib when `enable_load_extension` missing; Windows relies on Python 3.12+ stdlib |
 
 ## Bundled vs downloaded
@@ -43,9 +43,11 @@ Build-time script `packaging/scripts/sync_version.py` sets `lexiflow_core.__vers
 
 **Automated release path:** merge feature work to `main` → `prepare-release` opens a `release/vX.Y.Z` bump PR (auto when `pyproject.toml` lags the latest tag, or via **Actions → prepare-release → Run workflow**). Merge that PR → `tag-release` pushes `vX.Y.Z` → `release.yml` builds installers. No direct push to `main` and no manual tag for the default flow.
 
-## Local build (maintainers)
+## Local dev and build
 
-Fetch the vendored sqlite-vec loadable for your host before `uv sync` (binaries are not committed):
+Fetch the vendored sqlite-vec loadable for your host before `uv sync` (binaries are not committed). The vendored wheel copies the platform `vec0` file into `.venv/site-packages/sqlite_vec/` so `uv run` and generation jobs work without manual path overrides. If you fetch after an initial sync, run `uv sync --reinstall-package sqlite-vec`.
+
+### Release bundle (maintainers)
 
 ```bash
 python packaging/scripts/fetch_sqlite_vec.py --platform macos-arm64  # or linux / windows

@@ -12,13 +12,9 @@ from lexiflow_core.vectors.sqlite_vec import load_sqlite_vec
 
 
 def _resolve_vendored_loadable() -> Path | None:
-    base = Path(sqlite_vec.loadable_path())
-    for candidate in (
-        base,
-        Path(f"{base}.dylib"),
-        Path(f"{base}.so"),
-        Path(f"{base}.dll"),
-    ):
+    package_dir = Path(sqlite_vec.loadable_path()).parent
+    for name in ("vec0.dylib", "vec0.so", "vec0.dll", "vec0.arm64.dll"):
+        candidate = package_dir / name
         if candidate.exists():
             return candidate
     return None
@@ -52,6 +48,21 @@ def test_load_sqlite_vec_allows_vec0_virtual_table() -> None:
         connection.execute(
             "CREATE VIRTUAL TABLE test_vectors USING vec0(embedding float[384])"
         )
+        (version,) = connection.execute("SELECT vec_version()").fetchone()
+        assert isinstance(version, str)
+        assert version
+    finally:
+        connection.close()
+
+
+def test_load_sqlite_vec_uses_installed_package_without_env_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("LEXIFLOW_SQLITE_VEC_PATH", raising=False)
+
+    connection = sqlite3.connect(":memory:")
+    try:
+        load_sqlite_vec(connection)
         (version,) = connection.execute("SELECT vec_version()").fetchone()
         assert isinstance(version, str)
         assert version
