@@ -16,7 +16,34 @@ permissions:
 
 jobs:
   build:
+    name: build-${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux
+            runner: ubuntu-latest
+            fetch_platform: linux
+            artifact_glob: dist/LexiFlow-*.AppImage
+            installer_arch: ""
+          - platform: macos-arm64
+            runner: macos-latest
+            fetch_platform: macos-arm64
+            artifact_glob: dist/LexiFlow-*.dmg
+            installer_arch: ""
+          - platform: windows
+            runner: windows-latest
+            fetch_platform: windows
+            artifact_glob: dist/LexiFlow-*.msi
+            installer_arch: ""
+          # windows-arm64: disabled until sqlite-vec MSVC build is reliable in CI (#40).
     uses: ./.github/workflows/release-artifacts.yml
+    with:
+      platform: ${{ matrix.platform }}
+      runner: ${{ matrix.runner }}
+      fetch_platform: ${{ matrix.fetch_platform }}
+      artifact_glob: ${{ matrix.artifact_glob }}
+      installer_arch: ${{ matrix.installer_arch }}
 
   publish:
     needs: build

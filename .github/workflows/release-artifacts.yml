@@ -8,36 +8,33 @@ on:
         required: false
         type: string
         default: ""
-      platform-filter:
-        description: Build all platforms or a single matrix leg (all | linux | macos-arm64 | windows)
+      platform:
+        description: Matrix platform id (linux | macos-arm64 | windows)
+        required: true
+        type: string
+      runner:
+        description: GitHub-hosted runner label
+        required: true
+        type: string
+      fetch_platform:
+        description: fetch_sqlite_vec.py / fetch_llama_server.py platform id
+        required: true
+        type: string
+      artifact_glob:
+        description: Glob for installer artifacts under dist/
+        required: true
+        type: string
+      installer_arch:
+        description: Windows MSI architecture suffix (empty for x64)
         required: false
         type: string
-        default: all
+        default: ""
 
 jobs:
   build:
-    name: build-${{ matrix.platform }}
-    if: inputs.platform-filter == 'all' || inputs.platform-filter == matrix.platform
-    runs-on: ${{ matrix.runner }}
+    name: build-${{ inputs.platform }}
+    runs-on: ${{ inputs.runner }}
     timeout-minutes: 120
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: linux
-            runner: ubuntu-latest
-            fetch_platform: linux
-            artifact_glob: dist/LexiFlow-*.AppImage
-          - platform: macos-arm64
-            runner: macos-latest
-            fetch_platform: macos-arm64
-            artifact_glob: dist/LexiFlow-*.dmg
-          - platform: windows
-            runner: windows-latest
-            fetch_platform: windows
-            artifact_glob: dist/LexiFlow-*.msi
-            installer_arch: ""
-          # windows-arm64: disabled until sqlite-vec MSVC build is reliable in CI (#40).
 
     steps:
       - uses: actions/checkout@v6
@@ -78,7 +75,7 @@ jobs:
 
       - name: Fetch sqlite-vec loadable
         shell: bash
-        run: python packaging/scripts/fetch_sqlite_vec.py --platform "${{ matrix.fetch_platform }}"
+        run: python packaging/scripts/fetch_sqlite_vec.py --platform "${{ inputs.fetch_platform }}"
 
       - name: Install release dependencies
         run: uv sync --frozen --group release
@@ -99,7 +96,7 @@ jobs:
         shell: bash
         run: |
           uv run python packaging/scripts/generate_icons.py
-          uv run python packaging/scripts/fetch_llama_server.py --platform "${{ matrix.fetch_platform }}"
+          uv run python packaging/scripts/fetch_llama_server.py --platform "${{ inputs.fetch_platform }}"
 
       - name: Build PyInstaller bundle
         run: uv run pyinstaller packaging/lexiflow.spec --noconfirm
@@ -120,18 +117,18 @@ jobs:
           fi
 
       - name: Build Linux AppImage
-        if: matrix.platform == 'linux'
+        if: inputs.platform == 'linux'
         run: bash packaging/scripts/build_appimage.sh
 
       - name: Build macOS DMG
-        if: matrix.platform == 'macos-arm64'
+        if: inputs.platform == 'macos-arm64'
         run: bash packaging/scripts/build_dmg.sh
 
       - name: Build Windows MSI
-        if: matrix.platform == 'windows'
+        if: inputs.platform == 'windows'
         shell: pwsh
         env:
-          LF_INSTALLER_ARCH: ${{ matrix.installer_arch }}
+          LF_INSTALLER_ARCH: ${{ inputs.installer_arch }}
         run: |
           $env:LEXIFLOW_BUNDLE_DIR = Join-Path $PWD "dist\LexiFlow"
           ./packaging/scripts/build_msi.ps1
@@ -141,11 +138,11 @@ jobs:
         run: |
           mkdir -p release-artifacts
           shopt -s nullglob
-          for path in ${{ matrix.artifact_glob }}; do
+          for path in ${{ inputs.artifact_glob }}; do
             cp "$path" release-artifacts/
           done
           if [[ ! "$(ls -A release-artifacts)" ]]; then
-            echo "no release artifacts found for ${{ matrix.platform }}" >&2
+            echo "no release artifacts found for ${{ inputs.platform }}" >&2
             exit 1
           fi
           (cd release-artifacts && sha256sum *) > release-artifacts/checksums.txt
@@ -153,5 +150,5 @@ jobs:
       - name: Upload platform artifact
         uses: actions/upload-artifact@v4
         with:
-          name: lexiflow-${{ matrix.platform }}
+          name: lexiflow-${{ inputs.platform }}
           path: release-artifacts/
