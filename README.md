@@ -32,8 +32,15 @@ Requires [uv](https://docs.astral.sh/uv/) and Python 3.12+.
 ```bash
 git clone https://github.com/YannikG/lexiflow.git
 cd lexiflow
+python packaging/scripts/fetch_sqlite_vec.py --platform macos-arm64  # or linux / windows
 uv sync
 uv run python -m lexiflow_ui
+```
+
+If you already ran `uv sync` before fetching sqlite-vec, reinstall the vendored package:
+
+```bash
+uv sync --reinstall-package sqlite-vec
 ```
 
 Close the window to quit.
@@ -42,7 +49,10 @@ Close the window to quit.
 
 ## Development
 
+Fetch the sqlite-vec loadable for your host before the first `uv sync` (binaries are not committed). See [packaging concept doc](packages/lexiflow-ui/docs/concepts/packaging.md).
+
 ```bash
+python packaging/scripts/fetch_sqlite_vec.py --platform macos-arm64  # or linux / windows
 uv sync
 uv run pytest
 uv run ruff check .

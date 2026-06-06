@@ -57,3 +57,18 @@ def test_load_sqlite_vec_allows_vec0_virtual_table() -> None:
         assert version
     finally:
         connection.close()
+
+
+def test_load_sqlite_vec_uses_installed_package_without_env_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("LEXIFLOW_SQLITE_VEC_PATH", raising=False)
+
+    connection = sqlite3.connect(":memory:")
+    try:
+        load_sqlite_vec(connection)
+        (version,) = connection.execute("SELECT vec_version()").fetchone()
+        assert isinstance(version, str)
+        assert version
+    finally:
+        connection.close()
