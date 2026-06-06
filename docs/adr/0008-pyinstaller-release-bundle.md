@@ -20,7 +20,7 @@ PySide6 and a native `llama-server` binary must coexist in a single onedir layou
 5. **Release dependency group** — root `pyproject.toml` `[dependency-groups] release` adds `pyinstaller` and `pillow` only (no `sentence-transformers` / torch). Embeddings use the bundled `llama-server` binary. PR pytest stays fake-only; no real models in CI unit tests.
 6. **Version sync** — `packaging/scripts/sync_version.py` writes `lexiflow_core.__version__` from the release tag at build time (or from `pyproject.toml` locally). **Prepare release** (`.github/workflows/prepare-release.yml`) opens a `release/vX.Y.Z` PR with `bump_version.py` (auto or `workflow_dispatch`); **tag release** (`.github/workflows/tag-release.yml`) pushes `vX.Y.Z` when that PR merges, which triggers `release.yml`. Manual tag push is optional if automation is skipped.
 7. **Installers** — Linux AppImage, macOS DMG, Windows MSI (WiX + heat harvest). Unsigned in v1.
-8. **Release CI** — tag `v*` triggers `.github/workflows/release.yml`; SHA256 checksums published per asset.
+8. **Release CI** — tag `v*` triggers `.github/workflows/release.yml`; SHA256 checksums published per asset. Each matrix job runs `smoke_bundle.sh` after PyInstaller to verify the bundled launcher, sqlite-vec, llama-server, worker entrypoint, and (on Linux) offscreen UI startup.
 
 ## Evaluated alternatives
 
