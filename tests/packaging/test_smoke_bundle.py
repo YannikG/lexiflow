@@ -19,13 +19,10 @@ def _smoke_script() -> Path:
 
 
 def _list_llama_server_candidates(path_glob: str, *roots: Path) -> list[str]:
-    root_args = " ".join(f'"{root}"' for root in roots)
-    command = (
-        f'source "{_discovery_script()}"; '
-        f'list_bundled_llama_server_candidates "{path_glob}" {root_args}'
-    )
+    discovery_script = _discovery_script()
+    command = f'source "{discovery_script}"; list_bundled_llama_server_candidates "$@"'
     result = subprocess.run(
-        ["bash", "-c", command],
+        ["bash", "-c", command, "--", path_glob, *[str(root) for root in roots]],
         capture_output=True,
         text=True,
         check=False,

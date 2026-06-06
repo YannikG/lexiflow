@@ -54,7 +54,10 @@ if [[ -x "$ROOT/dist/LexiFlow.app/Contents/MacOS/LexiFlow" || -x "$BUNDLE_DIR/Le
   if [[ -d "$BUNDLE_DIR/LexiFlow.app" ]]; then
     MACOS_APP_ROOTS+=("$BUNDLE_DIR/LexiFlow.app")
   fi
-  mapfile -t LLAMA_SERVERS < <(
+  LLAMA_SERVERS=()
+  while IFS= read -r candidate; do
+    LLAMA_SERVERS+=("$candidate")
+  done < <(
     list_bundled_llama_server_candidates \
       '*/Contents/Frameworks/bin/llama-server' \
       "${MACOS_APP_ROOTS[@]}"
@@ -82,7 +85,10 @@ if [[ -x "$ROOT/dist/LexiFlow.app/Contents/MacOS/LexiFlow" || -x "$BUNDLE_DIR/Le
 fi
 
 if [[ -x "$BUNDLE_DIR/LexiFlow.exe" ]]; then
-  mapfile -t LLAMA_SERVERS < <(
+  LLAMA_SERVERS=()
+  while IFS= read -r candidate; do
+    LLAMA_SERVERS+=("$candidate")
+  done < <(
     list_bundled_llama_server_candidates \
       '*/bin/llama-server.exe' \
       "$BUNDLE_DIR"

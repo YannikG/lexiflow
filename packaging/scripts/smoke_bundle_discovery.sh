@@ -27,12 +27,14 @@ list_bundled_llama_server_candidates() {
   for candidate in "${llama_servers[@]}"; do
     canon="$(_canonical_path "$candidate")"
     local seen=0
-    for existing in "${unique_paths[@]:-}"; do
-      if [[ "$existing" == "$canon" ]]; then
-        seen=1
-        break
-      fi
-    done
+    if [[ ${#unique_paths[@]} -gt 0 ]]; then
+      for existing in "${unique_paths[@]}"; do
+        if [[ "$existing" == "$canon" ]]; then
+          seen=1
+          break
+        fi
+      done
+    fi
     if [[ $seen -eq 0 ]]; then
       unique_paths+=("$canon")
     fi
