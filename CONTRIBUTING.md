@@ -62,7 +62,7 @@ uv run pyinstaller packaging/lexiflow.spec --noconfirm
 bash packaging/scripts/smoke_bundle.sh
 ```
 
-See [packaging concept doc](packages/lexiflow-ui/docs/concepts/packaging.md) and [ADR-0008](docs/adr/0008-pyinstaller-release-bundle.md).
+See [packaging concept doc](packages/lexiflow-ui/docs/concepts/packaging.md) (**Release bundle smoke**) and [ADR-0008](docs/adr/0008-pyinstaller-release-bundle.md).
 
 ## Agents
 

@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# shellcheck source=packaging/scripts/smoke_bundle_discovery.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/smoke_bundle_discovery.sh"
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
@@ -43,10 +47,21 @@ fi
 echo "sqlite-vec smoke passed"
 
 if [[ -x "$ROOT/dist/LexiFlow.app/Contents/MacOS/LexiFlow" || -x "$BUNDLE_DIR/LexiFlow.app/Contents/MacOS/LexiFlow" ]]; then
+  MACOS_APP_ROOTS=()
+  if [[ -d "$ROOT/dist/LexiFlow.app" ]]; then
+    MACOS_APP_ROOTS+=("$ROOT/dist/LexiFlow.app")
+  fi
+  if [[ -d "$BUNDLE_DIR/LexiFlow.app" ]]; then
+    MACOS_APP_ROOTS+=("$BUNDLE_DIR/LexiFlow.app")
+  fi
   LLAMA_SERVERS=()
   while IFS= read -r candidate; do
     LLAMA_SERVERS+=("$candidate")
-  done < <(find "$ROOT/dist" "$BUNDLE_DIR" -path '*/Contents/Frameworks/bin/llama-server' -type f 2>/dev/null)
+  done < <(
+    list_bundled_llama_server_candidates \
+      '*/Contents/Frameworks/bin/llama-server' \
+      "${MACOS_APP_ROOTS[@]}"
+  )
   if [[ ${#LLAMA_SERVERS[@]} -eq 0 ]]; then
     echo "bundled llama-server missing under LexiFlow.app/Contents/Frameworks/bin" >&2
     exit 1
@@ -73,7 +88,11 @@ if [[ -x "$BUNDLE_DIR/LexiFlow.exe" ]]; then
   LLAMA_SERVERS=()
   while IFS= read -r candidate; do
     LLAMA_SERVERS+=("$candidate")
-  done < <(find "$ROOT/dist" "$BUNDLE_DIR" -path '*/bin/llama-server.exe' -type f 2>/dev/null)
+  done < <(
+    list_bundled_llama_server_candidates \
+      '*/bin/llama-server.exe' \
+      "$BUNDLE_DIR"
+  )
   if [[ ${#LLAMA_SERVERS[@]} -eq 0 ]]; then
     echo "bundled llama-server.exe missing under LexiFlow/bin" >&2
     exit 1
@@ -114,3 +133,4 @@ if [[ "${LF_SKIP_UI_SMOKE:-0}" != "1" ]]; then
 fi
 
 echo "bundle smoke passed"
+fi
