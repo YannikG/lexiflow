@@ -65,7 +65,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Download all platform artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: release-artifacts
           merge-multiple: true
@@ -78,7 +78,7 @@ jobs:
           ls -la merged/
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: merged/*
           generate_release_notes: true
