@@ -18,6 +18,7 @@ See [ADR-0008](../../../../docs/adr/0008-pyinstaller-release-bundle.md) and [com
 | Worker argv | `lexiflow_ui.worker_command` | frozen vs dev spawn command |
 | llama-server path | `lexiflow_core.llm.llama_server` | bundled binary, env override, PATH |
 | Build scripts | `packaging/` | spec, fetch llama-server, fetch sqlite-vec, installers — no domain logic |
+| PySide6 bundle trim | `packaging/scripts/pyside6_bundle.py` | explicit Qt module allowlist and PyInstaller collection for release bundles |
 | Release smoke | `packaging/scripts/smoke_bundle.sh`, `smoke_bundle_discovery.sh` | post-PyInstaller bundle checks; discovery helper is query-only |
 | sqlite-vec loadable | `packaging/vendor/sqlite_vec/` | vendored path dependency; platform `vec0` binary fetched or compiled at build time; PyInstaller ships it under `sqlite_vec/` in the bundle (`_MEIPASS`); dev `.venv` installs via the vendored wheel. There is no `LEXIFLOW_SQLITE_VEC_PATH` override; path resolution is handled by the vendored `sqlite_vec` package. |
 | Extension-capable sqlite3 | `sqlean.py` (macOS/Linux bundles) | bootstrap swaps stdlib when `enable_load_extension` missing; Windows relies on Python 3.12+ stdlib |
@@ -34,6 +35,41 @@ See [ADR-0008](../../../../docs/adr/0008-pyinstaller-release-bundle.md) and [com
 | Extension-capable sqlite3 (macOS/Linux bundles) | — (`sqlean.py` via bootstrap when stdlib lacks loadable extensions) |
 
 Model weights are **not** bundled in the installer ([common-language.md](../../../../common-language.md)).
+
+## Bundled Qt modules
+
+LexiFlow depends on `pyside6-essentials` only (not the full `pyside6` meta package with addons). PyInstaller collects an explicit allowlist via [`packaging/scripts/pyside6_bundle.py`](../../../../packaging/scripts/pyside6_bundle.py); the spec does **not** use `collect_all("PySide6")`.
+
+| Module | Role |
+|--------|------|
+| `PySide6.QtCore` | signals, timers, `QProcess`, events |
+| `PySide6.QtGui` | fonts, palettes, actions, desktop services |
+| `PySide6.QtWidgets` | UI shell, dialogs, reader, onboarding |
+| `PySide6.QtNetwork` | `QLocalServer` / `QLocalSocket` (single-instance guard) |
+| `shiboken6` | binding helpers (direct import in library search field) |
+
+**Allowlist maintenance:** if production code under `packages/lexiflow-ui/src` imports a new `PySide6.*` submodule, add it to `ALLOWED_PYSIDE6_SUBMODULES` in `pyside6_bundle.py` and extend the collection loop. `tests/packaging/test_pyside6_bundle.py` scans imports and fails when the allowlist drifts.
+
+## Bundle budget (Qt)
+
+Baseline before trim (macOS arm64, pre-spaCy): `PySide6/` ~555 MB inside ~757 MB `.app` when using `collect_all("PySide6")`.
+
+After trim (macOS arm64, measured locally): `PySide6/` ~50 MB inside ~198 MB `.app`.
+
+Re-measure after PyInstaller:
+
+```bash
+# macOS
+du -sh dist/LexiFlow.app
+du -sh dist/LexiFlow.app/Contents/Frameworks/PySide6
+du -sh dist/LexiFlow.app/Contents/Frameworks/* | sort -hr | head -20
+
+# Linux onedir
+du -sh dist/LexiFlow
+du -sh dist/LexiFlow/_internal/PySide6
+```
+
+CI `bundle-smoke` and release builds run `test_forbidden_qt_frameworks_not_in_built_bundle` after PyInstaller to reject paths matching unused frameworks (WebEngine, 3D, Charts, Multimedia, Quick3D, etc.).
 
 ## Version
 

@@ -14,9 +14,9 @@ block_cipher = None
 REPO_ROOT = Path(SPECPATH).resolve().parent
 
 
-def _load_llama_runtime_libs():
-    script = REPO_ROOT / "packaging" / "scripts" / "llama_runtime_libs.py"
-    spec = importlib.util.spec_from_file_location("lexiflow_llama_runtime_libs", script)
+def _load_packaging_script(module_name: str, script_name: str):
+    script = REPO_ROOT / "packaging" / "scripts" / script_name
+    spec = importlib.util.spec_from_file_location(module_name, script)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"cannot load {script}")
     module = importlib.util.module_from_spec(spec)
@@ -24,7 +24,14 @@ def _load_llama_runtime_libs():
     return module
 
 
-_llama_runtime = _load_llama_runtime_libs()
+_llama_runtime = _load_packaging_script(
+    "lexiflow_llama_runtime_libs",
+    "llama_runtime_libs.py",
+)
+_pyside6_bundle = _load_packaging_script(
+    "lexiflow_pyside6_bundle",
+    "pyside6_bundle.py",
+)
 runtime_lib_globs = _llama_runtime.runtime_lib_globs
 CORE_SRC = REPO_ROOT / "packages/lexiflow-core/src/lexiflow_core"
 UI_SRC = REPO_ROOT / "packages/lexiflow-ui/src/lexiflow_ui"
@@ -103,7 +110,10 @@ def _llama_server_binaries() -> list[tuple[str, str]]:
     return entries
 
 
-pyside6_datas, pyside6_binaries, pyside6_hiddenimports = collect_all("PySide6")
+pyside6_datas, pyside6_binaries, pyside6_hiddenimports = (
+    _pyside6_bundle.collect_pyside6_bundle()
+)
+PYSIDE6_ANALYSIS_EXCLUDES = _pyside6_bundle.PYSIDE6_ANALYSIS_EXCLUDES
 
 sqlean_datas: list[tuple[str, str]] = []
 sqlean_binaries: list[tuple[str, str]] = []
@@ -148,7 +158,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=list(PYSIDE6_ANALYSIS_EXCLUDES),
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
