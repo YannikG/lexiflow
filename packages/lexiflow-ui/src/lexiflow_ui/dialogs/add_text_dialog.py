@@ -56,7 +56,7 @@ class AddTextDialog(QDialog):
 
         self._title = QLineEdit(self)
         self._title.setObjectName("add_text_title")
-        self._title.setPlaceholderText("Title")
+        self._title.setPlaceholderText("Optional — derived from content after cleanup")
         form.addRow("Title", self._title)
 
         self._source_url = QLineEdit(self)
@@ -107,10 +107,12 @@ class AddTextDialog(QDialog):
         return self._paste
 
     def _validation_error(self) -> str | None:
-        try:
-            normalize_document_title(self._title.text())
-        except DocumentTitleError as error:
-            return str(error)
+        title_text = self._title.text().strip()
+        if title_text:
+            try:
+                normalize_document_title(title_text)
+            except DocumentTitleError as error:
+                return str(error)
         if not self._paste.toPlainText().strip():
             return "Paste or type content to save."
         return None
@@ -118,7 +120,8 @@ class AddTextDialog(QDialog):
     def form_data(self) -> AddTextFormData | None:
         if self._validation_error() is not None:
             return None
-        title = normalize_document_title(self._title.text())
+        title_text = self._title.text().strip()
+        title = normalize_document_title(title_text) if title_text else ""
         pasted = self._paste.toPlainText()
         url = self._source_url.text().strip() or None
         tab = InputTab.NATIVE if self._native_tab_btn.isChecked() else InputTab.TARGET

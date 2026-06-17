@@ -15,6 +15,7 @@ class CreateTextRequest:
     native_language: str
     body: str = ""
     source_url: str | None = None
+    autogenerate_title: bool = False
 
 
 @dataclass(frozen=True)

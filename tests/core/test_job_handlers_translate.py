@@ -90,7 +90,7 @@ def test_translate_fails_when_output_is_unchanged(
     assert "unchanged" in jobs[0].error_message.lower()
 
 
-def test_translate_updates_metadata_title_and_index(
+def test_translate_does_not_update_metadata_title(
     translate_context: tuple[JobService, TextRepository, LibraryIndex, UUID, Path],
 ) -> None:
     job_service, repo, index, text_id, _data_root = translate_context
@@ -108,8 +108,8 @@ def test_translate_updates_metadata_title_and_index(
 
     record = repo.get_text(text_id)
     metadata = load_text_metadata(meta_path(Path(record.folder)))
-    assert metadata.title == "Titulo ES"
+    assert metadata.title == "Untitled"
     indexed = index.get_by_id(text_id)
     assert indexed is not None
-    assert indexed.title == "Titulo ES"
+    assert indexed.title == "Untitled"
     assert "translated" in indexed.variants

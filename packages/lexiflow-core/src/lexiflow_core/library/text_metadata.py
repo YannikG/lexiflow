@@ -31,6 +31,7 @@ class TextMetadata:
     content_fingerprint: str | None
     created_at: datetime
     updated_at: datetime
+    autogenerate_title: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         payload: dict[str, Any] = {
@@ -42,6 +43,7 @@ class TextMetadata:
             "variants": list(self.variants),
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
+            "autogenerate_title": self.autogenerate_title,
         }
         if self.source_url is not None:
             payload["source_url"] = self.source_url
@@ -96,6 +98,10 @@ def parse_text_metadata(raw: dict[str, Any]) -> TextMetadata:
     if content_fingerprint is not None and not isinstance(content_fingerprint, str):
         raise TextMetadataError("content_fingerprint must be a string")
 
+    autogenerate_title = raw.get("autogenerate_title", False)
+    if not isinstance(autogenerate_title, bool):
+        raise TextMetadataError("autogenerate_title must be a boolean")
+
     try:
         return TextMetadata(
             id=UUID(str(raw["id"])),
@@ -108,6 +114,7 @@ def parse_text_metadata(raw: dict[str, Any]) -> TextMetadata:
             content_fingerprint=content_fingerprint,
             created_at=_parse_datetime(str(raw["created_at"])),
             updated_at=_parse_datetime(str(raw["updated_at"])),
+            autogenerate_title=autogenerate_title,
         )
     except (TypeError, ValueError) as exc:
         raise TextMetadataError("invalid metadata values") from exc

@@ -78,6 +78,15 @@ class LibraryCoordinator:
         record = self._texts.load(folder)
         self._index.upsert_text(record)
 
+    def apply_native_variant(self, text_id: UUID, markdown: str) -> TextRecord:
+        indexed = self._index.get_by_id(text_id)
+        if indexed is None:
+            raise TextNotFoundError(f"text not found: {text_id}")
+        folder = Path(indexed.folder)
+        record = self._texts.apply_native_variant(folder, markdown)
+        self._index.upsert_text(record)
+        return record
+
     def apply_translated_variant(
         self, text_id: UUID, translated_markdown: str
     ) -> TextRecord:

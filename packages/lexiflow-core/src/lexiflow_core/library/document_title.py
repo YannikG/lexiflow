@@ -7,6 +7,9 @@ class DocumentTitleError(Exception):
     """Raised when a title cannot be used as a markdown heading."""
 
 
+PROVISIONAL_DOCUMENT_TITLE = "Untitled"
+
+
 def normalize_document_title(title: str) -> str:
     """Return a validated library title string."""
     normalized = title.strip()
@@ -17,6 +20,14 @@ def normalize_document_title(title: str) -> str:
     if "#" in normalized:
         raise DocumentTitleError("title must not contain '#'")
     return normalized
+
+
+def resolve_create_title(raw_title: str) -> tuple[str, bool]:
+    """Return library title and whether cleanup should derive it from native H1."""
+    stripped = raw_title.strip()
+    if not stripped:
+        return PROVISIONAL_DOCUMENT_TITLE, True
+    return normalize_document_title(stripped), False
 
 
 def format_document_title(title: str) -> str:
