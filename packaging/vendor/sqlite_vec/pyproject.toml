@@ -11,3 +11,9 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["sqlite_vec"]
 only-include = ["sqlite_vec"]
+artifacts = [
+  "sqlite_vec/vec0.dylib",
+  "sqlite_vec/vec0.so",
+  "sqlite_vec/vec0.dll",
+  "sqlite_vec/vec0.arm64.dll",
+]

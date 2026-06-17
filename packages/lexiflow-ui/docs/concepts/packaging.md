@@ -18,7 +18,8 @@ See [ADR-0008](../../../../docs/adr/0008-pyinstaller-release-bundle.md) and [com
 | Worker argv | `lexiflow_ui.worker_command` | frozen vs dev spawn command |
 | llama-server path | `lexiflow_core.llm.llama_server` | bundled binary, env override, PATH |
 | Build scripts | `packaging/` | spec, fetch llama-server, fetch sqlite-vec, installers — no domain logic |
-| sqlite-vec loadable | `packaging/vendor/sqlite_vec/` | vendored path dependency; platform `vec0` binary fetched or compiled at build time |
+| Release smoke | `packaging/scripts/smoke_bundle.sh`, `smoke_bundle_discovery.sh` | post-PyInstaller bundle checks; discovery helper is query-only |
+| sqlite-vec loadable | `packaging/vendor/sqlite_vec/` | vendored path dependency; platform `vec0` binary fetched or compiled at build time; dev `.venv` installs it into `site-packages/sqlite_vec/` via the vendored wheel |
 | Extension-capable sqlite3 | `sqlean.py` (macOS/Linux bundles) | bootstrap swaps stdlib when `enable_load_extension` missing; Windows relies on Python 3.12+ stdlib |
 
 ## Bundled vs downloaded
@@ -43,9 +44,11 @@ Build-time script `packaging/scripts/sync_version.py` sets `lexiflow_core.__vers
 
 **Automated release path:** merge feature work to `main` → `prepare-release` opens a `release/vX.Y.Z` bump PR (auto when `pyproject.toml` lags the latest tag, or via **Actions → prepare-release → Run workflow**). Merge that PR → `tag-release` pushes `vX.Y.Z` → `release.yml` builds installers. No direct push to `main` and no manual tag for the default flow.
 
-## Local build (maintainers)
+## Local dev and build
 
-Fetch the vendored sqlite-vec loadable for your host before `uv sync` (binaries are not committed):
+Fetch the vendored sqlite-vec loadable for your host before `uv sync` (binaries are not committed). The vendored wheel copies the platform `vec0` file into `.venv/site-packages/sqlite_vec/` so `uv run` and generation jobs work without manual path overrides. If you fetch after an initial sync, run `uv sync --reinstall-package sqlite-vec`.
+
+### Release bundle (maintainers)
 
 ```bash
 python packaging/scripts/fetch_sqlite_vec.py --platform macos-arm64  # or linux / windows
@@ -55,6 +58,40 @@ uv run python packaging/scripts/fetch_llama_server.py --platform linux
 uv run pyinstaller packaging/lexiflow.spec --noconfirm
 bash packaging/scripts/smoke_bundle.sh
 ```
+
+### Release bundle smoke
+
+After PyInstaller, `packaging/scripts/smoke_bundle.sh` verifies the onedir bundle before installers are built. Release CI and `build_installer.sh` run it on every platform.
+
+**Checks (in order):**
+
+1. Resolve the bundle launcher (`LexiFlow`, `LexiFlow.exe`, or `LexiFlow.app/Contents/MacOS/LexiFlow`).
+2. `--version` and optional `LF_EXPECTED_VERSION` match.
+3. `--sqlite-vec-smoke` returns a non-empty extension version.
+4. **Bundled llama-server** — platform-specific discovery (see below); run `--version`; on Windows also require runtime DLLs next to `llama-server.exe`; on macOS require `libllama-server-impl.dylib` next to `llama-server`.
+5. `--worker` with a temp data root (headless worker loop).
+6. Offscreen UI launch for ~5s (skipped when `LF_SKIP_UI_SMOKE=1`; release CI sets this on macOS and Windows).
+
+**Environment:**
+
+| Variable | Default | Role |
+|----------|---------|------|
+| `LF_BUNDLE_DIR` | `dist/LexiFlow` | PyInstaller onedir root (Windows/Linux) or override |
+| `LF_EXPECTED_VERSION` | unset | Fail if launcher `--version` differs |
+| `LF_SKIP_UI_SMOKE` | `0` | Set to `1` to skip the offscreen UI step |
+
+**llama-server discovery** — `packaging/scripts/smoke_bundle_discovery.sh` defines `list_bundled_llama_server_candidates`: a read-only query that searches explicit roots with `find`, deduplicates by canonical path, and prints one path per line. `smoke_bundle.sh` applies ambiguity policy (exactly one candidate required; genuine duplicates fail).
+
+Search roots are scoped to the bundle layout, not parent `dist/`, so overlapping paths do not count the same binary twice:
+
+| Platform | Search roots | Glob |
+|----------|--------------|------|
+| Windows | `LF_BUNDLE_DIR` only | `*/bin/llama-server.exe` |
+| macOS | `dist/LexiFlow.app` and/or `LF_BUNDLE_DIR/LexiFlow.app` (existing dirs) | `*/Contents/Frameworks/bin/llama-server` |
+
+Scripts target Bash 3.2+ (macOS `/bin/bash`); discovery listing uses portable `while read` loops, not `mapfile`.
+
+Behavioral coverage: `tests/packaging/test_smoke_bundle.py` sources the discovery helper and asserts single-path resolution, canonical dedupe when roots overlap, and rejection of multiple distinct binaries.
 
 On **Windows ARM64**, compile the extension first: `prepare_sqlite_vec_windows_arm64.py` downloads the official sqlite-vec amalgamation plus SQLite `sqlite3ext.h`, then `build_sqlite_vec_windows.ps1` builds `vec0.arm64.dll` with MSVC arm64. The fetch step is a no-op for the DLL stem.
 
@@ -67,7 +104,7 @@ Platform installers: `bash packaging/scripts/build_installer.sh linux|macos-arm6
 - **PR / main:** lint, mypy, and pytest (`.github/workflows/ci.yml`). Linux test job runs `fetch_sqlite_vec.py --platform linux` before `uv sync`. No PyInstaller build on every PR.
 - **Prepare release:** `.github/workflows/prepare-release.yml` opens the version-bump PR.
 - **Tag release:** `.github/workflows/tag-release.yml` tags `v*` when a `release/*` PR merges.
-- **Release tag:** `.github/workflows/release.yml` builds Linux AppImage, macOS DMG, and Windows x64 MSI (Windows ARM64 MSI temporarily disabled; see issue #40). Publishes SHA256 checksums.
+- **Release tag:** `.github/workflows/release.yml` builds Linux AppImage, macOS DMG, and Windows x64 MSI (Windows ARM64 MSI temporarily disabled; see issue #40). Runs `smoke_bundle.sh` after each PyInstaller build (UI smoke skipped on macOS/Windows via `LF_SKIP_UI_SMOKE=1`). Publishes SHA256 checksums.
 
 ## Out of scope (v1)
 
