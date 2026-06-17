@@ -43,7 +43,11 @@ jobs:
             fetch_platform: windows
             artifact_glob: dist/LexiFlow-*.msi
             installer_arch: ""
-          # windows-arm64: disabled until sqlite-vec MSVC build is reliable in CI (#40).
+          - platform: windows-arm64
+            runner: windows-11-arm
+            fetch_platform: windows-arm64
+            artifact_glob: dist/LexiFlow-*-arm64.msi
+            installer_arch: arm64
     uses: ./.github/workflows/release-artifacts.yml
     with:
       ref: ${{ inputs.ref }}

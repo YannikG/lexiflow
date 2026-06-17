@@ -63,6 +63,55 @@ def test_destination_path_for_windows_arm64() -> None:
     assert path.name == "vec0.arm64"
 
 
+def test_installed_loadable_path_for_windows_arm64() -> None:
+    fetch = _load_fetch_sqlite_vec()
+    path = fetch.installed_loadable_path("windows-arm64")
+    assert path.name == "vec0.arm64.dll"
+
+
+def test_installed_loadable_path_for_windows_x64() -> None:
+    fetch = _load_fetch_sqlite_vec()
+    path = fetch.installed_loadable_path("windows")
+    assert path.name == "vec0.dll"
+
+
+def test_fetch_windows_arm64_returns_vec0_arm64_dll_when_present(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fetch = _load_fetch_sqlite_vec()
+    vendor = tmp_path / "sqlite_vec"
+    vendor.mkdir()
+    dll = vendor / "vec0.arm64.dll"
+    dll.write_bytes(b"fake-dll")
+
+    monkeypatch.setattr(
+        fetch,
+        "installed_loadable_path",
+        lambda _key: vendor / "vec0.arm64.dll",
+    )
+
+    result = fetch.fetch_sqlite_vec(platform_key="windows-arm64")
+
+    assert result == dll
+
+
+def test_fetch_windows_arm64_missing_dll_raises(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fetch = _load_fetch_sqlite_vec()
+    vendor = tmp_path / "sqlite_vec"
+    vendor.mkdir()
+
+    monkeypatch.setattr(
+        fetch,
+        "installed_loadable_path",
+        lambda _key: vendor / "vec0.arm64.dll",
+    )
+
+    with pytest.raises(RuntimeError, match="build_sqlite_vec_windows.ps1"):
+        fetch.fetch_sqlite_vec(platform_key="windows-arm64")
+
+
 def test_install_loadable_preserves_other_platform_binaries(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

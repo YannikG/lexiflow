@@ -19,6 +19,7 @@ on:
           - linux
           - macos-arm64
           - windows
+          - windows-arm64
         default: all
 
 permissions:
@@ -61,3 +62,15 @@ jobs:
       runner: windows-latest
       fetch_platform: windows
       artifact_glob: dist/LexiFlow-*.msi
+
+  build-windows-arm64:
+    name: build-windows-arm64
+    if: inputs.platform == 'all' || inputs.platform == 'windows-arm64'
+    uses: ./.github/workflows/release-artifacts.yml
+    with:
+      ref: ${{ inputs.ref }}
+      platform: windows-arm64
+      runner: windows-11-arm
+      fetch_platform: windows-arm64
+      artifact_glob: dist/LexiFlow-*-arm64.msi
+      installer_arch: arm64
