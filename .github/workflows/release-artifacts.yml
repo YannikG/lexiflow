@@ -61,9 +61,10 @@ jobs:
             xvfb \
             fuse \
             libfuse2
-          wget -O /tmp/appimagetool "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
-          chmod +x /tmp/appimagetool
-          sudo mv /tmp/appimagetool /usr/local/bin/appimagetool
+          cd /tmp
+          wget -O appimagetool-x86_64.AppImage "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
+          sha256sum --check "$GITHUB_WORKSPACE/packaging/scripts/appimagetool-x86_64.sha256"
+          sudo install -m 0755 appimagetool-x86_64.AppImage /usr/local/bin/appimagetool
 
       - name: Install macOS build dependencies
         if: runner.os == 'macOS'

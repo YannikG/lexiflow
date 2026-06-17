@@ -19,11 +19,14 @@ _SQLITE_VEC_MISSING_HINT = (
 def _is_sqlite_vec_load_failure(message: str) -> bool:
     lower = message.lower()
     return (
-        "vec0" in lower
-        or "sqlite-vec loadable" in lower
+        "sqlite-vec loadable" in lower
+        or ("no such module" in lower and "vec0" in lower)
+        or ("failed to load" in lower and "vec0" in lower)
         or ("load_extension" in lower and "no such file" in lower)
-        or ("dlopen" in lower and "sqlite_vec" in lower)
-        or "enable_load_extension" in lower
+        or (
+            "dlopen" in lower
+            and ("sqlite_vec" in lower or "/vec0" in lower or "\\vec0" in lower)
+        )
     )
 
 
@@ -59,6 +62,8 @@ def inference_subprocess_error(stderr: str, *, exit_code: int) -> str:
     lower = normalized.lower()
     if _is_llama_server_runtime_failure(normalized):
         return _LLAMA_SERVER_NOT_RUNNING
+    if _is_sqlite_vec_load_failure(normalized):
+        return _SQLITE_VEC_MISSING_HINT
     if "connection refused" in lower:
         return _LLAMA_SERVER_NOT_RUNNING
     for line in reversed(normalized.splitlines()):

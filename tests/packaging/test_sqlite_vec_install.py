@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
-import sqlite_vec
+from tests.packaging.sqlite_vec_test_support import (
+    resolve_installed_sqlite_vec_loadable,
+)
 
 _SETUP_HINT = (
     "sqlite-vec loadable missing from installed package; "
@@ -12,15 +12,6 @@ _SETUP_HINT = (
 )
 
 
-def _resolve_installed_loadable() -> Path | None:
-    package_dir = Path(sqlite_vec.loadable_path()).parent
-    for name in ("vec0.dylib", "vec0.so", "vec0.dll", "vec0.arm64.dll"):
-        candidate = package_dir / name
-        if candidate.exists():
-            return candidate
-    return None
-
-
 def test_installed_sqlite_vec_package_includes_platform_loadable() -> None:
-    loadable = _resolve_installed_loadable()
+    loadable = resolve_installed_sqlite_vec_loadable()
     assert loadable is not None, _SETUP_HINT

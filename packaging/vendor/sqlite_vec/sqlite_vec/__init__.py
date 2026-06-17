@@ -6,6 +6,7 @@ import platform
 import sqlite3
 import struct
 import sys
+from functools import lru_cache
 from os import path
 
 __version__ = "0.1.9"
@@ -29,8 +30,13 @@ def _loadable_file_exists(base_path: str) -> bool:
     return path.isfile(base_path)
 
 
+@lru_cache(maxsize=1)
 def _dev_vendor_directory() -> str | None:
-    """Return repo vendor vec dir when loadable exists there (non-frozen dev only)."""
+    """Return repo vendor vec dir when loadable exists there (non-frozen dev only).
+
+    Only searches within a LexiFlow repo root (``pyproject.toml`` with
+    ``name = "lexiflow"``). Assumes in-project ``.venv`` layouts.
+    """
     if getattr(sys, "frozen", False):
         return None
     module_dir = path.dirname(path.abspath(__file__))
@@ -40,9 +46,19 @@ def _dev_vendor_directory() -> str | None:
     from pathlib import Path
 
     for parent in Path(module_dir).parents:
+        pyproject = parent / "pyproject.toml"
+        if not pyproject.is_file():
+            continue
+        try:
+            text = pyproject.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        if 'name = "lexiflow"' not in text:
+            continue
         vendor = parent / "packaging" / "vendor" / "sqlite_vec" / "sqlite_vec"
         if vendor.is_dir() and _loadable_file_exists(str(vendor / stem)):
             return str(vendor)
+        return None
     return None
 
 
@@ -68,14 +84,26 @@ def _search_directories() -> list[str]:
     return directories
 
 
+def _resolved_loadable_path(stem_path: str) -> str:
+    """Return the on-disk path passed to ``load_extension``."""
+    for suffix in _LOADABLE_SUFFIXES:
+        candidate = stem_path + suffix
+        if path.isfile(candidate):
+            return candidate
+    if path.isfile(stem_path):
+        return stem_path
+    raise FileNotFoundError(f"sqlite-vec loadable file missing for stem {stem_path!r}")
+
+
 def loadable_path() -> str:
     """Return the path to the vec0 loadable extension for this platform."""
     stem = _vec0_stem()
-    for directory in _search_directories():
+    directories = _search_directories()
+    for directory in directories:
         candidate = path.join(directory, stem)
         if _loadable_file_exists(candidate):
             return candidate
-    searched = ", ".join(_search_directories())
+    searched = ", ".join(directories)
     raise FileNotFoundError(
         f"sqlite-vec loadable {stem} not found; searched: {searched}"
     )
@@ -83,7 +111,7 @@ def loadable_path() -> str:
 
 def load(conn: sqlite3.Connection) -> None:
     """Load the sqlite-vec SQLite extension into the given database connection."""
-    conn.load_extension(loadable_path())
+    conn.load_extension(_resolved_loadable_path(loadable_path()))
 
 
 def serialize_float32(vector: list[float]) -> bytes:

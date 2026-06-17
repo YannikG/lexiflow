@@ -20,3 +20,4 @@ def test_release_group_excludes_sentence_transformers_and_torch() -> None:
     assert "sqlean" in spec or 'sys.platform != "win32"' in spec
     assert "_sqlite_vec_binaries" in spec
     assert "VENDOR_VEC_DIR" in spec
+    assert "_host_vec0_filenames" in spec

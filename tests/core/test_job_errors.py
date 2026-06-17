@@ -45,10 +45,21 @@ def test_user_facing_job_error_maps_sqlite_vec_dlopen_failure() -> None:
     assert "sqlite-vec extension is missing" in message.lower()
 
 
-def test_user_facing_job_error_maps_enable_load_extension_missing() -> None:
+def test_user_facing_job_error_does_not_map_python_sqlite_build_error() -> None:
     message = user_facing_job_error(
         "'sqlite3.Connection' object has no attribute 'enable_load_extension'"
     )
+    assert "sqlite-vec extension is missing" not in message.lower()
+
+
+def test_user_facing_job_error_does_not_map_vec0_sql_error() -> None:
+    message = user_facing_job_error("no such table: vec0_embeddings")
+    assert "sqlite-vec extension is missing" not in message.lower()
+
+
+def test_inference_subprocess_error_maps_sqlite_vec_load_failure() -> None:
+    stderr = "sqlite-vec loadable vec0 not found; searched: /tmp/sqlite_vec"
+    message = inference_subprocess_error(stderr, exit_code=1)
     assert "sqlite-vec extension is missing" in message.lower()
 
 

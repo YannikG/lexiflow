@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import lexiflow_core
 import pytest
 from lexiflow_ui import launcher
+from tests.packaging.sqlite_vec_test_support import (
+    resolve_installed_sqlite_vec_loadable,
+)
 
 
 def test_launcher_version_prints_core_version(capsys) -> None:
@@ -19,14 +20,7 @@ def test_launcher_version_prints_core_version(capsys) -> None:
 
 
 def test_launcher_sqlite_vec_smoke_prints_version(capsys) -> None:
-    import sqlite_vec
-
-    package_dir = Path(sqlite_vec.loadable_path()).parent
-    has_loadable = any(
-        (package_dir / name).is_file()
-        for name in ("vec0.dylib", "vec0.so", "vec0.dll", "vec0.arm64.dll")
-    )
-    if not has_loadable:
+    if resolve_installed_sqlite_vec_loadable() is None:
         pytest.skip("installed sqlite-vec loadable not present")
 
     exit_code = launcher.main(["--sqlite-vec-smoke"])
