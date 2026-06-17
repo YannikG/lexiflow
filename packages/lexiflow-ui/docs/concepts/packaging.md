@@ -141,8 +141,8 @@ Platform installers: `bash packaging/scripts/build_installer.sh linux|macos-arm6
 - **PR / main:** lint, mypy, pytest, and **Linux PyInstaller bundle smoke** (`.github/workflows/ci.yml` `bundle-smoke` job). The test job runs `fetch_sqlite_vec.py --platform linux` before `uv sync`. Bundle smoke builds `dist/LexiFlow`, asserts `vec0` is on disk, runs `--sqlite-vec-smoke`, worker, and offscreen UI — same checks as release, without waiting for a tag.
 - **Prepare release:** `.github/workflows/prepare-release.yml` opens the version-bump PR.
 - **Tag release:** `.github/workflows/tag-release.yml` tags `v*` when a `release/*` PR merges.
-- **Release tag:** `.github/workflows/release.yml` builds Linux AppImage, macOS DMG, and Windows x64 MSI (Windows ARM64 MSI temporarily disabled; see issue #40). Runs `smoke_bundle.sh` after each PyInstaller build (UI smoke skipped on macOS/Windows via `LF_SKIP_UI_SMOKE=1`). Publishes SHA256 checksums and a GitHub Release. Tag pushes publish automatically; manual `workflow_dispatch` only publishes when `publish_release=true` (tag-release automation). For PR branch installers use **release-build**, not `release.yml`.
-- **Manual release build (no GitHub Release):** `.github/workflows/release-build.yml` — **Actions → release-build → Run workflow**. Set **ref** to your PR branch (or any commit SHA) and optionally limit **platform** to `linux` for a faster check. Download installers from the run’s **Artifacts** tab. Does not draft or publish a release.
+- **Release tag:** `.github/workflows/release.yml` builds Linux AppImage, macOS DMG, Windows x64 MSI, and Windows ARM64 MSI. Runs `smoke_bundle.sh` after each PyInstaller build (UI smoke skipped on macOS/Windows via `LF_SKIP_UI_SMOKE=1`). Publishes SHA256 checksums and a GitHub Release. Tag pushes publish automatically; manual `workflow_dispatch` only publishes when `publish_release=true` (tag-release automation). For PR branch installers use **release-build**, not `release.yml`.
+- **Manual release build (no GitHub Release):** `.github/workflows/release-build.yml` — **Actions → release-build → Run workflow**. Set **ref** to your PR branch (or any commit SHA) and optionally limit **platform** to `linux`, `macos-arm64`, `windows`, or `windows-arm64` for a faster check. Download installers from the run’s **Artifacts** tab. Does not draft or publish a release.
 
 ### Manual release build on a PR branch
 
@@ -152,7 +152,7 @@ Use this when you need full platform installers (DMG, MSI, AppImage) from CI wit
 2. Open **Actions → release-build → Run workflow**.
 3. **ref:** branch name (e.g. `feature/fix-macos-dev-generation-vec0`) or full SHA.
 4. **platform:** `all` for every installer, or a single platform for quicker feedback.
-5. When the run finishes, download `lexiflow-linux`, `lexiflow-macos-arm64`, and/or `lexiflow-windows` from **Artifacts**.
+5. When the run finishes, download `lexiflow-linux`, `lexiflow-macos-arm64`, `lexiflow-windows`, and/or `lexiflow-windows-arm64` from **Artifacts**.
 
 Version strings use CI dev suffixes (`X.Y.Z.dev<N>`) when the ref is not a release tag (`LF_SYNC_CI_DEV=1` in the build job).
 

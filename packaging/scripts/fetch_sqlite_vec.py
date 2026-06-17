@@ -75,6 +75,20 @@ def destination_path(platform_key: str) -> Path:
     return _vendor_vec_dir() / stem
 
 
+def installed_loadable_path(platform_key: str) -> Path:
+    """Return on-disk vendor path for the installed loadable binary."""
+    base = destination_path(platform_key)
+    if platform_key == "linux":
+        suffix = ".so"
+    elif platform_key in ("macos-arm64", "macos-x64"):
+        suffix = ".dylib"
+    elif platform_key == "windows-arm64":
+        return base.with_name(f"{base.name}.dll")
+    else:
+        suffix = ".dll"
+    return base.with_suffix(suffix)
+
+
 def _download(url: str, destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     request = urllib.request.Request(url, headers={"User-Agent": "LexiFlow-packaging"})
@@ -96,10 +110,8 @@ def _find_loadable(extracted_root: Path, stem: str) -> Path:
 
 
 def _install_loadable(source: Path, platform_key: str) -> Path:
-    dest_base = destination_path(platform_key)
-    dest_base.parent.mkdir(parents=True, exist_ok=True)
-    suffix = source.suffix
-    dest = dest_base.with_suffix(suffix) if suffix else dest_base
+    dest = installed_loadable_path(platform_key)
+    dest.parent.mkdir(parents=True, exist_ok=True)
     dest.unlink(missing_ok=True)
     shutil.copy2(source, dest)
     return dest
@@ -133,7 +145,7 @@ def fetch_sqlite_vec(*, platform_key: str | None = None) -> Path:
             "windows-arm64 requires build_sqlite_vec_windows.ps1; "
             "run that script before fetch_sqlite_vec"
         )
-        dest = destination_path(key).with_suffix(".dll")
+        dest = installed_loadable_path(key)
         if not dest.is_file():
             raise RuntimeError(msg)
         return dest

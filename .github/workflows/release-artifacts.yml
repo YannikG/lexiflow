@@ -9,7 +9,7 @@ on:
         type: string
         default: ""
       platform:
-        description: Matrix platform id (linux | macos-arm64 | windows)
+        description: Matrix platform id (linux | macos-arm64 | windows | windows-arm64)
         required: true
         type: string
       runner:
@@ -74,6 +74,28 @@ jobs:
         if: runner.os == 'Windows'
         run: choco install wixtoolset -y
 
+      - name: Setup MSVC for sqlite-vec ARM64 build
+        if: inputs.platform == 'windows-arm64'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: arm64
+
+      - name: Restore WiX Toolset on PATH after MSVC setup
+        if: inputs.platform == 'windows-arm64'
+        shell: pwsh
+        run: |
+          $heat = Get-ChildItem "C:\Program Files (x86)\WiX Toolset v*\bin\heat.exe" -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+          if (-not $heat) {
+            throw "WiX heat.exe not found; choco install wixtoolset may have failed"
+          }
+          "$($heat.DirectoryName)" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Build sqlite-vec for Windows ARM64
+        if: inputs.platform == 'windows-arm64'
+        shell: pwsh
+        run: ./packaging/scripts/build_sqlite_vec_windows.ps1
+
       - name: Fetch sqlite-vec loadable
         shell: bash
         run: python packaging/scripts/fetch_sqlite_vec.py --platform "${{ inputs.fetch_platform }}"
@@ -129,7 +151,7 @@ jobs:
         run: bash packaging/scripts/build_dmg.sh
 
       - name: Build Windows MSI
-        if: inputs.platform == 'windows'
+        if: inputs.platform == 'windows' || inputs.platform == 'windows-arm64'
         shell: pwsh
         env:
           LF_INSTALLER_ARCH: ${{ inputs.installer_arch }}
