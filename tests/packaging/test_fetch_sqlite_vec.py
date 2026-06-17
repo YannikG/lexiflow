@@ -75,6 +75,18 @@ def test_installed_loadable_path_for_windows_x64() -> None:
     assert path.name == "vec0.dll"
 
 
+def test_installed_loadable_path_for_linux() -> None:
+    fetch = _load_fetch_sqlite_vec()
+    path = fetch.installed_loadable_path("linux")
+    assert path.name == "vec0.so"
+
+
+def test_installed_loadable_path_for_macos() -> None:
+    fetch = _load_fetch_sqlite_vec()
+    path = fetch.installed_loadable_path("macos-arm64")
+    assert path.name == "vec0.dylib"
+
+
 def test_fetch_windows_arm64_returns_vec0_arm64_dll_when_present(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
