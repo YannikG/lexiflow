@@ -6,7 +6,10 @@ import logging
 
 from lexiflow_core.config.settings import Settings
 from lexiflow_core.embeddings.fake import FakeEmbedder
-from lexiflow_core.embeddings.llama_server import LlamaServerEmbedder
+from lexiflow_core.embeddings.llama_server import (
+    LlamaServerEmbedder,
+    LlamaServerEmbedError,
+)
 from lexiflow_core.embeddings.pins import pinned_embedding_hf_model
 from lexiflow_core.embeddings.protocol import Embedder
 from lexiflow_core.llm.llama_server import llama_server_health
@@ -33,3 +36,17 @@ def resolve_embedder(settings: Settings) -> Embedder:
         return FakeEmbedder()
     logger.info("using llama-server embedder at %s", base_url)
     return LlamaServerEmbedder(base_url=base_url, model=model)
+
+
+def embed_with_fallback(embedder: Embedder, text: str) -> list[float]:
+    """Embed text, using FakeEmbedder when llama-server is unavailable."""
+    if isinstance(embedder, FakeEmbedder):
+        return embedder.embed(text)
+    try:
+        return embedder.embed(text)
+    except (LlamaServerEmbedError, OSError, TimeoutError) as exc:
+        logger.warning(
+            "llama-server embedding failed (%s); using FakeEmbedder",
+            exc,
+        )
+        return FakeEmbedder().embed(text)

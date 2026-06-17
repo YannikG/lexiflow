@@ -11,6 +11,7 @@ from lexiflow_core.jobs.handlers.cleanup_output import (
 from lexiflow_core.jobs.job_errors import user_facing_job_error
 from lexiflow_core.jobs.models import JobRecord, JobRequest, JobType
 from lexiflow_core.jobs.service import JobService
+from lexiflow_core.library.models import TextRecord
 from lexiflow_core.library.text_repository import TextRepository
 from lexiflow_core.llm.prompt_languages import prompt_language_label
 from lexiflow_core.llm.prompts import render_prompt
@@ -45,6 +46,12 @@ def _raw_paste(job: JobRecord) -> str:
     return raw
 
 
+def _source_language_code(record: TextRecord, route: str) -> str:
+    if route == SOURCE_ROUTE_NATIVE:
+        return record.native_language.strip()
+    return record.target_language.strip()
+
+
 def handle_cleanup(
     job: JobRecord,
     *,
@@ -62,10 +69,15 @@ def handle_cleanup(
         return
 
     record = repo.get_text(text_id)
+    source_language = _source_language_code(record, route)
     prompt = render_prompt(
         "cleanup",
-        native_language=prompt_language_label(record.native_language),
-        target_language=prompt_language_label(record.target_language),
+        source_language=source_language,
+        source_language_label=prompt_language_label(source_language),
+        native_language=record.native_language,
+        native_language_label=prompt_language_label(record.native_language),
+        target_language=record.target_language,
+        target_language_label=prompt_language_label(record.target_language),
         pasted_content=raw_paste,
     )
     try:

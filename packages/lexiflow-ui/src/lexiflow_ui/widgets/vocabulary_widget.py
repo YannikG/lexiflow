@@ -203,11 +203,7 @@ class VocabularyWidget(QWidget):
                 lemma=updated.lemma,
             )
             if self._supervisor is not None:
-                ensure_background_workers(
-                    self._supervisor,
-                    llama_supervisor=self._llama_supervisor,
-                    embed_supervisor=self._embed_supervisor,
-                )
+                ensure_background_workers(self._supervisor)
         self.vocabulary_changed.emit()
         self.refresh()
 
@@ -266,11 +262,7 @@ class VocabularyWidget(QWidget):
             lemma=form.lemma,
         )
         if self._supervisor is not None:
-            ensure_background_workers(
-                self._supervisor,
-                llama_supervisor=self._llama_supervisor,
-                embed_supervisor=self._embed_supervisor,
-            )
+            ensure_background_workers(self._supervisor)
         self.vocabulary_changed.emit()
         self.refresh()
 

@@ -57,7 +57,6 @@ settings.toml          # global settings, including data_root pointer
     index.sqlite
     queue.sqlite
     models/
-    spacy/
     logs/
   .trash/
   es/
@@ -75,7 +74,7 @@ settings.toml          # global settings, including data_root pointer
 
 ## External dependencies
 
-- **Hugging Face:** pinned native LLM and embedding GGUF (via llama-server), spaCy packs (`models.lock` pins revisions).
+- **Hugging Face:** pinned native LLM and embedding GGUF (via llama-server); `models.lock` pins revisions.
 - **Ollama (optional):** replaces native LLM only; embeddings use `FakeEmbedder` in the worker until phase 10b adds Ollama embed HTTP.
 
 ## Testing strategy

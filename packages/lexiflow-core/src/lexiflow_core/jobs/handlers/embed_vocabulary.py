@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from lexiflow_core.embeddings.protocol import Embedder
+from lexiflow_core.embeddings.resolution import embed_with_fallback
 from lexiflow_core.jobs.models import JobRecord
 from lexiflow_core.jobs.service import JobService
 from lexiflow_core.vectors.store import VectorStore
@@ -55,7 +56,7 @@ def handle_vocabulary_embed(
         )
         if not vocab.has_lemma(lemma):
             raise ValueError(f"vocabulary lemma not found: {lemma}")
-        vector = embedder.embed(lemma)
+        vector = embed_with_fallback(embedder, lemma)
         store = (
             vector_store
             if vector_store is not None

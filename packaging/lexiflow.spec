@@ -33,15 +33,39 @@ VENDOR_VEC_DIR = REPO_ROOT / "packaging" / "vendor" / "sqlite_vec" / "sqlite_vec
 
 
 def _sqlite_vec_datas() -> list[tuple[str, str]]:
-    entries = collect_data_files("sqlite_vec")
-    seen = {Path(source).name for source, _dest in entries}
-    for loadable in sorted(VENDOR_VEC_DIR.glob("vec0*")):
-        if not loadable.is_file() or loadable.suffix not in {".dylib", ".so", ".dll"}:
-            continue
-        if loadable.name in seen:
-            continue
-        entries.append((str(loadable), "sqlite_vec"))
-        seen.add(loadable.name)
+    return collect_data_files(
+        "sqlite_vec",
+        excludes=["vec0*", "*.dylib", "*.so", "*.dll"],
+    )
+
+
+def _host_vec0_filenames() -> list[str]:
+    machine = platform.machine().lower()
+    if sys.platform == "win32":
+        if machine in {"arm64", "aarch64"}:
+            return ["vec0.arm64.dll"]
+        return ["vec0.dll"]
+    if sys.platform == "darwin":
+        return ["vec0.dylib"]
+    if sys.platform == "linux":
+        return ["vec0.so"]
+    return ["vec0.dylib", "vec0.so", "vec0.dll", "vec0.arm64.dll"]
+
+
+def _sqlite_vec_binaries() -> list[tuple[str, str]]:
+    """Ship vendored vec0 native loadables next to the sqlite_vec package in the bundle."""
+    entries: list[tuple[str, str]] = []
+    for filename in _host_vec0_filenames():
+        loadable = VENDOR_VEC_DIR / filename
+        if loadable.is_file():
+            entries.append((str(loadable), "sqlite_vec"))
+    if not entries:
+        expected = ", ".join(_host_vec0_filenames())
+        raise RuntimeError(
+            f"sqlite-vec loadable missing under {VENDOR_VEC_DIR} "
+            f"(expected one of: {expected}); "
+            "run packaging/scripts/fetch_sqlite_vec.py"
+        )
     return entries
 
 PLATFORM_BIN_KEYS = {
@@ -95,6 +119,7 @@ datas = [
 ] + pyside6_datas + _sqlite_vec_datas() + sqlean_datas
 
 binaries: list[tuple[str, str]] = _llama_server_binaries()
+binaries += _sqlite_vec_binaries()
 binaries += pyside6_binaries + sqlean_binaries
 
 hiddenimports = [

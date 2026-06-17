@@ -9,6 +9,8 @@ from uuid import UUID
 
 import pytest
 from lexiflow_core.config.paths import variant_path
+from lexiflow_core.config.settings import Settings
+from lexiflow_core.config.settings_store import SettingsStore
 from lexiflow_core.embeddings.fake import FakeEmbedder
 from lexiflow_core.jobs.handlers.simplify import handle_simplify
 from lexiflow_core.jobs.models import JobRequest, JobStatus, JobType
@@ -358,3 +360,37 @@ def test_simplify_prompt_includes_vector_selected_vocabulary(
     assert "avanzado" in llm.last_prompt
     jobs = job_service.list_jobs()
     assert jobs[0].status == JobStatus.COMPLETED
+
+
+def test_simplify_uses_settings_native_language_for_gloss_prompt(
+    monkeypatch: pytest.MonkeyPatch,
+    simplify_context: tuple[JobService, TextRepository, LibraryIndex, UUID, Path],
+) -> None:
+    job_service, repo, _index, text_id, data_root = simplify_context
+    config_dir = data_root.parent / "config"
+    SettingsStore(config_dir=config_dir).save(Settings(native_language="de"))
+    monkeypatch.setattr(
+        "lexiflow_core.config.settings_resolution.SettingsStore",
+        lambda: SettingsStore(config_dir=config_dir),
+    )
+    llm = _RecordingFakeLLM(response=_valid_simplify_json())
+
+    job_service.enqueue(
+        JobRequest(
+            job_type=JobType.SIMPLIFY,
+            payload={"text_id": str(text_id), "level": "A2"},
+        )
+    )
+    job = job_service.claim_next()
+    assert job is not None
+    handle_simplify(
+        job,
+        data_root=data_root,
+        llm=llm,
+        repo=repo,
+        job_service=job_service,
+    )
+
+    assert "Native language (for glosses and explanations): German (de) (de)" in (
+        llm.last_prompt
+    )

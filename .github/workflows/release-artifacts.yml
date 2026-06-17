@@ -1,0 +1,155 @@
+name: Release artifacts build
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref to checkout (empty = triggering ref)
+        required: false
+        type: string
+        default: ""
+      platform:
+        description: Matrix platform id (linux | macos-arm64 | windows)
+        required: true
+        type: string
+      runner:
+        description: GitHub-hosted runner label
+        required: true
+        type: string
+      fetch_platform:
+        description: fetch_sqlite_vec.py / fetch_llama_server.py platform id
+        required: true
+        type: string
+      artifact_glob:
+        description: Glob for installer artifacts under dist/
+        required: true
+        type: string
+      installer_arch:
+        description: Windows MSI architecture suffix (empty for x64)
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  build:
+    name: build-${{ inputs.platform }}
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref != '' && inputs.ref || github.ref }}
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libegl1 \
+            libgl1 \
+            libglib2.0-0 \
+            libxkbcommon0 \
+            libxcb-cursor0 \
+            libxcb-xinerama0 \
+            libdbus-1-3 \
+            xvfb \
+            fuse \
+            libfuse2
+          cd /tmp
+          wget -O appimagetool-x86_64.AppImage "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
+          sha256sum --check "$GITHUB_WORKSPACE/packaging/scripts/appimagetool-x86_64.sha256"
+          sudo install -m 0755 appimagetool-x86_64.AppImage /usr/local/bin/appimagetool
+
+      - name: Install macOS build dependencies
+        if: runner.os == 'macOS'
+        run: brew install create-dmg || true
+
+      - name: Install Windows build dependencies
+        if: runner.os == 'Windows'
+        run: choco install wixtoolset -y
+
+      - name: Fetch sqlite-vec loadable
+        shell: bash
+        run: python packaging/scripts/fetch_sqlite_vec.py --platform "${{ inputs.fetch_platform }}"
+
+      - name: Install release dependencies
+        run: uv sync --frozen --group release
+
+      - name: Sync version from tag
+        shell: bash
+        env:
+          LF_SYNC_CI_DEV: "1"
+          GITHUB_REF_NAME: ${{ inputs.ref != '' && inputs.ref || github.ref_name }}
+        run: |
+          VERSION="$(uv run python packaging/scripts/sync_version.py)"
+          echo "LF_VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "LF_EXPECTED_VERSION=$VERSION" >> "$GITHUB_ENV"
+          WIX_VERSION="$(uv run python packaging/scripts/wix_version.py "$VERSION")"
+          echo "WIX_VERSION=$WIX_VERSION" >> "$GITHUB_ENV"
+
+      - name: Fetch llama-server
+        shell: bash
+        run: |
+          uv run python packaging/scripts/generate_icons.py
+          uv run python packaging/scripts/fetch_llama_server.py --platform "${{ inputs.fetch_platform }}"
+
+      - name: Build PyInstaller bundle
+        run: uv run pyinstaller packaging/lexiflow.spec --noconfirm
+
+      - name: Smoke test bundle
+        shell: bash
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          if [[ "${{ runner.os }}" == "Linux" ]]; then
+            xvfb-run -a bash packaging/scripts/smoke_bundle.sh
+          elif [[ "${{ runner.os }}" == "macOS" ]]; then
+            export LF_SKIP_UI_SMOKE=1
+            bash packaging/scripts/smoke_bundle.sh
+          else
+            export LF_SKIP_UI_SMOKE=1
+            bash packaging/scripts/smoke_bundle.sh
+          fi
+
+      - name: Build Linux AppImage
+        if: inputs.platform == 'linux'
+        run: bash packaging/scripts/build_appimage.sh
+
+      - name: Build macOS DMG
+        if: inputs.platform == 'macos-arm64'
+        run: bash packaging/scripts/build_dmg.sh
+
+      - name: Build Windows MSI
+        if: inputs.platform == 'windows'
+        shell: pwsh
+        env:
+          LF_INSTALLER_ARCH: ${{ inputs.installer_arch }}
+        run: |
+          $env:LEXIFLOW_BUNDLE_DIR = Join-Path $PWD "dist\LexiFlow"
+          ./packaging/scripts/build_msi.ps1
+
+      - name: Collect release artifacts
+        shell: bash
+        run: |
+          mkdir -p release-artifacts
+          shopt -s nullglob
+          for path in ${{ inputs.artifact_glob }}; do
+            cp "$path" release-artifacts/
+          done
+          if [[ ! "$(ls -A release-artifacts)" ]]; then
+            echo "no release artifacts found for ${{ inputs.platform }}" >&2
+            exit 1
+          fi
+          (cd release-artifacts && sha256sum *) > release-artifacts/checksums.txt
+
+      - name: Upload platform artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: lexiflow-${{ inputs.platform }}
+          path: release-artifacts/

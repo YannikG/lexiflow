@@ -6,6 +6,7 @@ from pathlib import Path
 from uuid import UUID
 
 from lexiflow_core.embeddings.protocol import Embedder
+from lexiflow_core.embeddings.resolution import embed_with_fallback
 from lexiflow_core.jobs.models import JobRecord
 from lexiflow_core.jobs.service import JobService
 from lexiflow_core.library.text_repository import TextRepository
@@ -43,7 +44,7 @@ def handle_text_embed(
             raise ValueError(f"text {text_id} has no translated variant") from exc
         if translated is None:
             raise ValueError(f"text {text_id} has no translated variant")
-        vector = embedder.embed(translated)
+        vector = embed_with_fallback(embedder, translated)
         store = (
             vector_store
             if vector_store is not None

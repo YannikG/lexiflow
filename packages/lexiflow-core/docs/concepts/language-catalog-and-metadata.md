@@ -37,10 +37,10 @@ CEFR level is not encoded in folder paths. **Level** on groups or texts is forbi
 | `get_user_level(iso)` | Read stored CEFR level |
 | `list_targets()` | List ISO codes with metadata on disk |
 
-`add_target` validates against the catalog and rejects duplicates. It does not install spaCy packs. Use `add_target_language()` or `complete_language_onboarding()` in `setup.py` for metadata setup; the UI installs the spaCy pack with in-dialog progress (see `packages/lexiflow-ui/docs/concepts/language-pack-install.md`). `discard_failed_target()` rolls back metadata when install fails.
+`add_target` validates against the catalog and rejects duplicates. Use `add_target_language()` or `complete_language_onboarding()` in `setup.py` for metadata setup. `discard_failed_target()` rolls back metadata when setup fails.
 
 ## Remove target language (phase 12)
 
 `lexiflow_core.languages.remove_target.remove_target_language` deletes `{data_root}/{iso}/` and clears `active_target_language` in global settings when it matches. The UI may offer **Vocabulary export** first via `remove_target_language_flow.py`.
 
-See [common-language.md](../../../../common-language.md): **Language catalog**, **Language metadata**, **User language level**, **spaCy language packs**.
+See [common-language.md](../../../../common-language.md): **Language catalog**, **Language metadata**, **User language level**.

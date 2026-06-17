@@ -69,7 +69,7 @@ jobs:
         run: |
           # Tags pushed with GITHUB_TOKEN do not fire other workflows (push: tags).
           # workflow_dispatch is exempt; start release.yml explicitly.
-          gh workflow run release.yml --ref "${TAG}"
+          gh workflow run release.yml --ref "${TAG}" -f publish_release=true
 
   tag-manual:
     if: github.event_name == 'workflow_dispatch'
@@ -99,4 +99,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.tag.outputs.tag }}
-        run: gh workflow run release.yml --ref "${TAG}"
+        run: gh workflow run release.yml --ref "${TAG}" -f publish_release=true

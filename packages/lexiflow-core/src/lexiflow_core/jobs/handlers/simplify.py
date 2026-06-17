@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from uuid import UUID
 
+from lexiflow_core.config.settings_resolution import resolve_gloss_language
 from lexiflow_core.jobs.models import JobRecord
 from lexiflow_core.jobs.service import JobService
 from lexiflow_core.languages.models import CEFRLevel
@@ -144,11 +145,16 @@ def handle_simplify(
         vector_store=vector_store,
         vocabulary_store=vocabulary_store,
     )
+    try:
+        native_language = resolve_gloss_language(fallback=record.native_language)
+    except ValueError as exc:
+        job_service.fail(job.id, str(exc))
+        return
     prompt = render_prompt(
         "simplify",
         target_level=target_level.value,
-        native_language=record.native_language,
-        native_language_label=prompt_language_label(record.native_language),
+        native_language=native_language,
+        native_language_label=prompt_language_label(native_language),
         target_language=record.target_language,
         target_language_label=prompt_language_label(record.target_language),
         vocabulary_words=_format_vocabulary_words(prompt_words),

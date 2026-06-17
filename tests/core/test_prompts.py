@@ -11,6 +11,13 @@ def test_load_cleanup_prompt_is_non_empty() -> None:
     assert content.strip()
 
 
+def test_cleanup_prompt_forbids_translation_out_of_source_language() -> None:
+    content = load_prompt("cleanup").lower()
+    assert "source language" in content
+    assert "do not translate" in content
+    assert "{source_language}" in content
+
+
 def test_load_missing_prompt_raises() -> None:
     with pytest.raises(PromptNotFoundError, match="nonexistent"):
         load_prompt("nonexistent")

@@ -66,3 +66,67 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
         run: xvfb-run -a uv run pytest
+
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      packaging: ${{ steps.filter.outputs.packaging }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            packaging:
+              - 'packaging/**'
+              - 'packages/**'
+              - 'pyproject.toml'
+              - 'uv.lock'
+              - '.github/workflows/ci.yml'
+              - '.github/workflows/release-artifacts.yml'
+
+  bundle-smoke:
+    name: bundle-smoke (Linux PyInstaller)
+    needs: changes
+    if: needs.changes.outputs.packaging == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Install Qt runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libegl1 \
+            libgl1 \
+            libglib2.0-0 \
+            libxkbcommon0 \
+            libxcb-cursor0 \
+            libxcb-xinerama0 \
+            libdbus-1-3 \
+            xvfb
+
+      - name: Fetch vendored sqlite-vec loadable
+        run: python packaging/scripts/fetch_sqlite_vec.py --platform linux
+
+      - name: Install release dependencies
+        run: uv sync --frozen --group release
+
+      - name: Fetch llama-server and icons
+        run: |
+          uv run python packaging/scripts/generate_icons.py
+          uv run python packaging/scripts/fetch_llama_server.py --platform linux
+
+      - name: Build PyInstaller bundle
+        run: uv run pyinstaller packaging/lexiflow.spec --noconfirm
+
+      - name: Smoke test built bundle
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: xvfb-run -a bash packaging/scripts/smoke_bundle.sh

@@ -119,3 +119,55 @@ def test_cleanup_fails_job_when_validation_rejects_output(
     assert variant_path(folder, "native").read_text(encoding="utf-8") == provisional
     cleanup_jobs = [j for j in job_service.list_jobs() if j.job_type == JobType.CLEANUP]
     assert cleanup_jobs[0].status == JobStatus.FAILED
+
+
+class _RecordingFakeLLM(FakeLLM):
+    def __init__(self, response: str) -> None:
+        super().__init__(response=response)
+        self.last_prompt = ""
+
+    def complete(
+        self, prompt: str, *, json_schema: dict[str, object] | None = None
+    ) -> str:
+        self.last_prompt = prompt
+        return super().complete(prompt, json_schema=json_schema)
+
+
+def test_cleanup_native_route_prompt_uses_native_as_source_language(
+    tmp_path: Path,
+) -> None:
+    data_root = tmp_path / "LexiFlow"
+    coordinator, index = LibraryCoordinator.open(data_root)
+    del coordinator
+    repo = TextRepository(data_root, index)
+    record = repo.create_text(
+        CreateTextRequest(
+            title="Untitled",
+            group="News",
+            target_language="uk",
+            native_language="de",
+            body="raw",
+        )
+    )
+    job_service = JobService(data_root)
+    llm = _RecordingFakeLLM(response="# Titel\n\nDeutscher Text.")
+    job_service.enqueue(
+        JobRequest(
+            job_type=JobType.CLEANUP,
+            payload={
+                "text_id": str(record.id),
+                "raw_paste": "90 Jahre Flüchtlingshilfe",
+                "source_route": SOURCE_ROUTE_NATIVE,
+            },
+        )
+    )
+    job = job_service.claim_next()
+    assert job is not None
+
+    handle_cleanup(job, llm=llm, repo=repo, job_service=job_service)
+
+    assert "Source language (language of the pasted content): German (de) (de)" in (
+        llm.last_prompt
+    )
+    assert "Every word of the output must stay in German (de)" in llm.last_prompt
+    assert "Target language (learning): Ukrainian (uk) (uk)" in llm.last_prompt

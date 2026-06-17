@@ -28,7 +28,7 @@ The toolbar has separate **Vocabulary** and **Study** navigation modes for the *
 
 - Context menu **Add word** on translated and simplified tabs
 - Learned tab: right-click **Edit word** or **Delete** (same confirmation and **delete undo window** as Browse)
-- `reader_add_word.open_highlight_add_dialog` enqueues `JobType.LEMMA` when spaCy is unavailable
+- `reader_add_word.open_highlight_add_dialog` enqueues `JobType.LEMMA` for lemma inference
 - Successful add enqueues vocabulary embed and emits `vocabulary_changed`
 
 ## Related

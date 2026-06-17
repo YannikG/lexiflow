@@ -79,7 +79,7 @@ class JobsPanelDialog(QDialog):
         self._retry_button = QPushButton("Retry", self)
         self._retry_button.setObjectName("jobs_panel_retry_button")
         self._retry_button.clicked.connect(self._retry_selected)
-        self._cancel_button = QPushButton("Cancel", self)
+        self._cancel_button = QPushButton("Cancel job", self)
         self._cancel_button.setObjectName("jobs_panel_cancel_button")
         self._cancel_button.clicked.connect(self._cancel_selected)
         self._close_button = QPushButton("Close", self)

@@ -29,7 +29,42 @@ resolve_bundle_binary() {
   printf '%s' "$candidate"
 }
 
+build_macos_app_roots() {
+  MACOS_APP_ROOTS=()
+  if [[ -d "$ROOT/dist/LexiFlow.app" ]]; then
+    MACOS_APP_ROOTS+=("$ROOT/dist/LexiFlow.app")
+  fi
+  if [[ -d "$BUNDLE_DIR/LexiFlow.app" ]]; then
+    MACOS_APP_ROOTS+=("$BUNDLE_DIR/LexiFlow.app")
+  fi
+}
+
+is_macos_app_bundle() {
+  [[ -x "$ROOT/dist/LexiFlow.app/Contents/MacOS/LexiFlow" || -x "$BUNDLE_DIR/LexiFlow.app/Contents/MacOS/LexiFlow" ]]
+}
+
 BINARY="$(resolve_bundle_binary)"
+
+SQLITE_VEC_LOADABLES=()
+if is_macos_app_bundle; then
+  build_macos_app_roots
+  while IFS= read -r candidate; do
+    SQLITE_VEC_LOADABLES+=("$candidate")
+  done < <(list_bundled_sqlite_vec_candidates "${MACOS_APP_ROOTS[@]}")
+else
+  while IFS= read -r candidate; do
+    SQLITE_VEC_LOADABLES+=("$candidate")
+  done < <(list_bundled_sqlite_vec_candidates "$BUNDLE_DIR")
+fi
+if [[ ${#SQLITE_VEC_LOADABLES[@]} -eq 0 ]]; then
+  echo "bundled sqlite-vec loadable missing under bundle layout for $BINARY" >&2
+  exit 1
+fi
+if [[ ${#SQLITE_VEC_LOADABLES[@]} -gt 1 ]]; then
+  echo "error: found multiple sqlite-vec loadables, ambiguous. Paths: ${SQLITE_VEC_LOADABLES[*]}" >&2
+  exit 1
+fi
+echo "sqlite-vec loadable: ${SQLITE_VEC_LOADABLES[0]}"
 
 ACTUAL_VERSION="$("$BINARY" --version)"
 echo "bundle version: $ACTUAL_VERSION"
@@ -46,14 +81,8 @@ if [[ -z "$VEC_VERSION" ]]; then
 fi
 echo "sqlite-vec smoke passed"
 
-if [[ -x "$ROOT/dist/LexiFlow.app/Contents/MacOS/LexiFlow" || -x "$BUNDLE_DIR/LexiFlow.app/Contents/MacOS/LexiFlow" ]]; then
-  MACOS_APP_ROOTS=()
-  if [[ -d "$ROOT/dist/LexiFlow.app" ]]; then
-    MACOS_APP_ROOTS+=("$ROOT/dist/LexiFlow.app")
-  fi
-  if [[ -d "$BUNDLE_DIR/LexiFlow.app" ]]; then
-    MACOS_APP_ROOTS+=("$BUNDLE_DIR/LexiFlow.app")
-  fi
+if is_macos_app_bundle; then
+  build_macos_app_roots
   LLAMA_SERVERS=()
   while IFS= read -r candidate; do
     LLAMA_SERVERS+=("$candidate")

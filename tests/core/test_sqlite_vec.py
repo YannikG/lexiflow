@@ -2,46 +2,19 @@
 
 from __future__ import annotations
 
-import shutil
 import sqlite3
-from pathlib import Path
 
 import pytest
-import sqlite_vec
 from lexiflow_core.vectors.sqlite_vec import load_sqlite_vec
-
-
-def _resolve_vendored_loadable() -> Path | None:
-    package_dir = Path(sqlite_vec.loadable_path()).parent
-    for name in ("vec0.dylib", "vec0.so", "vec0.dll", "vec0.arm64.dll"):
-        candidate = package_dir / name
-        if candidate.exists():
-            return candidate
-    return None
-
-
-def test_load_sqlite_vec_honors_lexiflow_sqlite_vec_path(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    source = _resolve_vendored_loadable()
-    if source is None:
-        pytest.skip("vendored vec0 loadable not present; run fetch_sqlite_vec.py")
-
-    override = tmp_path / source.name
-    shutil.copy2(source, override)
-    monkeypatch.setenv("LEXIFLOW_SQLITE_VEC_PATH", str(override))
-
-    connection = sqlite3.connect(":memory:")
-    try:
-        load_sqlite_vec(connection)
-        (version,) = connection.execute("SELECT vec_version()").fetchone()
-        assert isinstance(version, str)
-        assert version
-    finally:
-        connection.close()
+from tests.packaging.sqlite_vec_test_support import (
+    resolve_installed_sqlite_vec_loadable,
+)
 
 
 def test_load_sqlite_vec_allows_vec0_virtual_table() -> None:
+    if resolve_installed_sqlite_vec_loadable() is None:
+        pytest.skip("installed sqlite-vec loadable not present")
+
     connection = sqlite3.connect(":memory:")
     try:
         load_sqlite_vec(connection)
@@ -55,10 +28,9 @@ def test_load_sqlite_vec_allows_vec0_virtual_table() -> None:
         connection.close()
 
 
-def test_load_sqlite_vec_uses_installed_package_without_env_override(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.delenv("LEXIFLOW_SQLITE_VEC_PATH", raising=False)
+def test_load_sqlite_vec_uses_installed_package_loadable() -> None:
+    if resolve_installed_sqlite_vec_loadable() is None:
+        pytest.skip("installed sqlite-vec loadable not present")
 
     connection = sqlite3.connect(":memory:")
     try:

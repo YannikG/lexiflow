@@ -28,7 +28,7 @@ Deleted entries are archived under `{data_root}/.trash/vocabulary/{language_code
 
 ## Lemma resolution
 
-**Reader add word** and **manual add word** resolve the dictionary form via spaCy when a pack exists under `{data_root}/.app/spacy/{language_code}/`, otherwise a background `lemma` job runs the `lemma.md` prompt. Resolved **word category** is applied when the add dialog still has the default category.
+**Reader add word** and **manual add word** resolve the dictionary form via a background `lemma` job using the `lemma.md` prompt. Resolved **word category** is applied when the add dialog still has the default category.
 
 ## Word detail
 
@@ -42,7 +42,6 @@ Double-click a row in the vocabulary browse table or reader word panel to open a
 | `lexiflow_core.vocabulary.export` | `export_vocabulary_zip` |
 | `lexiflow_core.vocabulary.import_bundle` | `import_vocabulary_zip` |
 | `lexiflow_core.vocabulary.lemma_form` | `normalize_lemma`, `parse_word_category` |
-| `lexiflow_core.vocabulary.lemma_resolution` | spaCy sync path |
 | `lexiflow_core.vocabulary.explanation_text` | `normalize_usage_explanation` |
 | `lexiflow_core.jobs.lemma_queue` | `enqueue_lemma_job`, `find_active_lemma_job`, `cancel_lemma_job` |
 | `lexiflow_core.languages.remove_target` | Wipe language folder |

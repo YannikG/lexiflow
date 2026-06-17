@@ -9,21 +9,12 @@ import pytest
 from lexiflow_core.config.settings import Settings
 from lexiflow_core.config.settings_store import SettingsStore
 from lexiflow_core.jobs.service import JobService
-from lexiflow_core.languages.spacy_pack import SpacyPackError
 from lexiflow_core.models.model_hints import native_llm_hub_page_url
-from lexiflow_core.vocabulary.lemma_resolution import spacy_pack_available
 from lexiflow_ui.app import run
 from lexiflow_ui.main_window import MainWindow
 from lexiflow_ui.onboarding.wizard import OnboardingWizard, run_onboarding_if_needed
-from lexiflow_ui.spacy_pack_install import install_spacy_pack_with_progress
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QApplication, QWizard
-
-from tests.spacy_pack_fakes import (
-    fake_ensure_model,
-    fake_install_spacy_pack,
-    fake_load_model,
-)
 
 
 class _SmokeInstanceGuard:
@@ -124,7 +115,6 @@ def test_re_run_onboarding_after_resetting_complete_flag(qtbot, tmp_path: Path) 
         settings_store=store,
         settings=settings,
         system_info=FakeSystemInfo(16 * 1024**3),
-        install_spacy_pack=fake_install_spacy_pack,
     )
     qtbot.addWidget(wizard)
     wizard.show()
@@ -141,7 +131,6 @@ def test_re_run_onboarding_after_resetting_complete_flag(qtbot, tmp_path: Path) 
         settings_store=store,
         settings=store.load(),
         system_info=FakeSystemInfo(16 * 1024**3),
-        install_spacy_pack=fake_install_spacy_pack,
     )
     qtbot.addWidget(wizard_again)
     wizard_again.show()
@@ -153,7 +142,7 @@ def test_re_run_onboarding_after_resetting_complete_flag(qtbot, tmp_path: Path) 
     assert loaded.active_target_language == "es"
 
 
-def test_onboarding_installs_pack_before_complete_flag(qtbot, tmp_path: Path) -> None:
+def test_onboarding_completes_without_background_jobs(qtbot, tmp_path: Path) -> None:
     config_dir = tmp_path / "config"
     data_root = tmp_path / "library"
     store = SettingsStore(config_dir=config_dir)
@@ -164,85 +153,13 @@ def test_onboarding_installs_pack_before_complete_flag(qtbot, tmp_path: Path) ->
         settings_store=store,
         settings=settings,
         system_info=FakeSystemInfo(16 * 1024**3),
-        install_spacy_pack=fake_install_spacy_pack,
     )
     qtbot.addWidget(wizard)
     wizard.show()
     _advance_wizard_to_finish(wizard, qtbot)
 
-    assert spacy_pack_available(data_root, "es")
     assert store.load().onboarding_complete is True
     assert JobService(data_root).list_jobs() == []
-
-
-def test_onboarding_modal_install_with_injected_loaders(qtbot, tmp_path: Path) -> None:
-    config_dir = tmp_path / "config"
-    data_root = tmp_path / "library"
-    store = SettingsStore(config_dir=config_dir)
-    settings = Settings(data_root=data_root, onboarding_complete=False)
-
-    def install_pack(parent, *, data_root: Path, iso: str, **_kwargs) -> bool:
-        return install_spacy_pack_with_progress(
-            parent,
-            data_root=data_root,
-            iso=iso,
-            ensure_model=fake_ensure_model,
-            load_model=fake_load_model,
-        )
-
-    wizard = OnboardingWizard(
-        data_root=data_root,
-        settings_store=store,
-        settings=settings,
-        system_info=FakeSystemInfo(16 * 1024**3),
-        install_spacy_pack=install_pack,
-    )
-    qtbot.addWidget(wizard)
-    wizard.show()
-    _advance_wizard_to_finish(wizard, qtbot)
-
-    assert spacy_pack_available(data_root, "es")
-    assert store.load().onboarding_complete is True
-
-
-def test_onboarding_install_failure_rolls_back_settings(
-    qtbot, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    config_dir = tmp_path / "config"
-    data_root = tmp_path / "library"
-    store = SettingsStore(config_dir=config_dir)
-    settings = Settings(data_root=data_root, onboarding_complete=False)
-    monkeypatch.setattr(
-        "lexiflow_ui.spacy_pack_install.QMessageBox.critical",
-        lambda *_args, **_kwargs: None,
-    )
-
-    def failing_install(parent, *, data_root: Path, iso: str, **_kwargs) -> bool:
-        return install_spacy_pack_with_progress(
-            parent,
-            data_root=data_root,
-            iso=iso,
-            ensure_model=lambda _name: (_ for _ in ()).throw(
-                SpacyPackError("download failed")
-            ),
-            load_model=fake_load_model,
-        )
-
-    wizard = OnboardingWizard(
-        data_root=data_root,
-        settings_store=store,
-        settings=settings,
-        system_info=FakeSystemInfo(16 * 1024**3),
-        install_spacy_pack=failing_install,
-    )
-    qtbot.addWidget(wizard)
-    wizard.show()
-    _advance_wizard_to_finish(wizard, qtbot)
-
-    loaded = store.load()
-    assert loaded.onboarding_complete is False
-    assert loaded.active_target_language is None
-    assert not spacy_pack_available(data_root, "es")
 
 
 def test_completing_onboarding_sets_flag(qtbot, tmp_path: Path) -> None:
@@ -256,7 +173,6 @@ def test_completing_onboarding_sets_flag(qtbot, tmp_path: Path) -> None:
         settings_store=store,
         settings=settings,
         system_info=FakeSystemInfo(16 * 1024**3),
-        install_spacy_pack=fake_install_spacy_pack,
     )
     qtbot.addWidget(wizard)
     wizard.show()
@@ -308,7 +224,6 @@ def test_low_ram_warning_allows_wizard_finish(qtbot, tmp_path: Path) -> None:
         settings_store=store,
         settings=settings,
         system_info=FakeSystemInfo(4 * 1024**3),
-        install_spacy_pack=fake_install_spacy_pack,
     )
     qtbot.addWidget(wizard)
     wizard.show()
@@ -351,7 +266,6 @@ def test_toolbar_shows_active_language(qtbot, tmp_path: Path) -> None:
         settings_store=store,
         settings=settings,
         system_info=FakeSystemInfo(16 * 1024**3),
-        install_spacy_pack=fake_install_spacy_pack,
     )
     qtbot.addWidget(wizard)
     wizard.show()
@@ -395,7 +309,6 @@ def test_ollama_path_goes_to_target_language(qtbot, tmp_path: Path) -> None:
         settings_store=store,
         settings=settings,
         system_info=FakeSystemInfo(16 * 1024**3),
-        install_spacy_pack=fake_install_spacy_pack,
     )
     qtbot.addWidget(wizard)
     wizard.show()
@@ -463,7 +376,6 @@ def test_ollama_onboarding_completes(qtbot, tmp_path: Path) -> None:
         settings_store=store,
         settings=settings,
         system_info=FakeSystemInfo(16 * 1024**3),
-        install_spacy_pack=fake_install_spacy_pack,
     )
     qtbot.addWidget(wizard)
     wizard.show()
