@@ -52,7 +52,23 @@ def test_add_text_dialog_does_not_read_clipboard(
     clipboard.text.assert_not_called()
 
 
-def test_add_text_dialog_rejects_empty_title(
+def test_add_text_dialog_accepts_empty_title_with_paste(qtbot, tmp_path: Path) -> None:
+    dialog = AddTextDialog(
+        data_root=tmp_path / "LexiFlow",
+        target_language="es",
+    )
+    qtbot.addWidget(dialog)
+    dialog.show()
+    dialog.paste_edit().setPlainText("Hola")
+
+    data = dialog.form_data()
+
+    assert data is not None
+    assert data.title == ""
+    assert data.pasted_content == "Hola"
+
+
+def test_add_text_dialog_rejects_empty_paste_without_title(
     qtbot, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(
@@ -65,7 +81,6 @@ def test_add_text_dialog_rejects_empty_title(
     )
     qtbot.addWidget(dialog)
     dialog.show()
-    dialog.paste_edit().setPlainText("Hola")
 
     box = dialog.findChild(QDialogButtonBox)
     assert box is not None

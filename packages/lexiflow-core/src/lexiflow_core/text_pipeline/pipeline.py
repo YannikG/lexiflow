@@ -8,7 +8,7 @@ from uuid import UUID
 from lexiflow_core.jobs.handlers.cleanup import SOURCE_ROUTE_NATIVE, SOURCE_ROUTE_TARGET
 from lexiflow_core.jobs.models import JobRequest, JobType
 from lexiflow_core.jobs.service import JobService
-from lexiflow_core.library.document_title import normalize_document_title
+from lexiflow_core.library.document_title import resolve_create_title
 from lexiflow_core.library.index import LibraryIndex
 from lexiflow_core.library.models import CreateTextRequest
 from lexiflow_core.library.text_repository import TextRepository
@@ -81,14 +81,16 @@ class TextPipeline:
             SOURCE_ROUTE_NATIVE if source_route == "native" else SOURCE_ROUTE_TARGET
         )
 
+        create_title, autogenerate_title = resolve_create_title(draft.title)
         record = self._texts.create_text(
             CreateTextRequest(
-                title=normalize_document_title(draft.title),
+                title=create_title,
                 group=draft.group,
                 target_language=draft.target_language,
                 native_language=draft.native_language,
                 body=draft.pasted_content,
                 source_url=draft.source_url,
+                autogenerate_title=autogenerate_title,
             )
         )
         self._jobs.enqueue(

@@ -44,6 +44,9 @@ class TextRepository:
     def write_native_variant(self, text_id: UUID, markdown: str) -> None:
         self._coordinator.write_native_variant(text_id, markdown)
 
+    def apply_native_variant(self, text_id: UUID, markdown: str) -> TextRecord:
+        return self._coordinator.apply_native_variant(text_id, markdown)
+
     def apply_translated_variant(
         self, text_id: UUID, translated_markdown: str
     ) -> TextRecord:

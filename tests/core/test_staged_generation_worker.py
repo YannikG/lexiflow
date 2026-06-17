@@ -51,7 +51,7 @@ def test_worker_runs_cleanup_then_translate(tmp_path: Path) -> None:
     assert native.startswith("# Native Title")
     assert translated.startswith("# Titulo")
     metadata = load_text_metadata(meta_path(folder))
-    assert metadata.title == "Titulo"
+    assert metadata.title == "Raw article"
 
 
 def test_worker_markdownizes_messy_paste(tmp_path: Path) -> None:
@@ -145,7 +145,7 @@ def test_worker_staged_generation_with_ollama_llm(tmp_path: Path) -> None:
     translated = variant_path(folder, "translated").read_text(encoding="utf-8")
     assert translated.startswith("# Titulo")
     metadata = load_text_metadata(meta_path(folder))
-    assert metadata.title == "Titulo"
+    assert metadata.title == "Raw article"
     listed = jobs.list_jobs()
     embed_jobs = [j for j in listed if j.job_type == JobType.EMBED]
     assert len(embed_jobs) == 1
@@ -222,7 +222,7 @@ def test_worker_staged_generation_with_llama_server_llm(tmp_path: Path) -> None:
     assert native.startswith("# Native Title")
     assert translated.startswith("# Titulo")
     metadata = load_text_metadata(meta_path(folder))
-    assert metadata.title == "Titulo"
+    assert metadata.title == "Raw article"
 
 
 def test_worker_fails_translate_when_llm_output_has_no_title(tmp_path: Path) -> None:
@@ -302,6 +302,79 @@ def test_worker_runs_target_route_cleanup_then_translate(tmp_path: Path) -> None
     assert native.startswith("# Article")
     assert translated.startswith("# Articulo")
     assert native != translated
+    metadata = load_text_metadata(meta_path(folder))
+    assert metadata.title == "Spanish article"
+
+
+def test_worker_autogenerates_title_from_native_cleanup_when_title_empty(
+    tmp_path: Path,
+) -> None:
+    data_root = tmp_path / "LexiFlow"
+    coordinator, index = LibraryCoordinator.open(data_root)
+    del coordinator
+    jobs = JobService(data_root)
+    pipeline = TextPipeline(data_root, index=index, job_service=jobs)
+    text_id = pipeline.submit_new_text(
+        TextDraft(
+            title="",
+            group="News",
+            pasted_content="90 Jahre Flüchtlingshilfe",
+            input_tab=InputTab.NATIVE,
+            native_language="de",
+            target_language="es",
+        )
+    )
+    run_worker_loop(
+        jobs,
+        FakeLLM(
+            responses=[
+                "# 90 Jahre Flüchtlingshilfe\n\nDeutscher Text.",
+                "# Noventa anos\n\ntexto en espanol",
+            ]
+        ),
+        data_root=data_root,
+    )
+    repo = TextRepository(data_root, index)
+    record = repo.get_text(text_id)
+    metadata = load_text_metadata(meta_path(Path(record.folder)))
+    assert metadata.title == "90 Jahre Flüchtlingshilfe"
+    assert metadata.autogenerate_title is False
+
+
+def test_worker_autogenerates_title_on_target_tab_when_title_empty(
+    tmp_path: Path,
+) -> None:
+    data_root = tmp_path / "LexiFlow"
+    coordinator, index = LibraryCoordinator.open(data_root)
+    del coordinator
+    jobs = JobService(data_root)
+    pipeline = TextPipeline(data_root, index=index, job_service=jobs)
+    text_id = pipeline.submit_new_text(
+        TextDraft(
+            title="",
+            group="News",
+            pasted_content="texto en espanol",
+            input_tab=InputTab.TARGET,
+            native_language="en",
+            target_language="es",
+        )
+    )
+    run_worker_loop(
+        jobs,
+        FakeLLM(
+            responses=[
+                "# Articulo\n\ntexto en espanol",
+                "# Article\n\nenglish body",
+                "# Articulo ES\n\ncuerpo en espanol",
+            ]
+        ),
+        data_root=data_root,
+    )
+    repo = TextRepository(data_root, index)
+    record = repo.get_text(text_id)
+    metadata = load_text_metadata(meta_path(Path(record.folder)))
+    assert metadata.title == "Article"
+    assert metadata.autogenerate_title is False
 
 
 def test_worker_leaves_translated_missing_when_plain_translate_llm_fails(

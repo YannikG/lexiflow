@@ -41,12 +41,12 @@ Path helpers live in `lexiflow_core.config.paths`. Filesystem mutations belong i
 - `meta.json` `group` field stores the group **display name**, not the folder slug.
 - **Text slug** folder name comes from title plus a short random suffix; collisions retry.
 - **Text metadata** has no `level` field; CEFR level exists only on **simplified variant** files.
-- At add-text save, `title` is provisional (`Untitled`) until **plain translation** sets the **target-language title** from the translated variant H1.
+- `autogenerate_title` on `meta.json` — when true, the first native variant write with an H1 (cleanup or ensure-native) sets library title and clears the flag.
 
 ## Variants and document title
 
-- **Native variant** (`native.md`) starts with `# {title}\n\n` per **document title** rules.
-- **Translated variant** (`translated.md`) is written by the translate job handler; `meta.json` `title` and the library index row are updated to the translated H1.
+- **Native variant** (`native.md`) starts with `# {title}\n\n` per **document title** rules; autogen create uses provisional `Untitled` until cleanup replaces the file.
+- **Translated variant** (`translated.md`) is written by the translate job handler; library `title` and index row are **not** updated from the translated H1.
 - `LibraryIndex.find_by_source_url` supports add-text **duplicate warning** by URL. `find_by_content_fingerprint` remains for index storage; add-text duplicate checks use source URL only in v1.
 - Titles containing `#` are rejected at write time.
 - User edits from the reader call `TextRepository.save_variant_edit`; they update variant markdown and, when the user saves from edit mode, the **library title** from the title field and optional **source URL**. Markdown H1 alone does not retitle the text.

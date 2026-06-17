@@ -72,7 +72,7 @@ def handle_translate(
                 source_markdown=cleaned,
                 translated=llm.complete(prompt),
             )
-            repo.write_native_variant(text_id, native_markdown)
+            repo.apply_native_variant(text_id, native_markdown)
             job_service.enqueue(
                 JobRequest(
                     job_type=JobType.TRANSLATE,

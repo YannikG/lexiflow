@@ -6,10 +6,13 @@ from pathlib import Path
 from uuid import UUID
 
 import pytest
+from lexiflow_core.config.paths import meta_path
 from lexiflow_core.jobs.models import JobType
 from lexiflow_core.jobs.service import JobService
+from lexiflow_core.library.document_title import PROVISIONAL_DOCUMENT_TITLE
 from lexiflow_core.library.library_coordinator import LibraryCoordinator
 from lexiflow_core.library.models import CreateTextRequest
+from lexiflow_core.library.text_metadata import load_text_metadata
 from lexiflow_core.library.text_repository import TextRepository
 from lexiflow_core.text_pipeline import (
     DuplicateWarning,
@@ -144,3 +147,42 @@ def test_submit_does_not_enqueue_simplify_job(
     )
     queued = jobs.list_jobs()
     assert all(job.job_type != JobType.SIMPLIFY for job in queued)
+
+
+def test_submit_new_text_uses_provisional_title_when_draft_title_empty(
+    pipeline: tuple[TextPipeline, TextRepository, JobService],
+) -> None:
+    text_pipeline, repo, _jobs = pipeline
+    text_id = text_pipeline.submit_new_text(
+        TextDraft(
+            title="",
+            group="News",
+            pasted_content="hello world",
+            input_tab=InputTab.NATIVE,
+            native_language="en",
+            target_language="es",
+        )
+    )
+    record = repo.get_text(text_id)
+    assert record.title == PROVISIONAL_DOCUMENT_TITLE
+    metadata = load_text_metadata(meta_path(Path(record.folder)))
+    assert metadata.autogenerate_title is True
+
+
+def test_submit_new_text_sets_autogenerate_false_for_user_title(
+    pipeline: tuple[TextPipeline, TextRepository, JobService],
+) -> None:
+    text_pipeline, repo, _jobs = pipeline
+    text_id = text_pipeline.submit_new_text(
+        TextDraft(
+            title="My article",
+            group="News",
+            pasted_content="hello world",
+            input_tab=InputTab.NATIVE,
+            native_language="en",
+            target_language="es",
+        )
+    )
+    record = repo.get_text(text_id)
+    metadata = load_text_metadata(meta_path(Path(record.folder)))
+    assert metadata.autogenerate_title is False

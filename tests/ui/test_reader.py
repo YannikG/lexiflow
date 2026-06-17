@@ -36,7 +36,7 @@ def _seed_reader_text(
     repo = TextRepository(data_root, index)
     record = repo.create_text(
         CreateTextRequest(
-            title="Untitled",
+            title="Traducción",
             group="News",
             target_language="es",
             native_language="en",
@@ -102,7 +102,7 @@ def _seed_second_text(data_root: Path) -> None:
     repo = TextRepository(data_root, index)
     record = repo.create_text(
         CreateTextRequest(
-            title="Second text",
+            title="Segundo",
             group="News",
             target_language="es",
             native_language="en",

@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import pytest
 from lexiflow_core.library.document_title import (
+    PROVISIONAL_DOCUMENT_TITLE,
     DocumentTitleError,
     format_document_title,
     format_native_variant,
     normalize_document_title,
     parse_document_title,
+    resolve_create_title,
 )
 
 
@@ -36,3 +38,12 @@ def test_normalize_document_title_rejects_empty() -> None:
 
 def test_parse_document_title() -> None:
     assert parse_document_title("# Titulo\n\ncuerpo") == "Titulo"
+
+
+def test_resolve_create_title_empty() -> None:
+    assert resolve_create_title("") == (PROVISIONAL_DOCUMENT_TITLE, True)
+    assert resolve_create_title("   ") == (PROVISIONAL_DOCUMENT_TITLE, True)
+
+
+def test_resolve_create_title_user_provided() -> None:
+    assert resolve_create_title("  My title  ") == ("My title", False)

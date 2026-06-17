@@ -93,7 +93,7 @@ def handle_cleanup(
         return
 
     if route == SOURCE_ROUTE_NATIVE:
-        repo.write_native_variant(text_id, cleaned)
+        repo.apply_native_variant(text_id, cleaned)
         job_service.enqueue(
             JobRequest(
                 job_type=JobType.TRANSLATE,
