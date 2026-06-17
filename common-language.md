@@ -41,7 +41,7 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Local logging** — Rotating log files in the app data area. Settings: open logs folder, optional verbose debug mode (off by default). User may attach logs to GitHub issues manually; no automatic upload.
 
-**Network requirement** — First install may require network for Hugging Face model weights (native llama-server for LLM and embeddings), spaCy language packs when adding a target language, and optional Ollama model pulls when using an Ollama endpoint. After weights are cached locally, the app runs fully offline for reading, vocabulary, translate, simplify, and embed.
+**Network requirement** — First install may require network for Hugging Face model weights (native llama-server for LLM and embeddings) and optional Ollama model pulls when using an Ollama endpoint. After weights are cached locally, the app runs fully offline for reading, vocabulary, translate, simplify, and embed.
 
 **Distribution** — GitHub Releases with CI-built artifacts. Open-source license: Apache 2.0. Product name: LexiFlow.
 
@@ -151,7 +151,7 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Re-simplify** — Explicit user action to regenerate a **simplified variant**. Uses vocabulary vectors at time of run. Does not auto-update when vocabulary changes later.
 
-**Background job** — Unit of async work: cleanup, translate, simplify, embed, lemma inference. User-visible types include translate, simplify, and embed. Setup downloads (Hugging Face model weights in **Settings**, spaCy language packs when adding a target language) run in the initiating dialog, not in the **job queue**.
+**Background job** — Unit of async work: cleanup, translate, simplify, embed, lemma inference. User-visible types include translate, simplify, and embed. Setup downloads (Hugging Face model weights in **Settings**) run in the initiating dialog, not in the **job queue**.
 
 **LLM job UX** — Long-running translate, simplify, and cleanup jobs run in the background. User can continue browsing. Status indicator shows active jobs with cancel support. Notification on complete or fail; partial outputs discarded on cancel. **One LLM job at a time**; additional requests queue globally.
 
@@ -261,9 +261,7 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Find in texts** — Locate a word across all texts in the active target language. Same search rules as **library index**. Opens text at match when possible.
 
-**Lemma resolution** — spaCy when language pack installed; otherwise LLM inference. Same for highlight-add, **manual add word**, and **new word suggestions**.
-
-**spaCy language packs** — Downloaded per target language when added, with in-dialog progress on onboarding or **Switch language**. Installed under `{data_root}/.app/spacy/{iso}/` in the UI process. Not enqueued as **background jobs**.
+**Lemma resolution** — LLM inference via the `lemma` background job. Same for highlight-add, **manual add word**, and **new word suggestions**.
 
 ## Storage
 
@@ -504,4 +502,3 @@ Canonical terms (alphabetical):
 - lexiflow-core
 - lexiflow-ui
 - lexiflow-worker
-- spaCy language packs

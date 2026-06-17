@@ -8,7 +8,7 @@ import platform
 import sys
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_all, collect_data_files, copy_metadata
+from PyInstaller.utils.hooks import collect_all, collect_data_files
 
 block_cipher = None
 REPO_ROOT = Path(SPECPATH).resolve().parent
@@ -105,26 +105,6 @@ def _llama_server_binaries() -> list[tuple[str, str]]:
 
 pyside6_datas, pyside6_binaries, pyside6_hiddenimports = collect_all("PySide6")
 
-spacy_datas: list[tuple[str, str]] = []
-spacy_binaries: list[tuple[str, str]] = []
-spacy_hiddenimports: list[str] = []
-for metadata_pkg in (
-    "spacy",
-    "thinc",
-    "catalogue",
-    "srsly",
-    "murmurhash",
-    "preshed",
-    "cymem",
-    "wasabi",
-    "weasel",
-):
-    spacy_datas += copy_metadata(metadata_pkg)
-spacy_pkg_datas, spacy_pkg_binaries, spacy_pkg_hiddenimports = collect_all("spacy")
-spacy_datas += spacy_pkg_datas
-spacy_binaries += spacy_pkg_binaries
-spacy_hiddenimports += spacy_pkg_hiddenimports
-
 sqlean_datas: list[tuple[str, str]] = []
 sqlean_binaries: list[tuple[str, str]] = []
 sqlean_hiddenimports: list[str] = []
@@ -136,11 +116,11 @@ datas = [
     (str(CORE_SRC / "migrations"), "lexiflow_core/migrations"),
     (str(CORE_SRC / "models" / "models.lock"), "lexiflow_core/models"),
     (str(CORE_SRC / "llm" / "prompts"), "lexiflow_core/llm/prompts"),
-] + pyside6_datas + _sqlite_vec_datas() + spacy_datas + sqlean_datas
+] + pyside6_datas + _sqlite_vec_datas() + sqlean_datas
 
 binaries: list[tuple[str, str]] = _llama_server_binaries()
 binaries += _sqlite_vec_binaries()
-binaries += pyside6_binaries + spacy_binaries + sqlean_binaries
+binaries += pyside6_binaries + sqlean_binaries
 
 hiddenimports = [
     "tomli_w",
@@ -151,7 +131,7 @@ hiddenimports = [
     "lexiflow_worker",
     "lexiflow_worker.main",
     "lexiflow_worker.embedder",
-] + pyside6_hiddenimports + spacy_hiddenimports + sqlean_hiddenimports
+] + pyside6_hiddenimports + sqlean_hiddenimports
 
 pathex = [
     str(REPO_ROOT / "packages/lexiflow-ui/src"),

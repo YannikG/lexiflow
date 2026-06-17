@@ -24,11 +24,11 @@ On startup, **Running** jobs return to **Pending** and are picked up automatical
 | `embed` | Embedding generation (translated text or vocabulary lemma) |
 | `lemma` | Lemma, translation, and explanation inference for highlight-add |
 
-LLM job types share the one-at-a-time rule. spaCy language packs install in the UI when a target language is added (see `packages/lexiflow-ui/docs/concepts/language-pack-install.md`), not via the queue. Legacy `download_spacy` rows are deleted when the queue opens.
+LLM job types share the one-at-a-time rule. Legacy `download_spacy` rows are deleted when the queue opens.
 
 ### Lemma
 
-Payload: `{language_code, surface_form, native_language, context?}`. Result: `{lemma, translation, explanation}`. Used when spaCy is not available for **lemma resolution**. See [vocabulary.md](vocabulary.md).
+Payload: `{language_code, surface_form, native_language, context?}`. Result: `{lemma, translation, explanation}`. Powers **lemma resolution** for reader highlight-add and manual add word. See [vocabulary.md](vocabulary.md).
 
 ## One job at a time
 

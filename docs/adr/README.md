@@ -20,3 +20,4 @@ Create an ADR when **all** are true:
 | [0006](0006-desktop-ui-theme-strategy.md) | Desktop UI theme strategy (Fusion + dark/light theme QSS) |
 | [0007](0007-native-llama-server-llm.md) | Native LLM via llama-server (no in-process torch) |
 | [0008](0008-pyinstaller-release-bundle.md) | PyInstaller onedir release bundle and installers |
+| [0009](0009-lemma-resolution-llm-only.md) | Lemma resolution is LLM-only (no spaCy) |

@@ -8,7 +8,6 @@ from lexiflow_core.config.settings import Settings
 from lexiflow_core.config.settings_store import SettingsStore
 from lexiflow_ui.onboarding.wizard import OnboardingWizard
 
-from tests.spacy_pack_fakes import fake_install_spacy_pack
 from tests.ui import test_app_smoke
 from tests.ui.test_onboarding import FakeSystemInfo, _advance_wizard_to_finish
 
@@ -28,7 +27,6 @@ def test_app_smoke_then_onboarding_rerun(
         settings_store=store,
         settings=settings,
         system_info=FakeSystemInfo(16 * 1024**3),
-        install_spacy_pack=fake_install_spacy_pack,
     )
     qtbot.addWidget(wizard)
     wizard.show()
@@ -51,7 +49,6 @@ def test_app_smoke_then_onboarding_rerun(
         settings_store=store,
         settings=store.load(),
         system_info=FakeSystemInfo(16 * 1024**3),
-        install_spacy_pack=fake_install_spacy_pack,
     )
     qtbot.addWidget(wizard_again)
     wizard_again.show()

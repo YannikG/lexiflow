@@ -20,7 +20,7 @@ There is no model download step. LLM and embedding weights load from Hugging Fac
 
 ## Completion
 
-On Finish, `complete_language_onboarding()` adds the first target language and saves native/target settings. A window-modal progress dialog installs the spaCy language pack (`install_spacy_pack_with_progress()`). On success, `finalize_onboarding()` sets `onboarding_complete`. On install failure, metadata and settings roll back; onboarding stays incomplete.
+On Finish, `complete_language_onboarding()` adds the first target language and saves native/target settings, then `finalize_onboarding()` sets `onboarding_complete`.
 
 ## Testability
 
