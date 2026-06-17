@@ -21,3 +21,8 @@ def test_release_group_excludes_sentence_transformers_and_torch() -> None:
     assert "_sqlite_vec_binaries" in spec
     assert "VENDOR_VEC_DIR" in spec
     assert "_host_vec0_filenames" in spec
+    assert 'collect_all("spacy")' in spec
+    core_pyproject = (root / "packages/lexiflow-core/pyproject.toml").read_text(
+        encoding="utf-8"
+    )
+    assert '"spacy>=' in core_pyproject

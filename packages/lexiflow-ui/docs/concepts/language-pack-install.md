@@ -26,6 +26,6 @@ On failure, callers invoke `discard_failed_target()` from `lexiflow_core.languag
 
 ## Packaging
 
-Install runs in the UI process (same PyInstaller bundle as the worker). spaCy is an optional runtime dependency; without it, the user sees a clear error in the dialog.
+Install runs in the UI process (same PyInstaller bundle as the worker). The release bundle ships the **spaCy library**; per-language packs still download on first add/onboarding and are exported to `{data_root}/.app/spacy/{iso}/`. Frozen builds download model wheels directly (no `pip` subprocess).
 
 See [common-language.md](../../../../common-language.md): **spaCy language packs**, **Background job**.

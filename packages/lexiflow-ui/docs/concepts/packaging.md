@@ -28,10 +28,11 @@ See [ADR-0008](../../../../docs/adr/0008-pyinstaller-release-bundle.md) and [com
 |----------------------|-------------------------|
 | PySide6 UI, worker code | Hugging Face LLM weights (via bundled llama-server) |
 | UI theme JSON tokens | Embedding GGUF (llama-server, not bundled) |
-| `models.lock`, migrations, prompts | spaCy language packs when adding a target language |
+| `models.lock`, migrations, prompts | spaCy **language pack** files per target language |
 | llama-server binary | Ollama models when using Ollama endpoint |
 | sqlite-vec `vec0` extension (per platform) | — (fetched at CI/build; Windows ARM64 compiled from upstream amalgamation) |
 | Extension-capable sqlite3 (macOS/Linux bundles) | — (`sqlean.py` via bootstrap when stdlib lacks loadable extensions) |
+| spaCy library (for pack download/export in the UI) | — |
 
 Model weights are **not** bundled in the installer ([common-language.md](../../../../common-language.md)).
 

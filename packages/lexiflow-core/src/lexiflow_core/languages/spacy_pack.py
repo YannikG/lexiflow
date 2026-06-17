@@ -3,9 +3,14 @@
 from __future__ import annotations
 
 import shutil
+import sys
+import tempfile
+import urllib.request
+import zipfile
 from collections.abc import Callable
 from pathlib import Path
 from typing import Protocol, cast
+from urllib.parse import urljoin
 
 from lexiflow_core.vocabulary.lemma_resolution import (
     spacy_pack_available,
@@ -30,6 +35,43 @@ class SpacyPackModel(Protocol):
 def spacy_model_name(iso: str) -> str:
     """Return the spaCy pipeline name used for a target ISO 639-1 code."""
     return _SPECIAL_SPACY_MODELS.get(iso, f"{iso}_core_news_sm")
+
+
+def spacy_model_wheel_url(model_name: str) -> str:
+    """Return the official spaCy model wheel URL for the installed spaCy version."""
+    from spacy import about
+    from spacy.cli.download import get_compatibility, get_model_filename, get_version
+
+    compatibility = get_compatibility()
+    version = get_version(model_name, compatibility)
+    filename = get_model_filename(model_name, version)
+    base_url = about.__download_url__
+    if not base_url.endswith("/"):
+        base_url = f"{base_url}/"
+    return urljoin(base_url, filename)
+
+
+def load_spacy_model_from_wheel_url(
+    model_name: str,
+    download_url: str,
+    *,
+    urlretrieve: Callable[[str, str], object] | None = None,
+) -> SpacyPackModel:
+    """Download a spaCy model wheel and load it without invoking pip."""
+    import spacy
+
+    fetch = urlretrieve or urllib.request.urlretrieve
+    with tempfile.TemporaryDirectory() as tmp:
+        wheel_path = Path(tmp) / download_url.rsplit("/", 1)[-1]
+        fetch(download_url, str(wheel_path))
+        extract_dir = Path(tmp) / "wheel"
+        extract_dir.mkdir()
+        with zipfile.ZipFile(wheel_path) as archive:
+            archive.extractall(extract_dir)
+        model_dir = extract_dir / model_name
+        if not model_dir.is_dir():
+            raise SpacyPackError(f"model {model_name!r} missing from downloaded wheel")
+        return cast(SpacyPackModel, spacy.load(str(model_dir)))
 
 
 def install_spacy_pack(
@@ -102,8 +144,7 @@ def _default_load_after_download(
     on_status: Callable[[str], None] | None = None,
     on_progress: Callable[[float], None] | None = None,
 ) -> SpacyPackModel:
-    import spacy  # type: ignore[import-not-found]
-    from spacy.cli import download as spacy_download  # type: ignore[import-not-found]
+    import spacy
 
     def report(message: str, *, fraction: float) -> None:
         if on_status is not None:
@@ -111,8 +152,20 @@ def _default_load_after_download(
         if on_progress is not None:
             on_progress(fraction)
 
-    if not spacy.util.is_package(model_name):
-        report(f"Downloading {model_name} from spaCy…", fraction=0.1)
-        spacy_download(model_name)
+    if spacy.util.is_package(model_name):
+        report(f"Loading {model_name}…", fraction=0.6)
+        return cast(SpacyPackModel, spacy.load(model_name))
+
+    if getattr(sys, "frozen", False):
+        report(f"Downloading {model_name}…", fraction=0.1)
+        download_url = spacy_model_wheel_url(model_name)
+        nlp = load_spacy_model_from_wheel_url(model_name, download_url)
+        report(f"Loading {model_name}…", fraction=0.6)
+        return nlp
+
+    from spacy.cli import download as spacy_download  # type: ignore[attr-defined]
+
+    report(f"Downloading {model_name} from spaCy…", fraction=0.1)
+    spacy_download(model_name)
     report(f"Loading {model_name}…", fraction=0.6)
     return cast(SpacyPackModel, spacy.load(model_name))

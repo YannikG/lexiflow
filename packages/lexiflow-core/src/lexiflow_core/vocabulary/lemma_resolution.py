@@ -41,7 +41,7 @@ def resolve_lemma_with_spacy(
     if not spacy_pack_available(data_root, language_code):
         return None
     try:
-        import spacy  # type: ignore[import-not-found]
+        import spacy
     except ImportError:
         return None
     pack_dir = spacy_pack_dir(data_root, language_code)
