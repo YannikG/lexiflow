@@ -124,4 +124,4 @@ Version strings use CI dev suffixes (`X.Y.Z.dev<N>`) when the ref is not a relea
 
 - Code signing, notarization, Authenticode
 - Silent in-app auto-update install
-- Bundling Hugging Face model weights or spaCy packs
+- Bundling Hugging Face model weights

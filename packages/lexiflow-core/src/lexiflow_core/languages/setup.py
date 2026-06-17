@@ -32,7 +32,7 @@ def discard_failed_target(data_root: Path, iso: str) -> None:
 
 
 def add_target_language(data_root: Path, iso: str) -> None:
-    """Add a target language to the library without installing its spaCy pack."""
+    """Add a target language to the library."""
     store = LanguageStore(data_root)
     if store.has_target(iso):
         return

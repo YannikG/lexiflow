@@ -1,4 +1,4 @@
-"""Tests for add-language flow without spaCy pack install."""
+"""Tests for add-language flow."""
 
 from __future__ import annotations
 

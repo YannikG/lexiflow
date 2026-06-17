@@ -24,7 +24,7 @@ On startup, **Running** jobs return to **Pending** and are picked up automatical
 | `embed` | Embedding generation (translated text or vocabulary lemma) |
 | `lemma` | Lemma, translation, and explanation inference for highlight-add |
 
-LLM job types share the one-at-a-time rule. Legacy `download_spacy` rows are deleted when the queue opens.
+LLM job types share the one-at-a-time rule. Obsolete `download_spacy` queue rows from pre-ADR-0009 builds are deleted when the queue opens.
 
 ### Lemma
 

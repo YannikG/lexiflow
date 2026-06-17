@@ -261,7 +261,7 @@ Shared vocabulary for LexiFlow — also called **common language** in contributo
 
 **Find in texts** — Locate a word across all texts in the active target language. Same search rules as **library index**. Opens text at match when possible.
 
-**Lemma resolution** — LLM inference via the `lemma` background job. Same for highlight-add, **manual add word**, and **new word suggestions**.
+**Lemma resolution** — LLM inference via the `lemma` background job. Same for highlight-add, **manual add word**, and **new word suggestions**. See [ADR-0009](../../docs/adr/0009-lemma-resolution-llm-only.md).
 
 ## Storage
 

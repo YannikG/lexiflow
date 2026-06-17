@@ -15,7 +15,7 @@ Download the latest release for your platform from [GitHub Releases](https://git
 
 Verify downloads with the `checksums.txt` SHA256 file attached to each release.
 
-**First run:** an internet connection may be required for Hugging Face model weights (native LLM and embeddings via bundled llama-server, spaCy when adding a language). Model weights are not included in the installer. See [model bootstrap](packages/lexiflow-core/docs/concepts/model-bootstrap.md).
+**First run:** an internet connection may be required for Hugging Face model weights (native LLM and embeddings via bundled llama-server). Model weights are not included in the installer. See [model bootstrap](packages/lexiflow-core/docs/concepts/model-bootstrap.md). Lemma inference uses the configured LLM ([ADR-0009](docs/adr/0009-lemma-resolution-llm-only.md)).
 
 **System requirements:** see **About LexiFlow** in the app for RAM and disk guidance. Recommended: 16 GB RAM for the native LLM path.
 
