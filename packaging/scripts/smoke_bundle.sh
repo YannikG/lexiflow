@@ -43,6 +43,17 @@ is_macos_app_bundle() {
   [[ -x "$ROOT/dist/LexiFlow.app/Contents/MacOS/LexiFlow" || -x "$BUNDLE_DIR/LexiFlow.app/Contents/MacOS/LexiFlow" ]]
 }
 
+launch_ui_smoke_process() {
+  if command -v timeout >/dev/null 2>&1; then
+    timeout 30s "$BINARY" &
+  elif command -v gtimeout >/dev/null 2>&1; then
+    gtimeout 30s "$BINARY" &
+  else
+    "$BINARY" &
+  fi
+  UI_PID=$!
+}
+
 BINARY="$(resolve_bundle_binary)"
 
 SQLITE_VEC_LOADABLES=()
@@ -148,8 +159,7 @@ echo "worker smoke passed"
 if [[ "${LF_SKIP_UI_SMOKE:-0}" != "1" ]]; then
   export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-offscreen}"
   export QT_LOGGING_RULES="${QT_LOGGING_RULES:-*.debug=false;qt.qpa.*=false}"
-  timeout 30s "$BINARY" &
-  UI_PID=$!
+  launch_ui_smoke_process
   sleep 5
   if ! kill -0 "$UI_PID" 2>/dev/null; then
     wait "$UI_PID" || true
