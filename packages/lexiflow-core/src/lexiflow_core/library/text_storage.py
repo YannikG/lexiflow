@@ -148,7 +148,7 @@ class TextStorage:
         title = metadata.title
         autogenerate_title = metadata.autogenerate_title
         if metadata.autogenerate_title:
-            title = parse_document_title(native_markdown)
+            title = normalize_document_title(parse_document_title(native_markdown))
             autogenerate_title = False
         updated = TextMetadata(
             id=metadata.id,
