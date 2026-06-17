@@ -80,6 +80,17 @@ jobs:
         with:
           arch: arm64
 
+      - name: Restore WiX Toolset on PATH after MSVC setup
+        if: inputs.platform == 'windows-arm64'
+        shell: pwsh
+        run: |
+          $heat = Get-ChildItem "C:\Program Files (x86)\WiX Toolset v*\bin\heat.exe" -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+          if (-not $heat) {
+            throw "WiX heat.exe not found; choco install wixtoolset may have failed"
+          }
+          "$($heat.DirectoryName)" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
       - name: Build sqlite-vec for Windows ARM64
         if: inputs.platform == 'windows-arm64'
         shell: pwsh
