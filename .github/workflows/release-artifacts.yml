@@ -118,7 +118,7 @@ jobs:
           fi
 
       - name: Assert trimmed Qt frameworks in bundle
-        run: uv run pytest tests/packaging/test_pyside6_bundle.py::test_forbidden_qt_frameworks_not_in_built_bundle -q --no-cov
+        run: uv run pytest tests/packaging/test_pyside6_bundle.py::test_forbidden_qt_frameworks_not_in_built_bundle -q -o addopts=
 
       - name: Build Linux AppImage
         if: inputs.platform == 'linux'
