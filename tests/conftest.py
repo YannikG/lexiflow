@@ -17,7 +17,9 @@ def _vendored_vec0_loadable() -> Path | None:
     return None
 
 
-# Use fetched vec0 binaries when present (CI and local dev after fetch_sqlite_vec.py).
+# Safety net: point tests at vendored vec0 when fetch ran but wheel was not reinstalled.
+# Regression tests for the installed-package path must monkeypatch.delenv(
+# "LEXIFLOW_SQLITE_VEC_PATH") so they exercise site-packages, not this override.
 if not os.environ.get("LEXIFLOW_SQLITE_VEC_PATH", "").strip():
     _vec0 = _vendored_vec0_loadable()
     if _vec0 is not None:

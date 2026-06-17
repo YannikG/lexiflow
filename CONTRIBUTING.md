@@ -31,7 +31,10 @@ See [documentation strategy](docs/guides/documentation-strategy.md) and [ADR-000
 
 ## Quality gates
 
+Fetch the sqlite-vec loadable for your host before `uv sync` (binaries are not committed). If you fetch after an initial sync, run `uv sync --reinstall-package sqlite-vec`.
+
 ```bash
+python packaging/scripts/fetch_sqlite_vec.py --platform macos-arm64  # or linux / windows
 uv sync
 uv run ruff check .
 uv run ruff format --check .
@@ -59,7 +62,7 @@ uv run pyinstaller packaging/lexiflow.spec --noconfirm
 bash packaging/scripts/smoke_bundle.sh
 ```
 
-See [packaging concept doc](packages/lexiflow-ui/docs/concepts/packaging.md) and [ADR-0008](docs/adr/0008-pyinstaller-release-bundle.md).
+See [packaging concept doc](packages/lexiflow-ui/docs/concepts/packaging.md) (**Release bundle smoke**) and [ADR-0008](docs/adr/0008-pyinstaller-release-bundle.md).
 
 ## Agents
 
