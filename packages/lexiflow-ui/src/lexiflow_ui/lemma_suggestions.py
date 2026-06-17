@@ -75,7 +75,6 @@ def make_async_lemma_fill(
             ensure_background_workers(
                 supervisor,
                 llama_supervisor=llama_supervisor,
-                embed_supervisor=embed_supervisor,
             )
 
     def poll(surface_form: str) -> LemmaSuggestions | None:

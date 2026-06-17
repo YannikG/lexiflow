@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from lexiflow_core.config.settings_resolution import resolve_gloss_language
 from lexiflow_core.jobs.models import JobId, JobRecord, JobStatus
 from lexiflow_core.jobs.service import JobService
 from lexiflow_core.llm.prompt_languages import prompt_language_label
@@ -50,7 +51,8 @@ def handle_lemma(
     if _job_was_cancelled(job_service, job.id):
         return
     try:
-        target_language, surface_form, native_language, context = _payload_strings(job)
+        target_language, surface_form, payload_native, context = _payload_strings(job)
+        native_language = resolve_gloss_language(fallback=payload_native)
     except ValueError as exc:
         job_service.fail(job.id, str(exc))
         return

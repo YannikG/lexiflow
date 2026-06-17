@@ -57,7 +57,6 @@ def resolve_lemma_suggestions(
         ensure_background_workers(
             supervisor,
             llama_supervisor=llama_supervisor,
-            embed_supervisor=embed_supervisor,
         )
     completed = wait_for_lemma_result(data_root, surface_form=surface_form)
     if completed is None:
