@@ -51,7 +51,7 @@ launch_ui_smoke_process() {
   else
     "$BINARY" &
   fi
-  printf '%s' "$!"
+  UI_PID=$!
 }
 
 BINARY="$(resolve_bundle_binary)"
@@ -159,7 +159,7 @@ echo "worker smoke passed"
 if [[ "${LF_SKIP_UI_SMOKE:-0}" != "1" ]]; then
   export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-offscreen}"
   export QT_LOGGING_RULES="${QT_LOGGING_RULES:-*.debug=false;qt.qpa.*=false}"
-  UI_PID="$(launch_ui_smoke_process)"
+  launch_ui_smoke_process
   sleep 5
   if ! kill -0 "$UI_PID" 2>/dev/null; then
     wait "$UI_PID" || true

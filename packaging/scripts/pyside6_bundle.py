@@ -89,6 +89,11 @@ def discover_pyside6_imports(root: Path) -> set[str]:
     return discovered
 
 
+def discover_pyside6_imports_from_source(source: str) -> set[str]:
+    """Return PySide6 submodule names referenced in *source* (read-only scan)."""
+    return _pyside6_submodules_in_source(source)
+
+
 def discover_shiboken_imports(root: Path) -> set[str]:
     """Return top-level shiboken module names imported under *root*."""
     discovered: set[str] = set()
@@ -142,19 +147,28 @@ def _python_files(root: Path) -> Iterable[Path]:
 
 def _pyside6_submodules_in_source(source: str) -> set[str]:
     discovered: set[str] = set()
-    for match in _PYSIDE6_IMPORT_RE.finditer(source):
-        discovered.add(match.group(1))
     try:
         tree = ast.parse(source)
     except SyntaxError:
+        for match in _PYSIDE6_IMPORT_RE.finditer(source):
+            discovered.add(match.group(1))
         return discovered
+
     for node in ast.walk(tree):
-        if (
-            isinstance(node, ast.ImportFrom)
-            and node.module
-            and node.module.startswith("PySide6.")
-        ):
-            discovered.add(node.module.removeprefix("PySide6.").split(".")[0])
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name.startswith("PySide6."):
+                    parts = alias.name.split(".")
+                    if len(parts) > 1:
+                        discovered.add(parts[1])
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            if node.module == "PySide6":
+                for alias in node.names:
+                    discovered.add(alias.name.split(".")[0])
+            elif node.module.startswith("PySide6."):
+                parts = node.module.split(".")
+                if len(parts) > 1:
+                    discovered.add(parts[1])
     return discovered
 
 

@@ -20,6 +20,26 @@ def _load_pyside6_bundle():
     return module
 
 
+def test_pyside6_import_scanner_detects_common_import_styles() -> None:
+    pyside6_bundle = _load_pyside6_bundle()
+    source = """
+from PySide6 import QtCore
+from PySide6.QtWidgets import QWidget
+import PySide6.QtNetwork
+import PySide6.QtGui as QtGui
+"""
+    discovered = pyside6_bundle.discover_pyside6_imports_from_source(source)
+    assert discovered == {"QtCore", "QtGui", "QtNetwork", "QtWidgets"}
+
+
+def test_pyside6_import_scanner_flags_disallowed_submodule() -> None:
+    pyside6_bundle = _load_pyside6_bundle()
+    source = "from PySide6 import QtWebEngineWidgets\n"
+    discovered = pyside6_bundle.discover_pyside6_imports_from_source(source)
+    unknown = discovered - pyside6_bundle.ALLOWED_PYSIDE6_SUBMODULES
+    assert unknown == {"QtWebEngineWidgets"}
+
+
 def test_lexiflow_ui_pyside6_imports_within_allowlist() -> None:
     pyside6_bundle = _load_pyside6_bundle()
     ui_src = _repo_root() / "packages" / "lexiflow-ui" / "src"
