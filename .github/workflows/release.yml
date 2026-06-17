@@ -167,7 +167,7 @@ jobs:
           ls -la merged/
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: merged/*
           generate_release_notes: true
