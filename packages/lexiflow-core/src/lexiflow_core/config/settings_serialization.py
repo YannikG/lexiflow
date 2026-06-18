@@ -41,7 +41,7 @@ def dump_settings_toml(mapping: dict[str, Any]) -> str:
     for key, value in mapping.items():
         if isinstance(value, bool):
             rendered = "true" if value else "false"
-        elif isinstance(value, int):
+        elif isinstance(value, (int, float)):
             rendered = str(value)
         elif isinstance(value, str):
             escaped = value.replace("\\", "\\\\").replace('"', '\\"')

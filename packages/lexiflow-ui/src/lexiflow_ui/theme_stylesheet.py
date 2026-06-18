@@ -83,7 +83,7 @@ def _apply_template(template: str, tokens: dict[str, str]) -> str:
     rendered = template
     for key, value in tokens.items():
         rendered = rendered.replace("{" + key + "}", value)
-    return rendered
+    return rendered.replace("{{", "{").replace("}}", "}")
 
 
 def build_theme_stylesheet(effective: EffectiveTheme) -> str:

@@ -107,7 +107,6 @@ class LlamaServerSupervisor(QObject):
             self._process = None
             if not healthy:
                 self._set_state(LlamaServerState.OFFLINE)
-                healthy = llama_server_health(self._base_url)
 
         if healthy:
             self._set_state(LlamaServerState.READY)

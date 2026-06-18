@@ -13,8 +13,20 @@ def version_parts(value: str) -> tuple[int, ...]:
     return tuple(int(part) for part in parts) if parts else (0,)
 
 
+def _semver_triple(parts: tuple[int, ...]) -> tuple[int, int, int]:
+    padded = (*parts, 0, 0, 0)
+    return padded[0], padded[1], padded[2]
+
+
 def is_newer_version(installed: str, latest: str) -> bool:
-    return version_parts(latest) > version_parts(installed)
+    installed_parts = version_parts(installed)
+    latest_parts = version_parts(latest)
+    installed_triple = _semver_triple(installed_parts)
+    latest_triple = _semver_triple(latest_parts)
+    if latest_triple != installed_triple:
+        return latest_triple > installed_triple
+    # Same X.Y.Z: release beats dev/pre-release suffix segments.
+    return len(latest_parts) < len(installed_parts)
 
 
 def parse_semver_triple(version: str) -> tuple[int, int, int]:

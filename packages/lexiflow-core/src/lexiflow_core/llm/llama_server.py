@@ -70,6 +70,8 @@ def _read_http_json(
         raise error_cls(f"{service} request timed out") from exc
     except OSError as exc:
         raise error_cls(f"{service} request failed: {exc}") from exc
+    except UnicodeDecodeError as exc:
+        raise error_cls(f"{service} returned invalid UTF-8") from exc
     finally:
         if response is not None:
             response.close()
