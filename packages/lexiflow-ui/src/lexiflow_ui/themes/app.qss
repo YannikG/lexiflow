@@ -1,0 +1,424 @@
+* {{
+  outline: none;
+}}
+
+QWidget {{
+  background-color: {editor.background};
+  color: {foreground};
+  selection-background-color: {editor.inactiveSelectionBackground};
+  selection-color: {editor.foreground};
+}}
+
+QMainWindow {{
+  background-color: {editor.background};
+}}
+
+QWidget#sidebar {{
+  background-color: {sideBar.background};
+  color: {sideBar.foreground};
+  border-right: 1px solid {sideBar.border};
+}}
+
+QListWidget#sidebar_text_list,
+QListWidget#catalog_list {{
+  background-color: {sideBar.background};
+  color: {sideBar.foreground};
+  border: none;
+  outline: none;
+}}
+
+QListWidget#sidebar_text_list::item,
+QListWidget#catalog_list::item {{
+  padding: 4px 8px;
+}}
+
+QListWidget#sidebar_text_list::item {{
+  font-size: 14px;
+}}
+
+QLabel#reader_library_title {{
+  font-size: 17px;
+  font-weight: 600;
+}}
+
+QLineEdit#reader_title_edit {{
+  font-size: 17px;
+  font-weight: 600;
+}}
+
+QListWidget#sidebar_text_list::item:hover,
+QListWidget#catalog_list::item:hover {{
+  background-color: {list.hoverBackground};
+}}
+
+QListWidget#sidebar_text_list::item:selected,
+QListWidget#catalog_list::item:selected {{
+  background-color: {list.activeSelectionBackground};
+  color: {list.activeSelectionForeground};
+}}
+
+QToolBar#main_toolbar {{
+  background: {titleBar.activeBackground};
+  color: {titleBar.activeForeground};
+  border: none;
+  border-bottom: 1px solid {titleBar.border};
+  spacing: 4px;
+  padding: 2px 4px;
+}}
+
+QToolBar#main_toolbar QToolButton {{
+  background: transparent;
+  color: {titleBar.activeForeground};
+  border: none;
+  outline: none;
+  padding: 4px 8px;
+}}
+
+QToolBar#main_toolbar QToolButton:hover {{
+  background: {list.hoverBackground};
+}}
+
+QToolBar#main_toolbar QToolButton:focus {{
+  border: none;
+  outline: none;
+}}
+
+QToolBar#main_toolbar QToolButton:checked {{
+  background: {list.activeSelectionBackground};
+  color: {list.activeSelectionForeground};
+}}
+
+QMenuBar {{
+  background-color: {titleBar.activeBackground};
+  color: {titleBar.activeForeground};
+  border-bottom: 1px solid {titleBar.border};
+}}
+
+QMenuBar::item {{
+  padding: 4px 8px;
+  background: transparent;
+}}
+
+QMenuBar::item:selected {{
+  background: {list.hoverBackground};
+}}
+
+QMenu {{
+  background-color: {menu.background};
+  color: {menu.foreground};
+  border: 1px solid {widget.border};
+}}
+
+QMenu::item:selected {{
+  background-color: {menu.selectionBackground};
+  color: {menu.selectionForeground};
+}}
+
+QStatusBar {{
+  background-color: {statusBar.background};
+  color: {statusBar.foreground};
+  border-top: 1px solid {statusBar.border};
+}}
+
+QStatusBar QLabel,
+QLabel#worker_status_message {{
+  color: {statusBar.foreground};
+  background: transparent;
+  padding: 2px 4px;
+}}
+
+QPushButton {{
+  background-color: {button.background};
+  color: {button.foreground};
+  border: none;
+  outline: none;
+  padding: 4px 14px;
+  border-radius: 2px;
+  min-height: 22px;
+}}
+
+QPushButton:hover {{
+  background-color: {button.hoverBackground};
+}}
+
+QPushButton:focus {{
+  border: none;
+  outline: none;
+}}
+
+QPushButton:disabled {{
+  color: {descriptionForeground};
+  background-color: {disabled_button_bg};
+  border: none;
+}}
+
+{secondary_selectors} {{
+  background-color: {button.secondaryBackground};
+  color: {button.secondaryForeground};
+  border: none;
+  outline: none;
+}}
+
+{secondary_selectors}:hover {{
+  background-color: {button.secondaryHoverBackground};
+}}
+
+{tab_selectors} {{
+  background-color: {tab.inactiveBackground};
+  color: {tab.inactiveForeground};
+  border: none;
+  border-top: 2px solid transparent;
+  border-bottom: 1px solid {tab.border};
+  border-radius: 0;
+  padding: 6px 12px;
+}}
+
+{tab_selectors_hover} {{
+  background-color: {tab_hover_bg};
+}}
+
+{tab_selectors_checked} {{
+  background-color: {tab.activeBackground};
+  color: {tab.activeForeground};
+  border-top: 2px solid {tab.activeBorderTop};
+}}
+
+QWidget#reader_widget {{
+  background-color: {editor.background};
+  color: {foreground};
+}}
+
+QTextBrowser#reader_read_pane,
+QTextBrowser#reader_edit_preview_pane {{
+  background-color: {reader.background};
+  color: {editor.foreground};
+  border: 1px solid {reader.border};
+  border-radius: 2px;
+  selection-background-color: {editor.inactiveSelectionBackground};
+  selection-color: {editor.foreground};
+}}
+
+QPlainTextEdit#reader_edit_pane {{
+  background-color: {input.background};
+  color: {editor.foreground};
+  border: 1px solid {input.border};
+  border-radius: 2px;
+  selection-background-color: {editor.inactiveSelectionBackground};
+  selection-color: {editor.foreground};
+}}
+
+QWidget#word_panel {{
+  background-color: {reader.panelBackground};
+  border-top: 1px solid {reader.border};
+}}
+
+QWidget#vocabulary_study_card_face {{
+  background-color: {reader.panelBackground};
+  border: 1px solid {reader.border};
+  border-radius: 8px;
+}}
+
+QWidget#vocabulary_study_card_face QLabel {{
+  background: transparent;
+}}
+
+QLabel#vocabulary_study_card_text {{
+  font-size: 32px;
+  font-weight: 500;
+  background: transparent;
+}}
+
+QLabel#vocabulary_study_explanation {{
+  font-size: 15px;
+  color: {descriptionForeground};
+  padding-top: 12px;
+  background: transparent;
+}}
+
+QTableWidget#word_panel_new_table,
+QTableWidget#word_panel_learned_table,
+QTableWidget#jobs_panel_table {{
+  background-color: {reader.panelBackground};
+  border: none;
+  gridline-color: {reader.border};
+}}
+
+QTextBrowser#reader_read_pane QScrollBar:vertical,
+QTextBrowser#reader_edit_preview_pane QScrollBar:vertical,
+QTableWidget#word_panel_new_table QScrollBar:vertical,
+QTableWidget#word_panel_learned_table QScrollBar:vertical,
+QTableWidget#jobs_panel_table QScrollBar:vertical {{
+  background: {reader.scrollbarBackground};
+  width: 10px;
+  margin: 0;
+}}
+
+QTextBrowser#reader_read_pane QScrollBar::handle:vertical,
+QTextBrowser#reader_edit_preview_pane QScrollBar::handle:vertical,
+QTableWidget#word_panel_new_table QScrollBar::handle:vertical,
+QTableWidget#word_panel_learned_table QScrollBar::handle:vertical,
+QTableWidget#jobs_panel_table QScrollBar::handle:vertical {{
+  background: {reader.scrollbarThumb};
+  min-height: 24px;
+  border-radius: 4px;
+}}
+
+QTextBrowser#reader_read_pane QScrollBar::handle:vertical:hover,
+QTextBrowser#reader_edit_preview_pane QScrollBar::handle:vertical:hover,
+QTableWidget#word_panel_new_table QScrollBar::handle:vertical:hover,
+QTableWidget#word_panel_learned_table QScrollBar::handle:vertical:hover,
+QTableWidget#jobs_panel_table QScrollBar::handle:vertical:hover {{
+  background: {reader.scrollbarThumbHover};
+}}
+
+QTextBrowser#reader_read_pane QScrollBar:horizontal,
+QTextBrowser#reader_edit_preview_pane QScrollBar:horizontal,
+QTableWidget#word_panel_new_table QScrollBar:horizontal,
+QTableWidget#word_panel_learned_table QScrollBar:horizontal,
+QTableWidget#jobs_panel_table QScrollBar:horizontal {{
+  background: {reader.scrollbarBackground};
+  height: 10px;
+  margin: 0;
+}}
+
+QTextBrowser#reader_read_pane QScrollBar::handle:horizontal,
+QTextBrowser#reader_edit_preview_pane QScrollBar::handle:horizontal,
+QTableWidget#word_panel_new_table QScrollBar::handle:horizontal,
+QTableWidget#word_panel_learned_table QScrollBar::handle:horizontal,
+QTableWidget#jobs_panel_table QScrollBar::handle:horizontal {{
+  background: {reader.scrollbarThumb};
+  min-width: 24px;
+  border-radius: 4px;
+}}
+
+QTextBrowser#reader_read_pane QScrollBar::handle:horizontal:hover,
+QTextBrowser#reader_edit_preview_pane QScrollBar::handle:horizontal:hover,
+QTableWidget#word_panel_new_table QScrollBar::handle:horizontal:hover,
+QTableWidget#word_panel_learned_table QScrollBar::handle:horizontal:hover,
+QTableWidget#jobs_panel_table QScrollBar::handle:horizontal:hover {{
+  background: {reader.scrollbarThumbHover};
+}}
+
+QTextBrowser#reader_read_pane QScrollBar::add-line,
+QTextBrowser#reader_read_pane QScrollBar::sub-line,
+QTextBrowser#reader_read_pane QScrollBar::add-page,
+QTextBrowser#reader_read_pane QScrollBar::sub-page,
+QTextBrowser#reader_edit_preview_pane QScrollBar::add-line,
+QTextBrowser#reader_edit_preview_pane QScrollBar::sub-line,
+QTextBrowser#reader_edit_preview_pane QScrollBar::add-page,
+QTextBrowser#reader_edit_preview_pane QScrollBar::sub-page,
+QTableWidget#word_panel_new_table QScrollBar::add-line,
+QTableWidget#word_panel_new_table QScrollBar::sub-line,
+QTableWidget#word_panel_new_table QScrollBar::add-page,
+QTableWidget#word_panel_new_table QScrollBar::sub-page,
+QTableWidget#word_panel_learned_table QScrollBar::add-line,
+QTableWidget#word_panel_learned_table QScrollBar::sub-line,
+QTableWidget#word_panel_learned_table QScrollBar::add-page,
+QTableWidget#word_panel_learned_table QScrollBar::sub-page,
+QTableWidget#jobs_panel_table QScrollBar::add-line,
+QTableWidget#jobs_panel_table QScrollBar::sub-line,
+QTableWidget#jobs_panel_table QScrollBar::add-page,
+QTableWidget#jobs_panel_table QScrollBar::sub-page {{
+  background: none;
+  border: none;
+}}
+
+QTextBrowser#reader_read_pane a,
+QTextBrowser#reader_edit_preview_pane a {{
+  color: {textLink.foreground};
+}}
+
+QLineEdit,
+QPlainTextEdit,
+QTextEdit,
+QComboBox {{
+  background-color: {input.background};
+  color: {input.foreground};
+  border: 1px solid {input.border};
+  border-radius: 2px;
+  padding: 4px 6px;
+}}
+
+QLineEdit:focus,
+QComboBox:focus,
+QPlainTextEdit:focus,
+QTextEdit:focus {{
+  border: 1px solid {focusBorder};
+}}
+
+QComboBox QAbstractItemView {{
+  background-color: {dropdown.background};
+  color: {dropdown.foreground};
+  border: 1px solid {dropdown.border};
+  selection-background-color: {list.activeSelectionBackground};
+  selection-color: {list.activeSelectionForeground};
+}}
+
+QDialog,
+QWizard {{
+  background-color: {editorWidget.background};
+  color: {foreground};
+}}
+
+QLabel#sidebar_empty_label,
+QLabel#empty_state_message,
+QLabel#descriptionForeground {{
+  color: {descriptionForeground};
+}}
+
+QSplitter::handle {{
+  background: {widget.border};
+}}
+
+QScrollBar:vertical {{
+  background: {editor.background};
+  width: 10px;
+  margin: 0;
+}}
+
+QScrollBar::handle:vertical {{
+  background: {widget.border};
+  min-height: 24px;
+  border-radius: 4px;
+}}
+
+QScrollBar:horizontal {{
+  background: {editor.background};
+  height: 10px;
+  margin: 0;
+}}
+
+QScrollBar::handle:horizontal {{
+  background: {widget.border};
+  min-width: 24px;
+  border-radius: 4px;
+}}
+
+QScrollBar::add-line,
+QScrollBar::sub-line,
+QScrollBar::add-page,
+QScrollBar::sub-page {{
+  background: none;
+  border: none;
+}}
+
+QProgressBar {{
+  background-color: {input.background};
+  border: 1px solid {input.border};
+  text-align: center;
+  color: {foreground};
+}}
+
+QProgressBar::chunk {{
+  background-color: {button.background};
+}}
+
+QRadioButton,
+QCheckBox {{
+  color: {foreground};
+  spacing: 6px;
+}}
+
+QMessageBox {{
+  background-color: {editorWidget.background};
+}}
