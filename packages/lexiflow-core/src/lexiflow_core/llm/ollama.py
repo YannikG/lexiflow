@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import json
-import urllib.error
 import urllib.request
 
-from lexiflow_core.llm.llama_server import HTTPResponse, UrlOpener, _DefaultOpener
+from lexiflow_core.llm.llama_server import UrlOpener, _DefaultOpener, _read_http_json
 
 DEFAULT_OLLAMA_LLM_MODEL = "gemma4:2b"
 
@@ -56,31 +55,13 @@ class OllamaLLM:
             method="POST",
             headers={"Content-Type": "application/json"},
         )
-        response: HTTPResponse | None = None
-        try:
-            response = self._opener.open(request, timeout=self._timeout)
-            status = getattr(response, "status", None)
-            if status is not None and not (200 <= status < 300):
-                raise OllamaError(f"Ollama returned HTTP {status}")
-            raw = response.read().decode("utf-8")
-        except urllib.error.HTTPError as exc:
-            exc.close()
-            raise OllamaError(f"Ollama request failed: HTTP {exc.code}") from exc
-        except urllib.error.URLError as exc:
-            raise OllamaError(f"Ollama request failed: {exc.reason}") from exc
-        except TimeoutError as exc:
-            raise OllamaError("Ollama request timed out") from exc
-        except OSError as exc:
-            raise OllamaError(f"Ollama request failed: {exc}") from exc
-        finally:
-            if response is not None:
-                response.close()
-
-        try:
-            payload = json.loads(raw)
-        except json.JSONDecodeError as exc:
-            raise OllamaError("Ollama returned invalid JSON") from exc
-
+        payload = _read_http_json(
+            self._opener,
+            request,
+            timeout=self._timeout,
+            error_cls=OllamaError,
+            service="Ollama",
+        )
         response_text = payload.get("response")
         if not isinstance(response_text, str):
             raise OllamaError("Ollama response missing 'response' field")

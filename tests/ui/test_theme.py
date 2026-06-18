@@ -9,7 +9,10 @@ from lexiflow_core.config.settings import Settings
 from lexiflow_core.config.settings_store import SettingsStore
 from lexiflow_ui.app import run
 from lexiflow_ui.main_window import MainWindow
-from lexiflow_ui.theme import apply_app_theme, resolve_effective_theme
+from lexiflow_ui.theme_stylesheet import (
+    apply_app_theme,
+    resolve_effective_theme,
+)
 from lexiflow_ui.worker_supervisor import WorkerSupervisor
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QApplication, QTextBrowser

@@ -16,7 +16,7 @@ Several third-party Qt theme libraries were evaluated for PySide6.
 ## Decision
 
 1. **Widget-first** — Keep `QMainWindow` and standard `QWidget` tree from phases 05–09. No QML rewrite. No full **FluentWindow** / frameless shell migration in v1.
-2. **Stylesheet-based UI theme** — Map `Settings.theme` to a global Qt stylesheet at app startup via **`lexiflow_ui.theme`** (resolve + apply) and **`lexiflow_ui.theme_stylesheet`** (QSS builder). **Implementation (phase 9-2):** Fusion base + bundled **`dark_theme.json`** / **`light_theme.json`** color tokens, not `qt-material`.
+2. **Stylesheet-based UI theme** — Map `Settings.theme` to a global Qt stylesheet at app startup via **`lexiflow_ui.theme_stylesheet`** (resolve, apply, and QSS builder). **Implementation (phase 9-2):** Fusion base + bundled **`dark_theme.json`** / **`light_theme.json`** color tokens, not `qt-material`.
 3. **Core stays Qt-free** — Theme resolution and apply live in **lexiflow-ui** only. **lexiflow-core** keeps the `Theme` literal on `Settings`; no Qt imports in core.
 4. **Phase split** — Phase **9-2** delivers theme bootstrap and migrates the existing shell off default chrome. Phase **14** wires the **Theme** toggle in **settings** and the **appearance** panel (font size already on `Settings`).
 5. **Convention** — Feature widgets must not call `setStyleSheet` inline; styling flows from the global **UI theme** (see [ui-theme.md](../../packages/lexiflow-ui/docs/concepts/ui-theme.md)).
@@ -50,7 +50,7 @@ Several third-party Qt theme libraries were evaluated for PySide6.
 
 ## Consequences
 
-- **Phase 9-2:** ADR + concept doc + `lexiflow_ui.theme` bootstrap; dark/light theme QSS; migrate shell widgets; spike compares Fusion vs themed chrome on macOS (see `docs/spike/phase-9-2/`).
+- **Phase 9-2:** ADR + concept doc + `lexiflow_ui.theme_stylesheet` bootstrap; dark/light theme QSS; migrate shell widgets; spike compares Fusion vs themed chrome on macOS (see `docs/spike/phase-9-2/`).
 - **Phase 14:** **Theme** dropdown calls `apply_app_theme` without restart when feasible; **appearance** panel for reader font size and future density/accent.
 - **Phase 15:** PyInstaller spec bundles `lexiflow_ui/themes/*.json` with the app (no `qt-material` assets).
 - **Phase 17+:** New controls use standard Qt widgets; no inline QSS in feature code.
