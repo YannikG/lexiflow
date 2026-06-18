@@ -403,12 +403,20 @@ class LibrarySearchField(QWidget):
         count = self._results.count()
         if count == 0:
             return 0
+        popup_width = max(self.width(), _MIN_POPUP_WIDTH)
         visible_rows = min(count, _MAX_VISIBLE_RESULTS)
         height = 0
         for row in range(visible_rows):
             item = self._results.item(row)
-            if item is not None:
-                height += item.sizeHint().height()
+            if item is None:
+                continue
+            item_height = item.sizeHint().height()
+            if item_height > 0:
+                height += item_height
+                continue
+            hit = item.data(Qt.ItemDataRole.UserRole)
+            if isinstance(hit, SearchHit):
+                height += self._delegate.size_hint_for(hit, popup_width).height()
         return height
 
     def _show_popup(self) -> None:

@@ -168,12 +168,13 @@ def test_popup_height_matches_result_count(qtbot, tmp_path) -> None:
     qtbot.waitExposed(window)
 
     search = window._toolbar_search
-    qtbot.keyClicks(search.line_edit(), "mas")
+    qtbot.keyClicks(search.line_edit(), "Paket")
 
+    assert search._popup.isVisible()
+    assert search._results.count() == 1
     expected_height = search._results_content_height()
     assert search._popup.height() == expected_height
     assert search._results.height() == expected_height
-    assert search._results.count() == 1
 
 
 def test_popup_hides_when_application_becomes_inactive(qtbot, tmp_path) -> None:
