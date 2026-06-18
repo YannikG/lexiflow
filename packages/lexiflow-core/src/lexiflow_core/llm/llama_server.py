@@ -46,6 +46,43 @@ class _DefaultOpener:
         return cast(HTTPResponse, urllib.request.urlopen(request, timeout=timeout))
 
 
+def _read_http_json(
+    opener: UrlOpener,
+    request: urllib.request.Request,
+    *,
+    timeout: float,
+    error_cls: type[Exception],
+    service: str,
+) -> dict[str, object]:
+    response: HTTPResponse | None = None
+    try:
+        response = opener.open(request, timeout=timeout)
+        status = getattr(response, "status", None)
+        if status is not None and not (200 <= status < 300):
+            raise error_cls(f"{service} returned HTTP {status}")
+        raw = response.read().decode("utf-8")
+    except urllib.error.HTTPError as exc:
+        exc.close()
+        raise error_cls(f"{service} request failed: HTTP {exc.code}") from exc
+    except urllib.error.URLError as exc:
+        raise error_cls(f"{service} request failed: {exc.reason}") from exc
+    except TimeoutError as exc:
+        raise error_cls(f"{service} request timed out") from exc
+    except OSError as exc:
+        raise error_cls(f"{service} request failed: {exc}") from exc
+    finally:
+        if response is not None:
+            response.close()
+
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise error_cls(f"{service} returned invalid JSON") from exc
+    if not isinstance(payload, dict):
+        raise error_cls(f"{service} returned invalid JSON")
+    return payload
+
+
 def _llama_server_executable_name() -> str:
     return "llama-server.exe" if os.name == "nt" else "llama-server"
 
@@ -232,35 +269,11 @@ class LlamaServerLLM:
             method="POST",
             headers={"Content-Type": "application/json"},
         )
-        response: HTTPResponse | None = None
-        try:
-            response = self._opener.open(request, timeout=self._timeout)
-            status = getattr(response, "status", None)
-            if status is not None and not (200 <= status < 300):
-                raise LlamaServerError(f"llama-server returned HTTP {status}")
-            raw = response.read().decode("utf-8")
-        except urllib.error.HTTPError as exc:
-            exc.close()
-            raise LlamaServerError(
-                f"llama-server request failed: HTTP {exc.code}"
-            ) from exc
-        except urllib.error.URLError as exc:
-            raise LlamaServerError(
-                f"llama-server request failed: {exc.reason}"
-            ) from exc
-        except TimeoutError as exc:
-            raise LlamaServerError("llama-server request timed out") from exc
-        except OSError as exc:
-            raise LlamaServerError(f"llama-server request failed: {exc}") from exc
-        finally:
-            if response is not None:
-                response.close()
-
-        try:
-            payload = json.loads(raw)
-        except json.JSONDecodeError as exc:
-            raise LlamaServerError("llama-server returned invalid JSON") from exc
-
-        if not isinstance(payload, dict):
-            raise LlamaServerError("llama-server returned invalid JSON")
+        payload = _read_http_json(
+            self._opener,
+            request,
+            timeout=self._timeout,
+            error_cls=LlamaServerError,
+            service="llama-server",
+        )
         return _parse_chat_completion_payload(payload)

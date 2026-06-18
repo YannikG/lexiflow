@@ -16,7 +16,7 @@ def resolve_source_route(
     native_language: str,
     target_language: str,
 ) -> SourceRoute:
-    """Resolve source route; language detect overrides tab when they conflict."""
+    """Resolve source route from the selected input tab."""
     tab_expects_native = input_tab == InputTab.NATIVE
     if detected_language is None:
         return "native" if tab_expects_native else "target"

@@ -33,3 +33,21 @@ def settings_from_mapping(raw: dict[str, Any]) -> Settings:
         else:
             kwargs[key] = value
     return Settings(**kwargs)
+
+
+def dump_settings_toml(mapping: dict[str, Any]) -> str:
+    """Serialize flat settings keys to TOML (stdlib read via tomllib elsewhere)."""
+    lines: list[str] = []
+    for key, value in mapping.items():
+        if isinstance(value, bool):
+            rendered = "true" if value else "false"
+        elif isinstance(value, int):
+            rendered = str(value)
+        elif isinstance(value, str):
+            escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+            rendered = f'"{escaped}"'
+        else:
+            msg = f"unsupported settings TOML value for {key!r}: {type(value)!r}"
+            raise TypeError(msg)
+        lines.append(f"{key} = {rendered}")
+    return "\n".join(lines) + "\n"

@@ -5,11 +5,11 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from lexiflow_core.library.group_names import slugify_group_name
 from lexiflow_core.library.group_registry import (
     GroupNotFoundError,
     GroupRegistry,
     GroupSlugCollisionError,
+    slugify_group_name,
 )
 
 

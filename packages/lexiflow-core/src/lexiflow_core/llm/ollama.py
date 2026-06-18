@@ -5,35 +5,14 @@ from __future__ import annotations
 import json
 import urllib.error
 import urllib.request
-from typing import Protocol, cast
+
+from lexiflow_core.llm.llama_server import HTTPResponse, UrlOpener, _DefaultOpener
 
 DEFAULT_OLLAMA_LLM_MODEL = "gemma4:2b"
 
 
 class OllamaError(Exception):
     """Raised when Ollama generation fails."""
-
-
-class HTTPResponse(Protocol):
-    """Minimal response surface used by OllamaLLM (stdlib or test fake)."""
-
-    def read(self, nbytes: int = -1) -> bytes: ...
-
-    def close(self) -> None: ...
-
-
-class UrlOpener(Protocol):
-    def open(
-        self, request: urllib.request.Request, timeout: float | None = ...
-    ) -> HTTPResponse: ...
-
-
-class _DefaultOpener:
-    def open(
-        self, request: urllib.request.Request, timeout: float | None = None
-    ) -> HTTPResponse:
-        # urlopen is untyped in stubs; we only need read/close.
-        return cast(HTTPResponse, urllib.request.urlopen(request, timeout=timeout))
 
 
 class OllamaLLM:

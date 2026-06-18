@@ -8,7 +8,7 @@ from pathlib import Path
 from threading import Thread
 from unittest.mock import patch
 
-import tomli_w
+from lexiflow_core.config.settings_serialization import dump_settings_toml
 from lexiflow_core.config.settings_store import SettingsStore
 from lexiflow_core.jobs.models import JobRequest, JobStatus, JobType
 from lexiflow_core.jobs.service import JobService
@@ -92,11 +92,10 @@ def test_main_completes_legacy_job_via_ollama_settings(tmp_path: Path) -> None:
 
     config_dir = tmp_path / "config"
     config_dir.mkdir()
-    with (config_dir / "settings.toml").open("wb") as handle:
-        tomli_w.dump(
-            {"ollama_url": base_url},
-            handle,
-        )
+    (config_dir / "settings.toml").write_text(
+        dump_settings_toml({"ollama_url": base_url}),
+        encoding="utf-8",
+    )
 
     data_root = tmp_path / "library"
     job_service = JobService(data_root)

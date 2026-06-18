@@ -5,8 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from lexiflow_core.library.index import LibraryIndex
-from lexiflow_core.library.search import search_texts
-from lexiflow_core.library.search_models import SearchHit
+from lexiflow_core.library.search import SearchHit, search_texts
 from PySide6.QtWidgets import QMessageBox, QWidget
 
 

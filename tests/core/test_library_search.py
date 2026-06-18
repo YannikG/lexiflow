@@ -72,25 +72,6 @@ def test_search_scoped_to_target_language(
     assert hits[0].title == "Spanish"
 
 
-def test_search_fuzzy_fallback_matches_typo(
-    library_search_setup: tuple[Path, TextRepository, LibraryIndex],
-) -> None:
-    _, text_repo, index = library_search_setup
-    text_repo.create_text(
-        CreateTextRequest(
-            title="Article",
-            group="News",
-            target_language="es",
-            native_language="de",
-            body="Contenido con palabraunica aqui.",
-        )
-    )
-
-    hits = search_texts(index, lang="es", query="palabreunica")
-
-    assert len(hits) == 1
-
-
 def test_search_snippet_contains_mark(
     library_search_setup: tuple[Path, TextRepository, LibraryIndex],
 ) -> None:

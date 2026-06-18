@@ -5,11 +5,8 @@ description = "Domain logic, storage, jobs, and LLM/embed abstractions for LexiF
 requires-python = ">=3.12,<3.14"
 dependencies = [
     "huggingface_hub>=0.28",
-    "langdetect>=1.0.9",
-    "rapidfuzz>=3.9",
     "sqlean.py>=3.45.1; sys_platform != 'win32'",
     "sqlite-vec>=0.1.6",
-    "tomli-w>=1.0",
 ]
 
 [build-system]

@@ -102,23 +102,21 @@ class LlamaServerSupervisor(QObject):
         return self._process.state() != QProcess.ProcessState.NotRunning
 
     def ensure_running(self) -> None:
+        healthy = llama_server_health(self._base_url)
         if self._process is not None and not self.is_process_running():
             self._process = None
-            if not llama_server_health(self._base_url):
+            if not healthy:
                 self._set_state(LlamaServerState.OFFLINE)
+                healthy = llama_server_health(self._base_url)
 
-        if llama_server_health(self._base_url):
+        if healthy:
             self._set_state(LlamaServerState.READY)
             return
         if self.is_process_running():
             self._set_state(LlamaServerState.LOADING)
             self._schedule_health_poll()
             return
-        if (
-            self._startup_error
-            and self._process is None
-            and not llama_server_health(self._base_url)
-        ):
+        if self._startup_error and self._process is None and not healthy:
             self._set_state(LlamaServerState.OFFLINE)
             return
 

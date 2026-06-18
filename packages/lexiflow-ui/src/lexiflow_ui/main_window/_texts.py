@@ -8,7 +8,7 @@ from uuid import UUID
 
 from lexiflow_core.jobs.service import JobService
 from lexiflow_core.library.reader_tabs import NATIVE_TAB
-from lexiflow_core.library.search_models import SearchHit
+from lexiflow_core.library.search import SearchHit
 from PySide6.QtWidgets import QMessageBox, QPushButton
 
 from lexiflow_ui.add_text_flow import submit_add_text

@@ -6,7 +6,18 @@ import json
 from pathlib import Path
 
 from lexiflow_core.config.paths import groups_json_path
-from lexiflow_core.library.group_names import slugify_group_name
+from lexiflow_core.library.slugify import slugify_segment
+
+
+def slugify_group_name(display_name: str) -> str:
+    """Convert a user-facing group label into a folder slug."""
+    normalized = display_name.strip()
+    if not normalized:
+        raise ValueError("group name must not be empty")
+    slug = slugify_segment(normalized, fallback="")
+    if not slug:
+        raise ValueError("group name must contain at least one alphanumeric character")
+    return slug
 
 
 class GroupRegistryError(Exception):

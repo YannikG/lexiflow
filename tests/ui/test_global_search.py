@@ -7,7 +7,7 @@ from uuid import UUID
 import pytest
 from lexiflow_core.config.settings import Settings
 from lexiflow_core.library.models import CreateTextRequest
-from lexiflow_core.library.search_models import SearchHit
+from lexiflow_core.library.search import SearchHit
 from lexiflow_ui.main_window import MainWindow
 from lexiflow_ui.widgets.library_search_field import (
     LibrarySearchField,
