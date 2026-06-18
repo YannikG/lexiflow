@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import json
-import re
 from dataclasses import dataclass
 from typing import Protocol
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
 import lexiflow_core
+from lexiflow_core.version_compare import is_newer_version
 
 
 @dataclass(frozen=True)
@@ -44,15 +44,6 @@ class GitHubReleaseClient:
         if not isinstance(html_url, str):
             return None
         return ReleaseInfo(version=version, download_url=html_url)
-
-
-def parse_version(value: str) -> tuple[int, ...]:
-    parts = re.findall(r"\d+", value)
-    return tuple(int(part) for part in parts) if parts else (0,)
-
-
-def is_newer_version(installed: str, latest: str) -> bool:
-    return parse_version(latest) > parse_version(installed)
 
 
 def check_for_app_update(
