@@ -5,11 +5,10 @@ from __future__ import annotations
 import tomllib
 from pathlib import Path
 
-import tomli_w
-
 from lexiflow_core.config.platform_dirs import app_config_dir
 from lexiflow_core.config.settings import Settings, SettingsError
 from lexiflow_core.config.settings_serialization import (
+    dump_settings_toml,
     settings_from_mapping,
     settings_to_mapping,
 )
@@ -38,7 +37,9 @@ class SettingsStore:
     def save(self, settings: Settings) -> None:
         try:
             self._config_dir.mkdir(parents=True, exist_ok=True)
-            with self.settings_path.open("wb") as handle:
-                tomli_w.dump(settings_to_mapping(settings), handle)
+            self.settings_path.write_text(
+                dump_settings_toml(settings_to_mapping(settings)),
+                encoding="utf-8",
+            )
         except OSError as exc:
             raise SettingsError("failed to save settings") from exc

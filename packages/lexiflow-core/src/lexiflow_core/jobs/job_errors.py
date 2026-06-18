@@ -59,13 +59,10 @@ def inference_subprocess_error(stderr: str, *, exit_code: int) -> str:
         return _INFERENCE_FAILED
     if _is_llama_server_install_message(normalized):
         return _LLAMA_SERVER_INSTALL_HINT
-    lower = normalized.lower()
     if _is_llama_server_runtime_failure(normalized):
         return _LLAMA_SERVER_NOT_RUNNING
     if _is_sqlite_vec_load_failure(normalized):
         return _SQLITE_VEC_MISSING_HINT
-    if "connection refused" in lower:
-        return _LLAMA_SERVER_NOT_RUNNING
     for line in reversed(normalized.splitlines()):
         stripped = line.strip()
         if not stripped or stripped.startswith("File "):

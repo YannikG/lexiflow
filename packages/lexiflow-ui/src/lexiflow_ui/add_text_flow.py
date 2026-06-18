@@ -12,7 +12,6 @@ from lexiflow_core.text_pipeline import (
     TextDraft,
     TextPipeline,
 )
-from lexiflow_core.text_pipeline.language_detect import LangdetectLanguageDetector
 from PySide6.QtWidgets import QMessageBox, QWidget
 
 from lexiflow_ui.dialogs.add_text_dialog import AddTextFormData
@@ -34,7 +33,7 @@ def submit_add_text(
         QMessageBox.warning(parent, "Add text", "Complete language setup first.")
         return None
 
-    pipeline = TextPipeline(data_root, language_detector=LangdetectLanguageDetector())
+    pipeline = TextPipeline(data_root)
     draft = TextDraft(
         title=form.title,
         group=form.group,

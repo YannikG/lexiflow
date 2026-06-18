@@ -12,8 +12,6 @@ from lexiflow_core.library.document_title import resolve_create_title
 from lexiflow_core.library.index import LibraryIndex
 from lexiflow_core.library.models import CreateTextRequest
 from lexiflow_core.library.text_repository import TextRepository
-from lexiflow_core.text_pipeline.duplicate_checker import DuplicateChecker
-from lexiflow_core.text_pipeline.language_detect import LanguageDetector
 from lexiflow_core.text_pipeline.models import TextDraft
 from lexiflow_core.text_pipeline.routing import resolve_source_route
 from lexiflow_core.text_pipeline.types import TextId
@@ -33,6 +31,18 @@ class LargePasteRequiresConfirmation(Exception):
     """Raised when pasted content exceeds the soft size guard without confirmation."""
 
 
+def _find_duplicate_by_url(
+    index: LibraryIndex,
+    *,
+    target_language: str,
+    source_url: str | None,
+) -> UUID | None:
+    normalized_url = source_url.strip() if source_url is not None else None
+    if not normalized_url:
+        return None
+    return index.find_by_source_url(target_language, normalized_url)
+
+
 class TextPipeline:
     def __init__(
         self,
@@ -41,7 +51,6 @@ class TextPipeline:
         index: LibraryIndex | None = None,
         job_service: JobService | None = None,
         text_repository: TextRepository | None = None,
-        language_detector: LanguageDetector | None = None,
     ) -> None:
         self._data_root = data_root
         self._index = index if index is not None else LibraryIndex(data_root)
@@ -51,8 +60,6 @@ class TextPipeline:
             if text_repository is not None
             else TextRepository(data_root, self._index)
         )
-        self._detector = language_detector
-        self._duplicates = DuplicateChecker(self._index)
 
     def submit_new_text(self, draft: TextDraft) -> TextId:
         """Validate draft, create provisional text, and enqueue staged generation."""
@@ -61,19 +68,17 @@ class TextPipeline:
             raise LargePasteRequiresConfirmation()
 
         if not draft.ignore_duplicate:
-            existing = self._duplicates.find_duplicate(
+            existing = _find_duplicate_by_url(
+                self._index,
                 target_language=draft.target_language,
                 source_url=draft.source_url,
             )
             if existing is not None:
                 raise DuplicateWarning(existing)
 
-        detected = None
-        if self._detector is not None:
-            detected = self._detector.detect(draft.pasted_content)
         source_route = resolve_source_route(
             input_tab=draft.input_tab,
-            detected_language=detected,
+            detected_language=None,
             native_language=draft.native_language,
             target_language=draft.target_language,
         )

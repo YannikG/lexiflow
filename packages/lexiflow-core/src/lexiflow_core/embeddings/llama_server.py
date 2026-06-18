@@ -6,7 +6,7 @@ import json
 import urllib.error
 import urllib.request
 
-from lexiflow_core.llm.llama_server import HTTPResponse, UrlOpener, _DefaultOpener
+from lexiflow_core.llm.llama_server import UrlOpener, _DefaultOpener, _read_http_json
 from lexiflow_core.vectors.models import EMBEDDING_DIM
 
 _DEFAULT_EMBED_SERVER_URL = "http://127.0.0.1:8081"
@@ -81,35 +81,11 @@ class LlamaServerEmbedder:
             method="POST",
             headers={"Content-Type": "application/json"},
         )
-        response: HTTPResponse | None = None
-        try:
-            response = self._opener.open(request, timeout=self._timeout)
-            status = getattr(response, "status", None)
-            if status is not None and not (200 <= status < 300):
-                raise LlamaServerEmbedError(f"llama-server returned HTTP {status}")
-            raw = response.read().decode("utf-8")
-        except urllib.error.HTTPError as exc:
-            exc.close()
-            raise LlamaServerEmbedError(
-                f"llama-server request failed: HTTP {exc.code}"
-            ) from exc
-        except urllib.error.URLError as exc:
-            raise LlamaServerEmbedError(
-                f"llama-server request failed: {exc.reason}"
-            ) from exc
-        except TimeoutError as exc:
-            raise LlamaServerEmbedError("llama-server request timed out") from exc
-        except OSError as exc:
-            raise LlamaServerEmbedError(f"llama-server request failed: {exc}") from exc
-        finally:
-            if response is not None:
-                response.close()
-
-        try:
-            payload = json.loads(raw)
-        except json.JSONDecodeError as exc:
-            raise LlamaServerEmbedError("llama-server returned invalid JSON") from exc
-
-        if not isinstance(payload, dict):
-            raise LlamaServerEmbedError("llama-server returned invalid JSON")
+        payload = _read_http_json(
+            self._opener,
+            request,
+            timeout=self._timeout,
+            error_cls=LlamaServerEmbedError,
+            service="llama-server",
+        )
         return _parse_embeddings_payload(payload)

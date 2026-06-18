@@ -59,10 +59,6 @@ mypy_path = [
 packages = ["lexiflow_core", "lexiflow_worker"]
 
 [[tool.mypy.overrides]]
-module = ["langdetect", "langdetect.*"]
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
 module = ["sqlite_vec"]
 ignore_missing_imports = true
 

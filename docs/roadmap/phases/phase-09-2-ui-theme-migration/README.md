@@ -42,9 +42,10 @@ Phases 05–09 delivered a working loop on **default PySide6 (Fusion) chrome**. 
 Implementation PR only — no code in the spec PR.
 
 ```python
-# lexiflow_ui.theme
+# lexiflow_ui.theme_stylesheet
 def apply_app_theme(app: QApplication, *, theme: Theme) -> None: ...
 def resolve_effective_theme(theme: Theme) -> Literal["light", "dark"]: ...
+def build_theme_stylesheet(effective: Literal["light", "dark"]) -> str: ...
 ```
 
 ## Manual spike (before implementation PR)
@@ -52,9 +53,9 @@ def resolve_effective_theme(theme: Theme) -> Literal["light", "dark"]: ...
 Run short PySide6 demos on macOS (see [`docs/spike/phase-9-2/`](../../../spike/phase-9-2/README.md)):
 
 1. Plain Fusion — baseline
-2. Bundled **dark theme** / **light theme** via `scripts/theme_spike.py`
+2. Bundled **dark theme** / **light theme** via `lexiflow_ui.theme_stylesheet`
 
-Capture screenshots; attach to PR Plan. **Implementation** selected Fusion + bundled `dark_theme.json` / `light_theme.json` (see ADR-0006).
+Capture screenshots; attach to PR Plan. **Implementation** selected Fusion + bundled `dark_theme.json` / `light_theme.json` (see ADR-0006). Archived spike PNGs live under `docs/spike/phase-9-2/`; the one-off capture script was removed after merge.
 
 ## TDD cycles
 

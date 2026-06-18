@@ -15,7 +15,7 @@ from lexiflow_ui.main_window import MainWindow
 from lexiflow_ui.onboarding.system_info import SystemInfo
 from lexiflow_ui.onboarding.wizard import OnboardingWizard, run_onboarding_if_needed
 from lexiflow_ui.single_instance import SingleInstanceGuard
-from lexiflow_ui.theme import apply_app_theme
+from lexiflow_ui.theme_stylesheet import apply_app_theme
 from lexiflow_ui.worker_supervisor import WorkerSupervisor
 
 

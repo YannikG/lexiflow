@@ -14,7 +14,7 @@ from lexiflow_core.library.text_repository import TextRepository
 from lexiflow_core.text_pipeline.models import InputTab
 from lexiflow_ui.dialogs.add_text_dialog import AddTextDialog
 from lexiflow_ui.main_window import MainWindow
-from lexiflow_ui.theme import apply_app_theme
+from lexiflow_ui.theme_stylesheet import apply_app_theme
 from lexiflow_ui.worker_supervisor import WorkerSupervisor
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (

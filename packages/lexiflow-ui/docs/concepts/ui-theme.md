@@ -11,7 +11,7 @@ See [ADR-0006](../../../../docs/adr/0006-desktop-ui-theme-strategy.md) for the l
 | Package | Role |
 |---------|------|
 | **lexiflow-core** | `Settings.theme` literal only — no Qt |
-| **lexiflow-ui** | `theme.py` — resolve **Theme** preference, apply stylesheet; `theme_stylesheet.py` — build QSS from bundled color tokens |
+| **lexiflow-ui** | `theme_stylesheet.py` — resolve **Theme** preference, apply stylesheet, build QSS from bundled color tokens |
 
 ## Phase 9-2 (UI theme migration)
 

@@ -12,10 +12,19 @@ if os.environ.get("LEXIFLOW_QT_HEADED") != "1":
 import subprocess
 import sys
 
+import PySide6
 import pytest
 from _pytest.config import Config
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication
+
+if not hasattr(PySide6, "__version__"):
+    from importlib.metadata import PackageNotFoundError, version
+
+    try:
+        PySide6.__version__ = version("pyside6-essentials")
+    except PackageNotFoundError:
+        PySide6.__version__ = "0.0.0"
 
 PACKAGE_COVERAGE_FLOORS: list[tuple[str, int]] = [
     ("*/lexiflow_core/*", 80),

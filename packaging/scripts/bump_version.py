@@ -4,8 +4,15 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
-import re
 from pathlib import Path
+
+from lexiflow_core.version_compare import (
+    bump_semver,
+    semver_max,
+)
+from lexiflow_core.version_compare import (
+    parse_semver_triple as parse_semver,
+)
 
 
 def _load_sync_version():
@@ -23,39 +30,6 @@ latest_git_tag_version = _sync.latest_git_tag_version
 read_pyproject_version = _sync.read_pyproject_version
 write_core_version = _sync.write_core_version
 write_pyproject_version = _sync.write_pyproject_version
-
-_SEMVER_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
-
-
-def parse_semver(version: str) -> tuple[int, int, int]:
-    """Parse ``X.Y.Z``; raise ``ValueError`` when not a plain semver triple."""
-    match = _SEMVER_RE.match(version.strip())
-    if match is None:
-        raise ValueError(f"not a semver triple: {version!r}")
-    return int(match.group(1)), int(match.group(2)), int(match.group(3))
-
-
-def semver_to_str(parts: tuple[int, int, int]) -> str:
-    return f"{parts[0]}.{parts[1]}.{parts[2]}"
-
-
-def semver_max(*versions: str) -> str:
-    """Return the greatest ``X.Y.Z`` among the given versions."""
-    if not versions:
-        raise ValueError("semver_max requires at least one version")
-    return semver_to_str(max(parse_semver(version) for version in versions))
-
-
-def bump_semver(version: str, bump: str) -> str:
-    """Return ``version`` after applying ``patch``, ``minor``, or ``major``."""
-    major, minor, patch = parse_semver(version)
-    if bump == "patch":
-        return semver_to_str((major, minor, patch + 1))
-    if bump == "minor":
-        return semver_to_str((major, minor + 1, 0))
-    if bump == "major":
-        return semver_to_str((major + 1, 0, 0))
-    raise ValueError(f"unsupported bump: {bump!r}")
 
 
 def resolve_base_version(*, repo_root: Path) -> str:

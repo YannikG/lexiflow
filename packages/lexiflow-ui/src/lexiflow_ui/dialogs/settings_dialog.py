@@ -46,7 +46,7 @@ from lexiflow_ui.onboarding.llm_config_page import DEFAULT_OLLAMA_URL, HF_TOKEN_
 from lexiflow_ui.onboarding.llm_mode_page import LlmMode
 from lexiflow_ui.onboarding.ollama_probe import OllamaProbe, PlatformOllamaProbe
 from lexiflow_ui.shutdown_flow import confirm_application_quit
-from lexiflow_ui.theme import apply_app_theme
+from lexiflow_ui.theme_stylesheet import apply_app_theme
 from lexiflow_ui.worker_supervisor import WorkerSupervisor
 
 _MASKED_TOKEN = "••••••••••••"
